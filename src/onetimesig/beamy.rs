@@ -1,8 +1,13 @@
 use crate::symmetric::{OneWay, Pseudorandom};
+use crate::symmetric::{hashprf::Sha256PRF, sha::Sha256Hash};
 
-use super::{winternitz::{isolate_w_bit_chunk, Winternitz, CHUNKS_PER_BYTE, MSG_LENGTH, NUM_CHAINS_MESSAGE, WINDOW_SIZE}, OneTimeSignatureScheme};
-
-
+use super::{
+    winternitz::{
+        isolate_w_bit_chunk, Winternitz, CHUNKS_PER_BYTE, MSG_LENGTH, NUM_CHAINS_MESSAGE,
+        WINDOW_SIZE,
+    },
+    OneTimeSignatureScheme,
+};
 
 /// Aggressive variant of Beamy (i.e., not signing the permutation)
 pub struct Beamy<H: OneWay, PRF: Pseudorandom> {
@@ -12,7 +17,7 @@ pub struct Beamy<H: OneWay, PRF: Pseudorandom> {
 
 fn count_chunk_frequencies(digest: &[u8; MSG_LENGTH as usize]) -> Vec<u64> {
     let k = 1 << WINDOW_SIZE;
-    let mut frequencies : Vec<u64> = vec![0u64; k];
+    let mut frequencies: Vec<u64> = vec![0u64; k];
 
     // iterate over the chunks and count
     for i in 0..NUM_CHAINS_MESSAGE as usize {
@@ -30,12 +35,11 @@ fn count_chunk_frequencies(digest: &[u8; MSG_LENGTH as usize]) -> Vec<u64> {
 }
 
 fn chunk_permutation(digest: &[u8; MSG_LENGTH as usize]) -> Vec<u8> {
-
     // we want to compute a permutation {0,...,k-1} -> {0,...,k-1}
     // for k = 2^{WINDOW_SIZE}. We want that the chunk that occurs
     // least often is mapped to 0, the second-least frequent to 1, and so on
     let k = 1 << WINDOW_SIZE;
-    let mut permutation : Vec<u8> = vec![0u8; k];
+    let mut permutation: Vec<u8> = vec![0u8; k];
 
     // Step 1: count frequencies
     let frequencies = count_chunk_frequencies(digest);
@@ -46,7 +50,13 @@ fn chunk_permutation(digest: &[u8; MSG_LENGTH as usize]) -> Vec<u8> {
     let mut used = vec![false; k];
     for j in 0..k {
         // find j-th least frequent chunk, and assign j to it
-        let jlfc = frequencies.iter().enumerate().filter(|&(chunk,_freq)| !used[chunk]).min_by_key(|&(_chunk,freq)| freq).map(|(chunk,_freq)| chunk).unwrap();
+        let jlfc = frequencies
+            .iter()
+            .enumerate()
+            .filter(|&(chunk, _freq)| !used[chunk])
+            .min_by_key(|&(_chunk, freq)| freq)
+            .map(|(chunk, _freq)| chunk)
+            .unwrap();
         used[jlfc] = true;
         permutation[jlfc] = j as u8;
     }
@@ -54,8 +64,11 @@ fn chunk_permutation(digest: &[u8; MSG_LENGTH as usize]) -> Vec<u8> {
     permutation
 }
 
-fn apply_permutation(digest: &[u8; MSG_LENGTH as usize], permutation: &Vec<u8>) -> [u8; MSG_LENGTH as usize] {
-    let mut normalized_digest : [u8; MSG_LENGTH as usize] = [0u8; MSG_LENGTH as usize];
+fn apply_permutation(
+    digest: &[u8; MSG_LENGTH as usize],
+    permutation: &Vec<u8>,
+) -> [u8; MSG_LENGTH as usize] {
+    let mut normalized_digest: [u8; MSG_LENGTH as usize] = [0u8; MSG_LENGTH as usize];
 
     for i in 0..NUM_CHAINS_MESSAGE as usize {
         // isolate the byte in which the chunk resides
@@ -76,8 +89,10 @@ fn apply_permutation(digest: &[u8; MSG_LENGTH as usize], permutation: &Vec<u8>) 
     normalized_digest
 }
 
-impl<H: OneWay, PRF: Pseudorandom> OneTimeSignatureScheme for Beamy<H, PRF> where
-PRF::Output: Into<H::Domain>, {
+impl<H: OneWay, PRF: Pseudorandom> OneTimeSignatureScheme for Beamy<H, PRF>
+where
+    PRF::Output: Into<H::Domain>,
+{
     type PublicKey = <Winternitz<H, PRF> as OneTimeSignatureScheme>::PublicKey;
 
     type SecretKey = <Winternitz<H, PRF> as OneTimeSignatureScheme>::SecretKey;
@@ -115,14 +130,14 @@ PRF::Output: Into<H::Domain>, {
 }
 
 
+/// Beamy instantiated with SHA-256
+pub type BeamySha = Beamy<Sha256Hash, Sha256PRF>;
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::symmetric::{hashprf::Sha256PRF, sha::Sha256Hash};
     use rand::{seq::SliceRandom, thread_rng};
     pub use sha2::{Digest, Sha256};
-
-    type BeamySha = Beamy<Sha256Hash, Sha256PRF>;
 
     #[test]
     fn honest_signing_verification() {
@@ -163,7 +178,6 @@ mod tests {
 
     #[test]
     fn test_permutation() {
-
         // In this test, we check that `chunk_permutation` works as expected
         // On the way, we also test `count_chunk_frequencies`
 

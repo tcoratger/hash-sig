@@ -1,6 +1,7 @@
 use super::OneTimeSignatureScheme;
 use crate::symmetric::OneWay;
 use crate::symmetric::Pseudorandom;
+use crate::symmetric::{hashprf::Sha256PRF, sha::Sha256Hash};
 
 pub(crate) const MSG_LENGTH: u64 = 32; // 32 bytes = 256 bit
 pub(crate) const WINDOW_SIZE: u64 = 2; // window size. Make sure it divides MSG_LENGTH and 8
@@ -18,7 +19,6 @@ pub struct Winternitz<H: OneWay, PRF: Pseudorandom> {
     _marker_h: std::marker::PhantomData<H>,
     _marker_prf: std::marker::PhantomData<PRF>,
 }
-
 
 /// Computes the end of a Winternitz chain given a starting point and a specified number of steps.
 ///
@@ -41,7 +41,10 @@ pub struct Winternitz<H: OneWay, PRF: Pseudorandom> {
 /// - The function panics if `steps >= CHAIN_LENGTH`.
 fn chain<H: OneWay>(steps: usize, start: &H::Domain) -> H::Domain {
     // Ensure `steps` is within the permissible chain length.
-    assert!(steps < CHAIN_LENGTH as usize, "Number of steps > CHAIN_LENGTH.");
+    assert!(
+        steps < CHAIN_LENGTH as usize,
+        "Number of steps > CHAIN_LENGTH."
+    );
 
     // Initialize the chain with the starting value.
     let mut current = start.clone();
@@ -135,16 +138,17 @@ fn domination_free_function(digest: &[u8; MSG_LENGTH as usize]) -> [usize; NUM_C
 
         // isolate the chunk
         let chunk_index = i % CHUNKS_PER_BYTE as usize;
-        steps[NUM_CHAINS_MESSAGE as usize + i] = isolate_w_bit_chunk(byte, chunk_index, WINDOW_SIZE as usize) as usize;
+        steps[NUM_CHAINS_MESSAGE as usize + i] =
+            isolate_w_bit_chunk(byte, chunk_index, WINDOW_SIZE as usize) as usize;
     }
 
     steps
 }
 
-
-
-impl<H: OneWay, PRF: Pseudorandom> OneTimeSignatureScheme for Winternitz<H, PRF> where
-PRF::Output: Into<H::Domain>, {
+impl<H: OneWay, PRF: Pseudorandom> OneTimeSignatureScheme for Winternitz<H, PRF>
+where
+    PRF::Output: Into<H::Domain>,
+{
     type PublicKey = H::Domain;
 
     type SecretKey = PRF::Key;
@@ -162,7 +166,8 @@ PRF::Output: Into<H::Domain>, {
             std::array::from_fn(|i| PRF::apply(&sk, i as u64).into());
 
         // compute the end of each chain
-        let mut chain_ends: [<H as OneWay>::Domain; NUM_CHAINS as usize] = [H::Domain::default(); NUM_CHAINS as usize];
+        let mut chain_ends: [<H as OneWay>::Domain; NUM_CHAINS as usize] =
+            [H::Domain::default(); NUM_CHAINS as usize];
         for (i, &start) in chain_starts.iter().enumerate() {
             chain_ends[i] = chain::<H>(CHAIN_LENGTH as usize - 1, &start);
         }
@@ -179,10 +184,11 @@ PRF::Output: Into<H::Domain>, {
             std::array::from_fn(|i| PRF::apply(&sk, i as u64).into());
 
         // determine how far we will walk with our chains
-        let steps : [usize; NUM_CHAINS as usize] = domination_free_function(digest);
+        let steps: [usize; NUM_CHAINS as usize] = domination_free_function(digest);
 
         // now, partially walk the chain to get the signature
-        let mut signature: [<H as OneWay>::Domain; NUM_CHAINS as usize] = [H::Domain::default(); NUM_CHAINS as usize];
+        let mut signature: [<H as OneWay>::Domain; NUM_CHAINS as usize] =
+            [H::Domain::default(); NUM_CHAINS as usize];
         for (i, &start) in chain_starts.iter().enumerate() {
             signature[i] = chain::<H>(steps[i], &start);
         }
@@ -192,13 +198,15 @@ PRF::Output: Into<H::Domain>, {
 
     fn verify(pk: &Self::PublicKey, digest: &Self::Digest, sig: &Self::Signature) -> bool {
         // determine how far the signer had to walk
-        let steps_sign : [usize; NUM_CHAINS as usize] = domination_free_function(digest);
+        let steps_sign: [usize; NUM_CHAINS as usize] = domination_free_function(digest);
 
         // if the signer already walked k steps, then we need to walk CHAIN_LENGTH - 1 - k steps
-        let steps_verify : [usize; NUM_CHAINS as usize] = std::array::from_fn(|i| CHAIN_LENGTH as usize - 1 - steps_sign[i]);
+        let steps_verify: [usize; NUM_CHAINS as usize] =
+            std::array::from_fn(|i| CHAIN_LENGTH as usize - 1 - steps_sign[i]);
 
         // continue walking the chains to compute the ends of all chains
-        let mut chain_ends: [<H as OneWay>::Domain; NUM_CHAINS as usize] = [H::Domain::default(); NUM_CHAINS as usize];
+        let mut chain_ends: [<H as OneWay>::Domain; NUM_CHAINS as usize] =
+            [H::Domain::default(); NUM_CHAINS as usize];
         for (i, &intermediate) in sig.iter().enumerate() {
             chain_ends[i] = chain::<H>(steps_verify[i], &intermediate);
         }
@@ -209,15 +217,14 @@ PRF::Output: Into<H::Domain>, {
 }
 
 
+/// Winternitz instantiaed with SHA-256
+pub type WinternitzSha = Winternitz<Sha256Hash, Sha256PRF>;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::symmetric::{hashprf::Sha256PRF, sha::Sha256Hash};
     use rand::thread_rng;
     pub use sha2::{Digest, Sha256};
-
-    type WinternitzSha = Winternitz<Sha256Hash, Sha256PRF>;
 
     #[test]
     fn honest_signing_verification() {
@@ -258,10 +265,9 @@ mod tests {
 
     #[test]
     fn test_isolate_w_bit_chunk() {
-
         // In this test, we check that `isolate_w_bit_chunk` panics as expected
 
-        let byte : u8 = 0b01101100;
+        let byte: u8 = 0b01101100;
 
         assert_eq!(isolate_w_bit_chunk(byte, 0, 2), 0b00);
         assert_eq!(isolate_w_bit_chunk(byte, 1, 2), 0b11);
@@ -274,7 +280,6 @@ mod tests {
 
     #[test]
     fn test_chain_associative() {
-
         // We test that the function chain is associative, i.e.,
         // that running a chain of length k2 starting from the end
         // of a chain of length k1 is the same as running a chain
@@ -296,5 +301,4 @@ mod tests {
         // the two ends should be the same
         assert_eq!(end_one, end_two);
     }
-
 }

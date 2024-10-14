@@ -1,11 +1,7 @@
 use criterion::Criterion;
-use hashsig::onetimesig::beamy::Beamy;
+use hashsig::onetimesig::beamy::BeamySha;
 use hashsig::onetimesig::OneTimeSignatureScheme;
-use hashsig::symmetric::hashprf::Sha256PRF;
-use hashsig::symmetric::sha::Sha256Hash;
 use rand::rngs::OsRng;
-
-type BeamySha = Beamy<Sha256Hash, Sha256PRF>;
 
 pub fn beamy_bench(c: &mut Criterion) {
     let mut rng = OsRng;

@@ -1,4 +1,5 @@
 use super::OneTimeSignatureScheme;
+use crate::symmetric::{hashprf::Sha256PRF, sha::Sha256Hash};
 use crate::symmetric::{OneWay, Pseudorandom};
 use rand::Rng;
 
@@ -37,7 +38,8 @@ where
 
         // for each secret key component, apply the function
         // to get the public key component
-        let pre_pk: [H::Domain; MSG_LENGTH * 8 * 2] = std::array::from_fn(|i| H::apply(&expanded_sk[i..=i]));
+        let pre_pk: [H::Domain; MSG_LENGTH * 8 * 2] =
+            std::array::from_fn(|i| H::apply(&expanded_sk[i..=i]));
 
         // now compress the pre_pk
         let pk = H::apply(&pre_pk);
@@ -72,7 +74,8 @@ where
     }
 
     fn verify(pk: &Self::PublicKey, digest: &Self::Digest, sig: &Self::Signature) -> bool {
-        let mut pre_pk: [H::Domain; MSG_LENGTH * 8 * 2] = [H::Domain::default(); MSG_LENGTH * 8 * 2];
+        let mut pre_pk: [H::Domain; MSG_LENGTH * 8 * 2] =
+            [H::Domain::default(); MSG_LENGTH * 8 * 2];
 
         // iterate through the bits of the message and recompute the pre_pk
         for (byte_index, byte) in digest.iter().enumerate() {
@@ -95,14 +98,15 @@ where
     }
 }
 
+/// Lamport instantiated with SHA-256
+pub type LamportSha = Lamport<Sha256Hash, Sha256PRF>;
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::symmetric::{hashprf::Sha256PRF, sha::Sha256Hash};
     use rand::thread_rng;
     pub use sha2::{Digest, Sha256};
 
-    type LamportSha = Lamport<Sha256Hash, Sha256PRF>;
 
     #[test]
     fn honest_signing_verification() {

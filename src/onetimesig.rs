@@ -17,6 +17,6 @@ pub trait OneTimeSignatureScheme {
     fn verify(pk: &Self::PublicKey, digest: &Self::Digest, sig: &Self::Signature) -> bool;
 }
 
+pub mod beamy;
 pub mod lamport;
 pub mod winternitz;
-pub mod beamy;
