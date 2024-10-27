@@ -10,7 +10,7 @@ use super::{
 };
 
 /// Aggressive variant of Beamy (i.e., not signing the permutation)
-pub struct Beamy<H: OneWay, PRF: Pseudorandom> {
+pub struct PermutedWinternitz<H: OneWay, PRF: Pseudorandom> {
     _marker_h: std::marker::PhantomData<H>,
     _marker_prf: std::marker::PhantomData<PRF>,
 }
@@ -48,13 +48,13 @@ fn chunk_permutation(digest: &[u8; MSG_LENGTH as usize]) -> Vec<u8> {
     // Note that we could use sorting, but we do not expect k to be very
     // large, so doing it in this k^2 way is probably fine for now
     let mut used = vec![false; k];
-    for j in 0..k {
-        // find j-th least frequent chunk, and assign j to it
+    for j in (0..k).rev() {
+        // find j-th most frequent chunk, and assign j to it
         let jlfc = frequencies
             .iter()
             .enumerate()
             .filter(|&(chunk, _freq)| !used[chunk])
-            .min_by_key(|&(_chunk, freq)| freq)
+            .max_by_key(|&(_chunk, freq)| freq)
             .map(|(chunk, _freq)| chunk)
             .unwrap();
         used[jlfc] = true;
@@ -89,7 +89,7 @@ fn apply_permutation(
     normalized_digest
 }
 
-impl<H: OneWay, PRF: Pseudorandom> OneTimeSignatureScheme for Beamy<H, PRF>
+impl<H: OneWay, PRF: Pseudorandom> OneTimeSignatureScheme for PermutedWinternitz<H, PRF>
 where
     PRF::Output: Into<H::Domain>,
 {
@@ -131,7 +131,7 @@ where
 
 
 /// Beamy instantiated with SHA-256
-pub type BeamySha = Beamy<Sha256Hash, Sha256PRF>;
+pub type PermutedWinternitzSha = PermutedWinternitz<Sha256Hash, Sha256PRF>;
 
 #[cfg(test)]
 mod tests {
@@ -142,14 +142,14 @@ mod tests {
     #[test]
     fn honest_signing_verification() {
         let mut rng = thread_rng();
-        let (pk, sk) = BeamySha::gen(&mut rng);
+        let (pk, sk) = PermutedWinternitzSha::gen(&mut rng);
 
         let message = b"Test message to sign";
         let digest = Sha256::digest(message);
 
-        let signature = BeamySha::sign(&sk, &digest.into());
+        let signature = PermutedWinternitzSha::sign(&sk, &digest.into());
 
-        let is_valid = BeamySha::verify(&pk, &digest.into(), &signature);
+        let is_valid = PermutedWinternitzSha::verify(&pk, &digest.into(), &signature);
         assert!(
             is_valid,
             "The signature should be valid with correct keys and message."
@@ -159,17 +159,17 @@ mod tests {
     #[test]
     fn manipulated_signature_verification() {
         let mut rng = thread_rng();
-        let (pk, sk) = BeamySha::gen(&mut rng);
+        let (pk, sk) = PermutedWinternitzSha::gen(&mut rng);
 
         let message = b"Test message to sign";
         let digest = Sha256::digest(message);
 
-        let mut signature = BeamySha::sign(&sk, &digest.into());
+        let mut signature = PermutedWinternitzSha::sign(&sk, &digest.into());
 
         // Manipulate one byte in the signature's opened field
         signature[0][0] ^= 0xFF; // Flip all bits in the first byte of the first element
 
-        let is_valid = BeamySha::verify(&pk, &digest.into(), &signature);
+        let is_valid = PermutedWinternitzSha::verify(&pk, &digest.into(), &signature);
         assert!(
             !is_valid,
             "The signature should be invalid when a byte is manipulated."

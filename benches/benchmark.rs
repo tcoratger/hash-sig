@@ -1,10 +1,10 @@
 use criterion::{criterion_group, criterion_main};
 
-use benchmark_beamy::beamy_bench;
+use benchmark_perm_wnitz::beamy_bench;
 use benchmark_lamport::lamport_bench;
 use benchmark_wnitz::winternitz_bench;
 
-mod benchmark_beamy;
+mod benchmark_perm_wnitz;
 mod benchmark_lamport;
 mod benchmark_wnitz;
 
