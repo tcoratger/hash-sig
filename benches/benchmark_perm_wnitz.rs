@@ -3,7 +3,7 @@ use hashsig::onetimesig::permuted_winternitz::PermutedWinternitzSha;
 use hashsig::onetimesig::OneTimeSignatureScheme;
 use rand::rngs::OsRng;
 
-pub fn beamy_bench(c: &mut Criterion) {
+pub fn permuted_winternitz_bench(c: &mut Criterion) {
     let mut rng = OsRng;
 
     // benchmark for key generation
