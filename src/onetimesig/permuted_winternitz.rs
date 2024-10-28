@@ -1,5 +1,5 @@
-use crate::symmetric::{OneWay, Pseudorandom};
 use crate::symmetric::{hashprf::Sha256PRF, sha::Sha256Hash};
+use crate::symmetric::{OneWay, Pseudorandom};
 
 use super::{
     winternitz::{
@@ -128,7 +128,6 @@ where
         <Winternitz<H, PRF> as OneTimeSignatureScheme>::verify(pk, &normalized_digest, sig)
     }
 }
-
 
 /// Beamy instantiated with SHA-256
 pub type PermutedWinternitzSha = PermutedWinternitz<Sha256Hash, Sha256PRF>;

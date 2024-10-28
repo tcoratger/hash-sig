@@ -107,7 +107,6 @@ mod tests {
     use rand::thread_rng;
     pub use sha2::{Digest, Sha256};
 
-
     #[test]
     fn honest_signing_verification() {
         let mut rng = thread_rng();

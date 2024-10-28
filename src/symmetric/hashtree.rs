@@ -87,10 +87,7 @@ impl<H: OneWay> VectorCommitment for HashTree<H> {
         // Put the leaf in the opening and return it
         let leaf = vector[position as usize];
 
-        HashTreeOpening {
-            leaf,
-            co_path,
-        }
+        HashTreeOpening { leaf, co_path }
     }
 
     fn verify(com: &Self::Commitment, position: u64, opening: &Self::Opening) -> bool {
@@ -127,7 +124,6 @@ impl<H: OneWay> VectorCommitment for HashTree<H> {
 /// SHA256-based Hash-Tree
 pub type Sha256HashTree = HashTree<Sha256Hash>;
 
-
 #[cfg(test)]
 mod tests {
     use rand::thread_rng;
@@ -143,8 +139,8 @@ mod tests {
         // We test that committing, opening, and verifying works as expected
 
         // First, get a vector
-        let vector : [<Sha256Hash as OneWay>::Domain; WIDTH] =
-        std::array::from_fn(|_| <Sha256Hash as OneWay>::sample(&mut rng));
+        let vector: [<Sha256Hash as OneWay>::Domain; WIDTH] =
+            std::array::from_fn(|_| <Sha256Hash as OneWay>::sample(&mut rng));
 
         // now compute a commitment
         let com = Sha256HashTree::commit(&vector);

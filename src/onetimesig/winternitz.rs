@@ -39,7 +39,7 @@ pub struct Winternitz<H: OneWay, PRF: Pseudorandom> {
 ///
 /// # Panics
 /// - The function panics if `steps >= CHAIN_LENGTH`.
-fn chain<H: OneWay>(steps: usize, start: &H::Domain) -> H::Domain {
+pub(crate) fn chain<H: OneWay>(steps: usize, start: &H::Domain) -> H::Domain {
     // Ensure `steps` is within the permissible chain length.
     assert!(
         steps < CHAIN_LENGTH as usize,
@@ -92,7 +92,7 @@ pub(crate) fn isolate_w_bit_chunk(byte: u8, chunk_index: usize, window_size: usi
     (byte >> start_bit_pos) & mask
 }
 
-/// Implements a domination-free function.
+/// Implements a domination-free function for the Winternitz scheme.
 ///
 /// This function generates a sequence of integers representing how far we will walk
 /// during signing in the hash chains. It computes the steps from the provided message digest,
@@ -153,7 +153,7 @@ where
 
     type SecretKey = PRF::Key;
 
-    type Signature = [H::Domain; NUM_CHAINS as usize]; // one element for each chain
+    type Signature = [H::Domain; NUM_CHAINS as usize];
 
     type Digest = [u8; MSG_LENGTH as usize];
 
@@ -216,8 +216,7 @@ where
     }
 }
 
-
-/// Winternitz instantiaed with SHA-256
+/// Winternitz instantiated with SHA-256
 pub type WinternitzSha = Winternitz<Sha256Hash, Sha256PRF>;
 
 #[cfg(test)]
