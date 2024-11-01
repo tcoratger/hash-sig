@@ -1,6 +1,7 @@
 # Hash-Based Signatures in Rust
 
 This repository contains a *prototypical* Rust implementation of hash-based one-time signatures and synchronized signatures.
+The code has not been audited and is not meant to be used in production.
 
 Note: this is work in progress and in a very early stage.
 
@@ -9,8 +10,8 @@ Note: this is work in progress and in a very early stage.
 Currently, the following are implemented:
 - Lamport
 - Winternitz
-- A variant of Winternitz with minimal hashing, called *Beamy*.
-
+- A variant of Winternitz in which the message hash is changed before chaining is applied
+- A variant of Witnernitz in which the checksum can be omitted because it is fixed
 
 ## Tests
 
