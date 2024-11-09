@@ -8,10 +8,14 @@ Note: this is work in progress and in a very early stage.
 ## Implemented Schemes
 
 Currently, the following are implemented:
-- Lamport
-- Winternitz
-- A variant of Winternitz in which the message hash is changed before chaining is applied
-- A variant of Witnernitz in which the checksum can be omitted because it is fixed
+- Lamport (`hashsig::onetimesig::lamport`)
+- Winternitz (`hashsig::onetimesig::winternitz`)
+- A variant of Winternitz (`hashsig::onetimesig::permuted_winternitz`)
+    * the message hash is changed before chaining is applied
+    * think of it as a normalization of the message before doing Winternitz
+- A variant of Winternitz (`hashsig::onetimesig::fixed_sum_winternitz`)
+    * the checksum can be omitted because it is fixed
+    * several seeds are tried to obtain a message hash that has this checksum
 
 ## Tests
 
