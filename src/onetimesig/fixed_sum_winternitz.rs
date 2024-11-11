@@ -142,6 +142,8 @@ where
     }
 
     fn sign(sk: &Self::SecretKey, digest: &Self::Digest) -> Self::Signature {
+        // TODO: remove SALT! Move it to signature scheme
+
         // we try to find a salt for which we get the target sum, and then we
         // use Winternitz-style signing (without checksum) for that sum.
 
@@ -176,6 +178,8 @@ where
     }
 
     fn verify(pk: &Self::PublicKey, digest: &Self::Digest, sig: &Self::Signature) -> bool {
+        // TODO: remove SALT! Move it to signature scheme
+
         // the salt MUST be in range
         if sig.salt >= SALT_BOUND {
             return false;
@@ -207,6 +211,12 @@ where
             }
             Err(_) => false,
         }
+    }
+
+    fn is_digest_valid(digest: &Self::Digest) -> bool {
+        // only digests with the target sum are valid and
+        // can be signed in this scheme
+        domination_free_function_fixed_sum(&digest).is_ok()
     }
 }
 

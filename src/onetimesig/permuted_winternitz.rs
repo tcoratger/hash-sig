@@ -127,6 +127,11 @@ where
         // then, we verify with Winternitz
         <Winternitz<H, PRF> as OneTimeSignatureScheme>::verify(pk, &normalized_digest, sig)
     }
+
+    fn is_digest_valid(_digest: &Self::Digest) -> bool {
+        // every digest can be signed in this scheme
+        true
+    }
 }
 
 /// Beamy instantiated with SHA-256

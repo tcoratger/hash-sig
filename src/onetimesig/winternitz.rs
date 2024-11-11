@@ -214,6 +214,11 @@ where
         // check that the hash of these chain ends matches the pk
         *pk == H::apply(&chain_ends)
     }
+
+    fn is_digest_valid(_digest: &Self::Digest) -> bool {
+        // every digest can be signed in this scheme
+        true
+    }
 }
 
 /// Winternitz instantiated with SHA-256
