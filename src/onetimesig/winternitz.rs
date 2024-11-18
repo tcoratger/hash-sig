@@ -227,25 +227,20 @@ pub type WinternitzSha = Winternitz<Sha256Hash, Sha256PRF>;
 
 #[cfg(test)]
 mod tests {
+    use crate::onetimesig::test_templates::{_honest_signing_verification_template, _wrong_digest_verification_template};
+
     use super::*;
     use rand::thread_rng;
     pub use sha2::{Digest, Sha256};
 
     #[test]
     fn honest_signing_verification() {
-        let mut rng = thread_rng();
-        let (pk, sk) = WinternitzSha::gen(&mut rng);
+        _honest_signing_verification_template::<WinternitzSha>();
+    }
 
-        let message = b"Test message to sign";
-        let digest = Sha256::digest(message);
-
-        let signature = WinternitzSha::sign(&sk, &digest.into());
-
-        let is_valid = WinternitzSha::verify(&pk, &digest.into(), &signature);
-        assert!(
-            is_valid,
-            "The signature should be valid with correct keys and message."
-        );
+    #[test]
+    fn wrong_digest_verification() {
+        _wrong_digest_verification_template::<WinternitzSha>();
     }
 
     #[test]
