@@ -9,7 +9,9 @@ use super::{
     OneTimeSignatureScheme,
 };
 
-/// Aggressive variant of Beamy (i.e., not signing the permutation)
+/// A variant of Winternitz in which we apply a permutation
+/// to the message digest before signing it.
+/// Thie is the aggressive variant (i.e., not signing the permutation).
 pub struct PermutedWinternitz<H: OneWay, PRF: Pseudorandom> {
     _marker_h: std::marker::PhantomData<H>,
     _marker_prf: std::marker::PhantomData<PRF>,
@@ -34,7 +36,7 @@ fn count_chunk_frequencies(digest: &[u8; MSG_LENGTH as usize]) -> Vec<u64> {
     frequencies
 }
 
-fn chunk_permutation(digest: &[u8; MSG_LENGTH as usize]) -> Vec<u8> {
+pub(crate) fn chunk_permutation(digest: &[u8; MSG_LENGTH as usize]) -> Vec<u8> {
     // we want to compute a permutation {0,...,k-1} -> {0,...,k-1}
     // for k = 2^{WINDOW_SIZE}. We want that the chunk that occurs
     // least often is mapped to 0, the second-least frequent to 1, and so on
@@ -64,7 +66,7 @@ fn chunk_permutation(digest: &[u8; MSG_LENGTH as usize]) -> Vec<u8> {
     permutation
 }
 
-fn apply_permutation(
+pub(crate) fn apply_permutation(
     digest: &[u8; MSG_LENGTH as usize],
     permutation: &Vec<u8>,
 ) -> [u8; MSG_LENGTH as usize] {
@@ -135,7 +137,7 @@ where
     }
 }
 
-/// Beamy instantiated with SHA-256
+/// PermutedWinternitz instantiated with SHA-256
 pub type PermutedWinternitzSha = PermutedWinternitz<Sha256Hash, Sha256PRF>;
 
 #[cfg(test)]

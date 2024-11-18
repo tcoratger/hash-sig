@@ -20,3 +20,5 @@ pub mod symmetric;
 //     /// Verifies a signature with respect to public key and message digest.
 //     fn verify(pk: &Self::PublicKey, index: u32, digest: &[u8; 32], sig: &Self::Signature) -> bool;
 // }
+
+// Note: we can implement this from a Merkle tree / vector commitment and a one time signature scheme

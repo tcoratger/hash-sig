@@ -23,8 +23,8 @@ pub struct FixedSumWinternitz<H: OneWay, PRF: Pseudorandom> {
 }
 
 pub struct FixedSumWinternitzSignature<H: OneWay> {
-    signature: [H::Domain; NUM_CHAINS_MESSAGE as usize],
-    salt: u32,
+    pub signature: [H::Domain; NUM_CHAINS_MESSAGE as usize],
+    pub salt: u32,
 }
 
 /// Implements a domination-free function for the FixedSumWinternitz scheme.
@@ -50,7 +50,7 @@ pub struct FixedSumWinternitzSignature<H: OneWay> {
 /// This function may panic if the calculations for the indices exceed the bounds of the arrays
 /// or if constants such as `MSG_LENGTH`, `NUM_CHAINS_MESSAGE` are not defined
 /// correctly to accommodate the size of the arrays. Otherwise, the function does not panic.
-fn domination_free_function_fixed_sum(
+pub(crate) fn domination_free_function_fixed_sum(
     digest: &[u8; MSG_LENGTH as usize],
 ) -> Result<[usize; NUM_CHAINS_MESSAGE as usize], &'static str> {
     let mut steps = [0; NUM_CHAINS_MESSAGE as usize];
@@ -96,7 +96,10 @@ fn domination_free_function_fixed_sum(
 /// # Panics
 /// This function will panic if `MSG_LENGTH` is greater than 32, as the SHA-256 hash
 /// output is only 32 bytes long.
-fn salted_digest(digest: &[u8; MSG_LENGTH as usize], salt: u32) -> [u8; MSG_LENGTH as usize] {
+pub(crate) fn salted_digest(
+    digest: &[u8; MSG_LENGTH as usize],
+    salt: u32,
+) -> [u8; MSG_LENGTH as usize] {
     // hash the digest and the salt
     let mut hasher = Sha256::new();
     hasher.update(digest);

@@ -1,9 +1,7 @@
 # Hash-Based Signatures in Rust
 
 This repository contains a *prototypical* Rust implementation of hash-based one-time signatures and synchronized signatures.
-The code has not been audited and is not meant to be used in production.
-
-Note: this is work in progress and in a very early stage.
+The code has not been audited and is not meant to be used in production. It is a playground to explore hash-based signatures.
 
 ## Implemented Schemes
 
@@ -16,6 +14,8 @@ Currently, the following are implemented:
 - A variant of Winternitz (`hashsig::onetimesig::fixed_sum_winternitz`)
     * the checksum can be omitted because it is fixed
     * several seeds are tried to obtain a message hash that has this checksum
+- A combination of the two variants (`hashsig::onetimesig::fixed_sum_permuted_winternitz`)
+    * the checksum of the normalized message hash is fixed
 
 ## Tests
 

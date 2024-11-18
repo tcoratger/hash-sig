@@ -20,6 +20,7 @@ pub trait OneTimeSignatureScheme {
     fn verify(pk: &Self::PublicKey, digest: &Self::Digest, sig: &Self::Signature) -> bool;
 }
 
+pub mod fixed_sum_permuted_winternitz;
 pub mod fixed_sum_winternitz;
 pub mod lamport;
 pub mod permuted_winternitz;
