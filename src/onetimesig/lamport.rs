@@ -47,6 +47,12 @@ where
         (pk, sk)
     }
 
+    fn rand_digest<R: Rng>(rng: &mut R) -> Self::Digest {
+        let mut digest = [0u8; MSG_LENGTH];
+        rng.fill_bytes(&mut digest);
+        digest
+    }
+
     fn sign(sk: &Self::SecretKey, digest: &Self::Digest) -> Self::Signature {
         let mut opened: [H::Domain; MSG_LENGTH * 8] = [H::Domain::default(); MSG_LENGTH * 8];
         let mut unopened: [H::Domain; MSG_LENGTH * 8] = [H::Domain::default(); MSG_LENGTH * 8];

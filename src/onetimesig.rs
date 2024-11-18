@@ -10,6 +10,9 @@ pub trait OneTimeSignatureScheme {
     /// Generates a new key pair, returning the public and private keys.
     fn gen<R: Rng>(rng: &mut R) -> (Self::PublicKey, Self::SecretKey);
 
+    /// Generates a random digest (e.g., used for test purposes)
+    fn rand_digest<R: Rng>(rng: &mut R) -> Self::Digest;
+
     /// Signs a message (given by its digest) and returns the signature.
     fn sign(sk: &Self::SecretKey, digest: &Self::Digest) -> Self::Signature;
 

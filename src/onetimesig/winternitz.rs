@@ -178,6 +178,12 @@ where
         (pk, sk)
     }
 
+    fn rand_digest<R: rand::Rng>(rng: &mut R) -> Self::Digest {
+        let mut digest = [0u8; MSG_LENGTH as usize];
+        rng.fill_bytes(&mut digest);
+        digest
+    }
+
     fn sign(sk: &Self::SecretKey, digest: &Self::Digest) -> Self::Signature {
         // expand the secret key to NUM_CHAINS many chain starting points
         let chain_starts: [H::Domain; NUM_CHAINS as usize] =
