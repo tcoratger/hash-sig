@@ -96,11 +96,6 @@ where
         // check that compressing pre_pk results in pk
         *pk == H::apply(&pre_pk)
     }
-
-    fn is_digest_valid(_digest: &Self::Digest) -> bool {
-        // every digest can be signed in Lamport
-        true
-    }
 }
 
 /// Lamport instantiated with SHA-256
