@@ -1,7 +1,7 @@
 use super::{sha::Sha256Hash, OneWay, VectorCommitment};
 
-const DEPTH: usize = 2;
-const WIDTH: usize = 1 << DEPTH; // lifetime is 2^DEPTH keys
+pub(crate) const DEPTH: usize = 10;
+pub(crate) const WIDTH: usize = 1 << DEPTH; // lifetime is 2^DEPTH keys
 
 /// Hash-Tree based on a OWF
 pub struct HashTree<H: OneWay> {
