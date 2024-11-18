@@ -227,7 +227,9 @@ pub type WinternitzSha = Winternitz<Sha256Hash, Sha256PRF>;
 
 #[cfg(test)]
 mod tests {
-    use crate::onetimesig::test_templates::{_honest_signing_verification_template, _wrong_digest_verification_template};
+    use crate::onetimesig::test_templates::{
+        _honest_signing_verification_template, _wrong_digest_verification_template,
+    };
 
     use super::*;
     use rand::thread_rng;

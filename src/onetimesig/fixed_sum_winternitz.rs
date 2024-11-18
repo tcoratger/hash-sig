@@ -148,7 +148,6 @@ where
     }
 
     fn sign(sk: &Self::SecretKey, digest: &Self::Digest) -> Self::Signature {
-
         // we try to find a salt for which we get the target sum, and then we
         // use Winternitz-style signing (without checksum) for that sum.
 
@@ -183,7 +182,6 @@ where
     }
 
     fn verify(pk: &Self::PublicKey, digest: &Self::Digest, sig: &Self::Signature) -> bool {
-
         // the salt MUST be in range
         if sig.salt >= SALT_BOUND {
             return false;
@@ -223,7 +221,9 @@ pub type FixedSumWinternitzSha = FixedSumWinternitz<Sha256Hash, Sha256PRF>;
 
 #[cfg(test)]
 mod tests {
-    use crate::onetimesig::test_templates::{_honest_signing_verification_template, _wrong_digest_verification_template};
+    use crate::onetimesig::test_templates::{
+        _honest_signing_verification_template, _wrong_digest_verification_template,
+    };
 
     use super::*;
     use rand::thread_rng;

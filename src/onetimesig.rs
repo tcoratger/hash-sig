@@ -33,7 +33,7 @@ mod test_templates {
 
     /// Template for tests: honest key gen, sign, and verify for
     /// a random digest. Verification should accept.
-    pub fn _honest_signing_verification_template<OTS : OneTimeSignatureScheme>() {
+    pub fn _honest_signing_verification_template<OTS: OneTimeSignatureScheme>() {
         let mut rng = thread_rng();
         let (pk, sk) = OTS::gen(&mut rng);
 
@@ -51,7 +51,10 @@ mod test_templates {
     /// Template for tests: honest key gen, and sign for
     /// a random digest, but then verify for other digest.
     /// Verification should reject.
-    pub fn _wrong_digest_verification_template<OTS : OneTimeSignatureScheme>() where <OTS as OneTimeSignatureScheme>::Digest: PartialEq {
+    pub fn _wrong_digest_verification_template<OTS: OneTimeSignatureScheme>()
+    where
+        <OTS as OneTimeSignatureScheme>::Digest: PartialEq,
+    {
         let mut rng = thread_rng();
         let (pk, sk) = OTS::gen(&mut rng);
 
