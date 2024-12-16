@@ -44,3 +44,5 @@ pub trait VectorCommitment {
 pub mod hashprf;
 pub mod hashtree;
 pub mod sha;
+
+pub mod tweak_hash_tree;

@@ -1,6 +1,12 @@
 use rand::Rng;
 
-use crate::{onetimesig::{lamport::LamportSha, OneTimeSignatureScheme}, symmetric::{hashtree::{Sha256HashTree, WIDTH}, VectorCommitment}};
+use crate::{
+    onetimesig::{lamport::LamportSha, OneTimeSignatureScheme},
+    symmetric::{
+        hashtree::{Sha256HashTree, WIDTH},
+        VectorCommitment,
+    },
+};
 
 /// Trait to model an indexed signature scheme.
 /// In such a scheme, we sign with respect to slots/indices.
@@ -154,16 +160,12 @@ where
     }
 }
 
-
-
 /// Instantiation of OTSBasedIndexedSignatureScheme using Merkle Trees + Lamport
-pub type LamportIndexedSignatureScheme<> = OTSBasedIndexedSignatureScheme<LamportSha, Sha256HashTree>;
-
+pub type LamportIndexedSignatureScheme = OTSBasedIndexedSignatureScheme<LamportSha, Sha256HashTree>;
 
 #[cfg(test)]
 mod tests {
     use rand::thread_rng;
-
 
     use super::*;
 
@@ -184,7 +186,9 @@ mod tests {
             let sig = LamportIndexedSignatureScheme::sign(&sk, index, &digest);
 
             // signature should verify
-            assert!(LamportIndexedSignatureScheme::verify(&pk, index, &digest, &sig));
+            assert!(LamportIndexedSignatureScheme::verify(
+                &pk, index, &digest, &sig
+            ));
         }
     }
 }

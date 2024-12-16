@@ -1,8 +1,7 @@
 use rand::Rng;
 
-
 /// Error during encoding
-type EncodingError = ();
+pub type EncodingError = ();
 
 /// Trait to model incomparable encoding schemes.
 /// These schemes allow to encode a message into a codeword.
@@ -16,12 +15,17 @@ pub trait IncomparableEncoding {
     type Range;
 
     /// Checks if a given element is in the code.
-    fn is_in_code(x : &Self::Range) -> bool;
+    fn is_in_code(x: &Self::Range) -> bool;
 
     /// Samples a randomness to be used for the encoding.
     fn rand<R: Rng>(rng: &mut R) -> Self::Randomness;
 
     /// Apply the incomparable encoding to a message.
     /// It could happen that this fails.
-    fn encode(parameter : &Self::Parameter, message : &Self::Message, randomness : &Self::Randomness, epoch : u64) -> Result<Self::Range, EncodingError>;
+    fn encode(
+        parameter: &Self::Parameter,
+        message: &Self::Message,
+        randomness: &Self::Randomness,
+        epoch: u64,
+    ) -> Result<Self::Range, EncodingError>;
 }

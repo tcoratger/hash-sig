@@ -1,9 +1,8 @@
 use rand::Rng;
 
-
 /// Error enum for signatures
 #[derive(Debug)]
-enum SigningError {
+pub enum SigningError {
     InvalidMessageLength,
     UnluckyFailure,
 }
@@ -24,13 +23,13 @@ pub trait SignatureScheme {
 
     /// Signs a message and returns the signature.
     /// The signature is with respect to a given epoch.
-    fn sign<R: Rng>(rng: &mut R, sk: &Self::SecretKey, epoch: u64, message: &[u8]) -> Result<Self::Signature, SigningError>;
-
-    /// Verifies a signature with respect to public key, epoch, and message digest.
-    fn verify(
-        pk: &Self::PublicKey,
+    fn sign<R: Rng>(
+        rng: &mut R,
+        sk: &Self::SecretKey,
         epoch: u64,
         message: &[u8],
-        sig: &Self::Signature,
-    ) -> bool;
+    ) -> Result<Self::Signature, SigningError>;
+
+    /// Verifies a signature with respect to public key, epoch, and message digest.
+    fn verify(pk: &Self::PublicKey, epoch: u64, message: &[u8], sig: &Self::Signature) -> bool;
 }
