@@ -1,4 +1,4 @@
-use crate::tweak_hash::TweakableHash;
+use crate::symmetric::tweak_hash::TweakableHash;
 
 /// Hash-Tree based on a tweakable hash function
 /// We consider hash trees in which each leaf is first

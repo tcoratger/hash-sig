@@ -15,9 +15,6 @@ pub trait SignatureScheme {
     type SecretKey;
     type Signature;
 
-    /// Returns the message length that the scheme expects in bytes.
-    fn message_length() -> usize;
-
     /// Generates a new key pair, returning the public and private keys.
     fn gen<R: Rng>(rng: &mut R) -> (Self::PublicKey, Self::SecretKey);
 

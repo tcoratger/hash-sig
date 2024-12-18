@@ -3,20 +3,11 @@ use rand::Rng;
 use crate::{
     inc_encoding::IncomparableEncoding,
     symmetric::{
-        tweak_hash_tree::{build_tree, hash_tree_path, hash_tree_root, hash_tree_verify, HashTree, HashTreeOpening},
-        Pseudorandom,
-    },
-    tweak_hash::{chain, TweakableHash},
+        tweak_hash::{chain, TweakableHash}, tweak_hash_tree::{build_tree, hash_tree_path, hash_tree_root, hash_tree_verify, HashTree, HashTreeOpening}, Pseudorandom
+    }, LIFETIME, MESSAGE_LENGTH,
 };
 
 use super::{SignatureScheme, SigningError};
-
-/// Lifetime of a key, i.e., the key can be used
-/// for LIFETIME many epochs.
-const LIFETIME: usize = 1 << 10;
-
-/// Message length in bytes
-const MESSAGE_LENGTH: usize = 32;
 
 /// Implementation of the generalized XMSS signature scheme
 /// from any incomparable encoding scheme and any tweakable hash
@@ -69,16 +60,7 @@ where
 
     type Signature = GeneralizedXMSSSignature<IE, TH>;
 
-    fn message_length() -> usize {
-        MESSAGE_LENGTH
-    }
-
     fn gen<R: Rng>(rng: &mut R) -> (Self::PublicKey, Self::SecretKey) {
-        // need to make sure messages are compatible
-        assert!(
-            IE::message_length() == MESSAGE_LENGTH,
-            "Message length of signature and encoding must be the same."
-        );
 
         // we need a random parameter to be used for the tweakable hash
         let parameter = TH::rand_parameter(rng);
@@ -92,8 +74,8 @@ where
         // chain per chunk of the codeword. In the same go, we also generate
         // the respective public key, which is obtained by walking the hash
         // chain starting at the secret key.
-        let num_chains = IE::num_chunks();
-        let chain_length = 1 << IE::chunk_size();
+        let num_chains = IE::NUM_CHUNKS;
+        let chain_length = 1 << IE::CHUNK_SIZE;
         let mut chain_starts = Vec::with_capacity(LIFETIME);
         let mut chain_ends = Vec::with_capacity(LIFETIME);
 
@@ -157,7 +139,7 @@ where
 
         // now, we need to encode our message using the incomparable encoding
         // we retry until we get a valid codeword, or until we give up
-        let max_tries = IE::max_tries();
+        let max_tries = IE::MAX_TRIES;
         let mut attempts = 0;
         let mut x = None;
         let mut rho = None;
@@ -187,7 +169,7 @@ where
 
         // we will include rho in the signature, and
         // we use x to determine how far the signer walks in the chains
-        let num_chains = IE::num_chunks();
+        let num_chains = IE::NUM_CHUNKS;
         assert!(
             x.len() == num_chains,
             "Encoding is broken: returned too many or too few chunks."
@@ -229,8 +211,8 @@ where
 
         // now, we recompute the epoch one-time public key
         // from the hashes, but walking hash chains.
-        let chain_length = 1 << IE::chunk_size();
-        let num_chains = IE::num_chunks();
+        let chain_length = 1 << IE::CHUNK_SIZE;
+        let num_chains = IE::NUM_CHUNKS;
         assert!(
             x.len() == num_chains,
             "Encoding is broken: returned too many or too few chunks."

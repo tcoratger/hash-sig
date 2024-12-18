@@ -17,18 +17,15 @@ pub trait IncomparableEncoding {
     type Parameter;
     type Randomness;
 
-    /// Returns the number of chunks of a codeword.
-    fn num_chunks() -> usize;
+    /// number of chunks of a codeword
+    const NUM_CHUNKS: usize;
 
-    /// Returns how often one should try at most
+    /// how often one should try at most
     /// to resample randomness before giving up.
-    fn max_tries() -> usize;
+    const MAX_TRIES: usize;
 
-    /// Returns the message length in bytes.
-    fn message_length() -> usize;
-
-    /// Returns the number of bits per chunks.
-    fn chunk_size() -> usize;
+    /// number of bits per chunks.
+    const CHUNK_SIZE: usize;
 
     /// Samples a randomness to be used for the encoding.
     fn rand<R: Rng>(rng: &mut R) -> Self::Randomness;
@@ -44,3 +41,6 @@ pub trait IncomparableEncoding {
         epoch: u64,
     ) -> Result<Vec<u64>, EncodingError>;
 }
+
+
+pub mod target_sum;
