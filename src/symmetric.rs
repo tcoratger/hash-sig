@@ -21,8 +21,8 @@ pub trait Pseudorandom {
     /// Sample a random domain element
     fn gen<R: Rng>(rng: &mut R) -> Self::Key;
 
-    /// Apply the one-way function
-    fn apply(key: &Self::Key, input: u64) -> Self::Output;
+    /// Apply the one-way function to an epoch and an index
+    fn apply(key: &Self::Key, epoch: u64, index: u64) -> Self::Output;
 }
 
 /// Trait to model a (deterministic) vector commitment, such as a Merkle Tree

@@ -19,7 +19,7 @@ impl Pseudorandom for Sha256PRF {
         key
     }
 
-    fn apply(key: &Self::Key, input: u64) -> Self::Output {
+    fn apply(key: &Self::Key, epoch: u64, index: u64) -> Self::Output {
         let mut hasher = Sha256::new();
 
         // Hash the domain separator
@@ -28,8 +28,11 @@ impl Pseudorandom for Sha256PRF {
         // Hash the key
         hasher.update(key);
 
-        // Hash the input
-        hasher.update(input.to_be_bytes());
+        // Hash the epoch
+        hasher.update(epoch.to_be_bytes());
+
+        // Hash the index
+        hasher.update(index.to_be_bytes());
 
         // Finalize and convert the first 8 bytes to u64
         let result = hasher.finalize();

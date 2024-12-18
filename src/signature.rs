@@ -15,11 +15,11 @@ pub trait SignatureScheme {
     type SecretKey;
     type Signature;
 
+    /// Returns the message length that the scheme expects in bytes.
+    fn message_length() -> usize;
+
     /// Generates a new key pair, returning the public and private keys.
     fn gen<R: Rng>(rng: &mut R) -> (Self::PublicKey, Self::SecretKey);
-
-    /// Returns the message length that the scheme expects, in Bytes.
-    fn get_message_length() -> usize;
 
     /// Signs a message and returns the signature.
     /// The signature is with respect to a given epoch.
@@ -33,3 +33,5 @@ pub trait SignatureScheme {
     /// Verifies a signature with respect to public key, epoch, and message digest.
     fn verify(pk: &Self::PublicKey, epoch: u64, message: &[u8], sig: &Self::Signature) -> bool;
 }
+
+mod generalized_xmss;
