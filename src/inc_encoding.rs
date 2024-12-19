@@ -43,4 +43,5 @@ pub trait IncomparableEncoding {
 }
 
 
+pub mod basic_winternitz;
 pub mod target_sum;
