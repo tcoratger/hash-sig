@@ -65,5 +65,3 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const TARGET_SUM: usize> Incompar
         };
     }
 }
-
-// TODO: Define predefined instantiations from SHA and Poseidon

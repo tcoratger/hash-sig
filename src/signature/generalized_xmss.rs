@@ -3,11 +3,11 @@ use rand::Rng;
 use crate::{
     inc_encoding::IncomparableEncoding,
     symmetric::{
+        prf::Pseudorandom,
         tweak_hash::{chain, TweakableHash},
         tweak_hash_tree::{
             build_tree, hash_tree_path, hash_tree_root, hash_tree_verify, HashTree, HashTreeOpening,
         },
-        Pseudorandom,
     },
     MESSAGE_LENGTH,
 };
@@ -271,11 +271,8 @@ mod tests {
         inc_encoding::{basic_winternitz::WinternitzEncoding, target_sum::TargetSumEncoding},
         signature::test_templates::_test_signature_scheme_correctness,
         symmetric::{
-            hashprf::Sha256PRF,
-            message_hash::{
-                sha::Sha256MessageHash192x3,
-                MessageHash,
-            },
+            message_hash::{sha::Sha256MessageHash192x3, MessageHash},
+            prf::hashprf::Sha256PRF,
             tweak_hash::sha::Sha256Tweak192192,
         },
     };

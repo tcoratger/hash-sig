@@ -42,7 +42,7 @@ pub trait SignatureScheme {
     ) -> bool;
 }
 
-mod generalized_xmss;
+pub mod generalized_xmss;
 
 #[cfg(test)]
 mod test_templates {
@@ -60,7 +60,7 @@ mod test_templates {
         let (pk, sk) = T::gen(&mut rng);
 
         // Sample random test message
-        let mut message = [0u8; 64];
+        let mut message = [0u8; MESSAGE_LENGTH];
         rng.fill(&mut message);
 
         // Sign the message
