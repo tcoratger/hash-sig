@@ -7,11 +7,12 @@ const PRF_DOMAIN_SEP: [u8; 16] = [
 ];
 
 // Implement a SHA256-based PRF
-pub struct Sha256PRF;
+// Output Length must be at most 32 bytes
+pub struct Sha256PRF<const OUTPUT_LENGTH: usize>;
 
-impl Pseudorandom for Sha256PRF {
+impl<const OUTPUT_LENGTH: usize> Pseudorandom for Sha256PRF<OUTPUT_LENGTH> {
     type Key = [u8; KEY_LENGTH];
-    type Output = [u8; 32];
+    type Output = [u8; OUTPUT_LENGTH];
 
     fn gen<R: rand::Rng>(rng: &mut R) -> Self::Key {
         let mut key = [0u8; KEY_LENGTH];
@@ -19,7 +20,12 @@ impl Pseudorandom for Sha256PRF {
         key
     }
 
-    fn apply(key: &Self::Key, input: u64) -> Self::Output {
+    fn apply(key: &Self::Key, epoch: u64, index: u64) -> Self::Output {
+        assert!(
+            OUTPUT_LENGTH < 256 / 8,
+            "SHA256-PRF: Output length must be less than 256 bit"
+        );
+
         let mut hasher = Sha256::new();
 
         // Hash the domain separator
@@ -28,11 +34,14 @@ impl Pseudorandom for Sha256PRF {
         // Hash the key
         hasher.update(key);
 
-        // Hash the input
-        hasher.update(input.to_be_bytes());
+        // Hash the epoch
+        hasher.update(epoch.to_be_bytes());
+
+        // Hash the index
+        hasher.update(index.to_be_bytes());
 
         // Finalize and convert the first 8 bytes to u64
         let result = hasher.finalize();
-        result.into()
+        result[0..OUTPUT_LENGTH].try_into().unwrap()
     }
 }
