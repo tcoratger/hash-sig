@@ -2,7 +2,6 @@ use crate::symmetric::message_hash::{bytes_to_chunks, MessageHash};
 
 use super::IncomparableEncoding;
 
-
 /// Incomparable Encoding Scheme based on the basic
 /// Winternitz scheme, implemented from a given message hash.
 /// CHUNK_SIZE has to be 1,2,4, or 8.
@@ -15,19 +14,25 @@ use super::IncomparableEncoding;
 ///     max_checksum = num_chunks_message * (base - 1)
 ///     num_chunks_checksum = 1 + math.ceil(math.log(max_checksum, base))
 
-pub struct WinternitzEncoding<MH : MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize> {
+pub struct WinternitzEncoding<
+    MH: MessageHash,
+    const CHUNK_SIZE: usize,
+    const NUM_CHUNKS_CHECKSUM: usize,
+> {
     _marker_mh: std::marker::PhantomData<MH>,
 }
 
-impl<MH : MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
-WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM> {
+impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
+    WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>
+{
     const NUM_CHUNKS_MESSAGE: usize = MH::OUTPUT_LENGTH * 8 / CHUNK_SIZE;
     const BASE: usize = 1 << CHUNK_SIZE;
     const NUM_CHUNKS: usize = Self::NUM_CHUNKS_MESSAGE + NUM_CHUNKS_CHECKSUM;
 }
 
-
-impl<MH : MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize> IncomparableEncoding for WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM> {
+impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
+    IncomparableEncoding for WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>
+{
     type Parameter = MH::Parameter;
 
     type Randomness = MH::Randomness;
@@ -53,7 +58,10 @@ impl<MH : MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize
         let chunks_message: Vec<u8> = bytes_to_chunks(&hash_bytes, Self::CHUNK_SIZE);
 
         // now, we compute the checksum
-        let checksum : u64 = chunks_message.iter().map(|&x| Self::BASE as u64 - 1 - x as u64).sum();
+        let checksum: u64 = chunks_message
+            .iter()
+            .map(|&x| Self::BASE as u64 - 1 - x as u64)
+            .sum();
 
         // we split the checksum into chunks, in little-endian
         let checksum_bytes = checksum.to_le_bytes();
@@ -66,8 +74,7 @@ impl<MH : MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize
         let mut chunks = Vec::with_capacity(chunks_message.len() + NUM_CHUNKS_CHECKSUM);
         chunks.extend_from_slice(&chunks_message);
         chunks.extend_from_slice(&chunks_checksum[..NUM_CHUNKS_CHECKSUM]);
-        let chunks_u64 : Vec<u64> = chunks.iter().map(|&x| x as u64).collect();
+        let chunks_u64: Vec<u64> = chunks.iter().map(|&x| x as u64).collect();
         Ok(chunks_u64)
     }
-
 }

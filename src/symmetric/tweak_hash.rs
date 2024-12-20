@@ -13,9 +13,9 @@ use rand::Rng;
 /// to obtain distinct tweaks for applications in chains and
 /// applications in Merkle trees.
 pub trait TweakableHash {
-    type Parameter: Copy + Default + Sized;
+    type Parameter: Copy + Sized;
     type Tweak;
-    type Domain: Copy + Default + PartialEq + Sized;
+    type Domain: Copy + PartialEq + Sized;
 
     /// Generates a random public parameter.
     fn rand_parameter<R: Rng>(rng: &mut R) -> Self::Parameter;
@@ -66,5 +66,7 @@ pub(crate) fn chain<TH: TweakableHash>(
     // return where we are now
     current
 }
+
+pub mod sha;
 
 // TODO: Test that walking chains is associative.

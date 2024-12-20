@@ -12,8 +12,7 @@ pub trait Pseudorandom {
     fn apply(key: &Self::Key, epoch: u64, index: u64) -> Self::Output;
 }
 
-
 pub mod hashprf;
+pub mod message_hash;
 pub mod tweak_hash;
 pub mod tweak_hash_tree;
-pub mod message_hash;

@@ -42,6 +42,5 @@ pub trait IncomparableEncoding {
     ) -> Result<Vec<u64>, EncodingError>;
 }
 
-
 pub mod basic_winternitz;
 pub mod target_sum;

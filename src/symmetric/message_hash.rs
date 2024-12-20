@@ -6,9 +6,8 @@ use rand::Rng;
 /// message hashing. Specifically, it contains one more input,
 /// and is always executed with respect to epochs.
 pub trait MessageHash {
-    type Parameter: Copy + Default + Sized;
+    type Parameter: Clone + Sized;
     type Randomness;
-    type Domain: Copy + Default + PartialEq + Sized;
 
     /// Output length of the hash function, in bytes
     const OUTPUT_LENGTH: usize;
@@ -23,7 +22,7 @@ pub trait MessageHash {
     fn apply(
         parameter: &Self::Parameter,
         epoch: u64,
-        randomness : &Self::Randomness,
+        randomness: &Self::Randomness,
         message: &[u8],
     ) -> Vec<u8>;
 }
@@ -55,13 +54,12 @@ fn isolate_chunk_from_byte(byte: u8, chunk_index: usize, chunk_size: usize) -> u
 /// many bits. For example, if `bytes` contains 6 elements, and
 /// `chunk_size` is 2, then the result contains 6 * (8/2) = 24 elements.
 ///  It is assumed that `window_size` divides 8 and is between 1 and 8.
-pub fn bytes_to_chunks(bytes: &[u8], chunk_size : usize) -> Vec<u8> {
-
+pub fn bytes_to_chunks(bytes: &[u8], chunk_size: usize) -> Vec<u8> {
     // Ensure chunk size divides 8 and is between 1 and 8
     assert!(chunk_size > 0 && chunk_size <= 8 && 8 % chunk_size == 0);
 
     // iterate over all chunks and isolate them
-    let chunks_per_byte = 8/chunk_size;
+    let chunks_per_byte = 8 / chunk_size;
     let num_chunks = bytes.len() * chunks_per_byte;
     let mut chunks = Vec::with_capacity(num_chunks);
     for chunk_index in 0..num_chunks {
@@ -75,7 +73,6 @@ pub fn bytes_to_chunks(bytes: &[u8], chunk_size : usize) -> Vec<u8> {
     }
     chunks
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -100,8 +97,8 @@ mod tests {
     fn test_bytes_to_chunks() {
         // In this test, we check that `bytes_to_chunks` works as expected
 
-        let byte_a : u8 = 0b01101100;
-        let byte_b : u8 = 0b10100110;
+        let byte_a: u8 = 0b01101100;
+        let byte_b: u8 = 0b10100110;
 
         let bytes = [byte_a, byte_b];
         let mut expected_chunks: Vec<u8> = Vec::new();

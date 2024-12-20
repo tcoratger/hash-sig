@@ -3,8 +3,13 @@ use rand::Rng;
 use crate::{
     inc_encoding::IncomparableEncoding,
     symmetric::{
-        tweak_hash::{chain, TweakableHash}, tweak_hash_tree::{build_tree, hash_tree_path, hash_tree_root, hash_tree_verify, HashTree, HashTreeOpening}, Pseudorandom
-    }, LIFETIME, MESSAGE_LENGTH,
+        tweak_hash::{chain, TweakableHash},
+        tweak_hash_tree::{
+            build_tree, hash_tree_path, hash_tree_root, hash_tree_verify, HashTree, HashTreeOpening,
+        },
+        Pseudorandom,
+    },
+    LIFETIME, MESSAGE_LENGTH,
 };
 
 use super::{SignatureScheme, SigningError};
@@ -61,7 +66,6 @@ where
     type Signature = GeneralizedXMSSSignature<IE, TH>;
 
     fn gen<R: Rng>(rng: &mut R) -> (Self::PublicKey, Self::SecretKey) {
-
         // we need a random parameter to be used for the tweakable hash
         let parameter = TH::rand_parameter(rng);
 
@@ -111,11 +115,14 @@ where
         let root = hash_tree_root(&tree);
 
         // assemble public key and secret key
-        let pk = GeneralizedXMSSPublicKey { root, parameter };
+        let pk = GeneralizedXMSSPublicKey {
+            root,
+            parameter: parameter.clone(),
+        };
         let sk = GeneralizedXMSSSecretKey {
             prf_key,
             tree,
-            parameter: parameter.clone(),
+            parameter,
         };
 
         (pk, sk)
@@ -223,16 +230,28 @@ where
             // to walk chain_length - 1 - x[i] steps to reach the end of the chain
             let steps = chain_length - 1 - x[chain_index];
             let start_pos_in_chain = x[chain_index];
-            let start = sig.hashes[chain_index];
-            let end = chain::<TH>(&pk.parameter, epoch, chain_index as u64, start_pos_in_chain, steps as usize,&start);
+            let start = &sig.hashes[chain_index];
+            let end = chain::<TH>(
+                &pk.parameter,
+                epoch,
+                chain_index as u64,
+                start_pos_in_chain,
+                steps as usize,
+                start,
+            );
             chain_ends.push(end);
         }
 
         // this set of chain ends should be a leaf in the Merkle tree
         // we verify that by checking the Merkle authentication path
-        hash_tree_verify(&pk.parameter, &pk.root, epoch, chain_ends.as_slice(), &sig.path)
+        hash_tree_verify(
+            &pk.parameter,
+            &pk.root,
+            epoch,
+            chain_ends.as_slice(),
+            &sig.path,
+        )
     }
 }
-
 
 // TODO: Tests.

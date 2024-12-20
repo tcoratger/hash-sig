@@ -6,6 +6,6 @@ const LIFETIME: usize = 1 << 10;
 /// that we want to sign
 const MESSAGE_LENGTH: usize = 32;
 
-pub mod symmetric;
 pub mod inc_encoding;
 pub mod signature;
+pub mod symmetric;
