@@ -148,7 +148,7 @@ pub fn hash_tree_verify<TH: TweakableHash>(
         current_position = current_position >> 1;
 
         // now hash to get the parent
-        let tweak = TH::tree_tweak(l as u64, current_position);
+        let tweak = TH::tree_tweak((l+1) as u64, current_position);
         current_node = TH::apply(parameter, &tweak, &children);
     }
 
@@ -156,4 +156,57 @@ pub fn hash_tree_verify<TH: TweakableHash>(
     current_node == *root
 }
 
-// TODO. Tests.
+
+#[cfg(test)]
+mod tests {
+
+    use rand::thread_rng;
+
+    use crate::symmetric::tweak_hash::sha::Sha256Tweak128192;
+
+    use super::*;
+
+    type TestTH = Sha256Tweak128192;
+
+    #[test]
+    fn test_commit_open_verify() {
+        let mut rng = thread_rng();
+        let num_leafs = 1024;
+        let leaf_len = 3;
+
+        // We test that the following honest procedure succeeds:
+        // (1) build the Merkle tree to get the root,
+        // (2) build an authentication path for the leaf,
+        // (3) verify the authentication path with respect to leaf and root
+
+        // sample a random parameter and leafs
+        let parameter = TestTH::rand_parameter(&mut rng);
+
+        let mut leafs = Vec::new();
+        for _ in 0..num_leafs {
+            let mut leaf = Vec::new();
+            for _ in 0..leaf_len {
+                leaf.push(TestTH::rand_domain(&mut rng));
+            }
+            leafs.push(leaf);
+        }
+
+        let leafs_slices: Vec<_> =
+            leafs.iter().map(|v| v.as_slice()).collect();
+
+        // Build the hash tree using the random parameter and leaves
+        let tree = build_tree::<TestTH>(&parameter, &leafs_slices);
+
+        // now compute a commitment, i.e., Merkle root
+        let root = hash_tree_root::<TestTH>(&tree);
+
+        // now check that opening and verification works as expected
+        for position in 0..num_leafs {
+            // first get the opening
+            let path = hash_tree_path(&tree, position);
+            // now assert that it verifies
+            let leaf = leafs[position as usize].as_slice();
+            assert!(hash_tree_verify(&parameter, &root, position, leaf , &path));
+        }
+    }
+}

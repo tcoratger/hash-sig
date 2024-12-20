@@ -98,11 +98,11 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
         message: &[Self::Domain],
     ) -> Self::Domain {
         assert!(
-            PARAMETER_LEN <= 255,
+            PARAMETER_LEN < 256/8,
             "SHA256-Tweak Hash: Parameter Length must be at most 255 bit"
         );
         assert!(
-            HASH_LEN <= 255,
+            HASH_LEN < 256/8,
             "SHA256-Tweak Hash: Parameter Length must be at most 255 bit"
         );
 
@@ -127,13 +127,78 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
 
         // finalize the hash, and take as many bytes as we need
         let result = hasher.finalize();
-        result[0..=HASH_LEN].try_into().unwrap()
+        result[0..HASH_LEN].try_into().unwrap()
     }
 }
 
 
 
 // Example instantiations
-pub type Sha256Tweak128128 = Sha256TweakHash<128, 128>;
-pub type Sha256Tweak128192 = Sha256TweakHash<128, 192>;
-pub type Sha256Tweak192192 = Sha256TweakHash<192, 192>;
+pub type Sha256Tweak128128 = Sha256TweakHash<16, 16>;
+pub type Sha256Tweak128192 = Sha256TweakHash<16, 24>;
+pub type Sha256Tweak192192 = Sha256TweakHash<24, 24>;
+
+
+#[cfg(test)]
+mod tests {
+    use rand::thread_rng;
+
+    use super::*;
+
+    #[test]
+    fn test_apply_128_128() {
+        let mut rng = thread_rng();
+
+        // test that nothing is panicking
+        let parameter = Sha256Tweak128128::rand_parameter(&mut rng);
+        let message_one = Sha256Tweak128128::rand_domain(&mut rng);
+        let message_two = Sha256Tweak128128::rand_domain(&mut rng);
+        let tweak_tree = Sha256Tweak128128::tree_tweak(0, 3);
+        Sha256Tweak128128::apply(&parameter, &tweak_tree, &[message_one, message_two]);
+
+        // test that nothing is panicking
+        let parameter = Sha256Tweak128128::rand_parameter(&mut rng);
+        let message_one = Sha256Tweak128128::rand_domain(&mut rng);
+        let message_two = Sha256Tweak128128::rand_domain(&mut rng);
+        let tweak_chain = Sha256Tweak128128::chain_tweak(2, 3, 4);
+        Sha256Tweak128128::apply(&parameter, &tweak_chain, &[message_one, message_two]);
+    }
+
+    #[test]
+    fn test_apply_128_192() {
+        let mut rng = thread_rng();
+
+        // test that nothing is panicking
+        let parameter = Sha256Tweak128192::rand_parameter(&mut rng);
+        let message_one = Sha256Tweak128192::rand_domain(&mut rng);
+        let message_two = Sha256Tweak128192::rand_domain(&mut rng);
+        let tweak_tree = Sha256Tweak128192::tree_tweak(0, 3);
+        Sha256Tweak128192::apply(&parameter, &tweak_tree, &[message_one, message_two]);
+
+        // test that nothing is panicking
+        let parameter = Sha256Tweak128192::rand_parameter(&mut rng);
+        let message_one = Sha256Tweak128192::rand_domain(&mut rng);
+        let message_two = Sha256Tweak128192::rand_domain(&mut rng);
+        let tweak_chain = Sha256Tweak128192::chain_tweak(2, 3, 4);
+        Sha256Tweak128192::apply(&parameter, &tweak_chain, &[message_one, message_two]);
+    }
+
+    #[test]
+    fn test_apply_192_192() {
+        let mut rng = thread_rng();
+
+        // test that nothing is panicking
+        let parameter = Sha256Tweak192192::rand_parameter(&mut rng);
+        let message_one = Sha256Tweak192192::rand_domain(&mut rng);
+        let message_two = Sha256Tweak192192::rand_domain(&mut rng);
+        let tweak_tree = Sha256Tweak192192::tree_tweak(0, 3);
+        Sha256Tweak192192::apply(&parameter, &tweak_tree, &[message_one, message_two]);
+
+        // test that nothing is panicking
+        let parameter = Sha256Tweak192192::rand_parameter(&mut rng);
+        let message_one = Sha256Tweak192192::rand_domain(&mut rng);
+        let message_two = Sha256Tweak192192::rand_domain(&mut rng);
+        let tweak_chain = Sha256Tweak192192::chain_tweak(2, 3, 4);
+        Sha256Tweak192192::apply(&parameter, &tweak_chain, &[message_one, message_two]);
+    }
+}
