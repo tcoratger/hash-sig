@@ -36,7 +36,7 @@ pub trait IncomparableEncoding {
     /// result is indeed a valid codeword.
     fn encode(
         parameter: &Self::Parameter,
-        message: &[u8],
+        message: &[u8; 64],
         randomness: &Self::Randomness,
         epoch: u64,
     ) -> Result<Vec<u64>, EncodingError>;

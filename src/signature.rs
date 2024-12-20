@@ -24,11 +24,11 @@ pub trait SignatureScheme {
         rng: &mut R,
         sk: &Self::SecretKey,
         epoch: u64,
-        message: &[u8],
+        message: &[u8; 64],
     ) -> Result<Self::Signature, SigningError>;
 
     /// Verifies a signature with respect to public key, epoch, and message digest.
-    fn verify(pk: &Self::PublicKey, epoch: u64, message: &[u8], sig: &Self::Signature) -> bool;
+    fn verify(pk: &Self::PublicKey, epoch: u64, message: &[u8; 64], sig: &Self::Signature) -> bool;
 }
 
 mod generalized_xmss;

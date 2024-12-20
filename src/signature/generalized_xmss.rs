@@ -132,7 +132,7 @@ where
         rng: &mut R,
         sk: &Self::SecretKey,
         epoch: u64,
-        message: &[u8],
+        message: &[u8; 64],
     ) -> Result<Self::Signature, SigningError> {
         // check first that we have the correct message length
         if message.len() != MESSAGE_LENGTH {
@@ -202,7 +202,7 @@ where
         Ok(GeneralizedXMSSSignature { path, rho, hashes })
     }
 
-    fn verify(pk: &Self::PublicKey, epoch: u64, message: &[u8], sig: &Self::Signature) -> bool {
+    fn verify(pk: &Self::PublicKey, epoch: u64, message: &[u8; 64], sig: &Self::Signature) -> bool {
         // check first that we have the correct message length
         if message.len() != MESSAGE_LENGTH {
             return false;

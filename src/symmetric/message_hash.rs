@@ -4,7 +4,8 @@ use rand::Rng;
 ///
 /// This is a variant of a tweakable hash function that we use for
 /// message hashing. Specifically, it contains one more input,
-/// and is always executed with respect to epochs.
+/// and is always executed with respect to epochs, i.e., tweaks
+/// are implicitly derived from the epoch.
 pub trait MessageHash {
     type Parameter: Clone + Sized;
     type Randomness;
@@ -23,9 +24,11 @@ pub trait MessageHash {
         parameter: &Self::Parameter,
         epoch: u64,
         randomness: &Self::Randomness,
-        message: &[u8],
+        message: &[u8; 64],
     ) -> Vec<u8>;
 }
+
+pub mod sha;
 
 /// Isolates a chunk of bits from a byte based on the specified chunk index and chunk size.
 ///

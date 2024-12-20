@@ -69,4 +69,45 @@ pub(crate) fn chain<TH: TweakableHash>(
 
 pub mod sha;
 
-// TODO: Test that walking chains is associative.
+#[cfg(test)]
+mod tests {
+    use sha::Sha256Tweak128192;
+
+    use super::*;
+    use rand::thread_rng;
+
+    type TestTH = Sha256Tweak128192;
+
+    #[test]
+    fn test_chain_associative() {
+
+        let mut rng = thread_rng();
+
+        // we test that first walking k steps, and then walking the remaining steps
+        // is the same as directly walking all steps.
+
+        let epoch = 9;
+        let chain_index = 20;
+        let parameter = TestTH::rand_parameter(&mut rng);
+        let start = TestTH::rand_domain(&mut rng);
+        let total_steps = 16;
+
+
+        // walking directly
+        let end_direct = chain::<TestTH>(&parameter, epoch, chain_index, 0, total_steps, &start);
+
+        for split in 0..=total_steps {
+            let steps_a = split;
+            let steps_b = total_steps - split;
+
+            // walking indirectly
+            let intermediate = chain::<TestTH>(&parameter, epoch, chain_index, 0, steps_a, &start);
+            let end_indirect = chain::<TestTH>(&parameter, epoch, chain_index, steps_a as u64, steps_b, &intermediate);
+
+            // should be the same
+            assert_eq!(end_direct, end_indirect);
+        }
+
+    }
+
+}

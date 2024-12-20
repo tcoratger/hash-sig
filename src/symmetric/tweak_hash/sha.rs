@@ -99,11 +99,11 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
     ) -> Self::Domain {
         assert!(
             PARAMETER_LEN < 256/8,
-            "SHA256-Tweak Hash: Parameter Length must be at most 255 bit"
+            "SHA256-Tweak Hash: Parameter Length must be less than 256 bit"
         );
         assert!(
             HASH_LEN < 256/8,
-            "SHA256-Tweak Hash: Parameter Length must be at most 255 bit"
+            "SHA256-Tweak Hash: Hash Length must be less than 256 bit"
         );
 
         let mut hasher = Sha256::new();
