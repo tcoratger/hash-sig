@@ -1,4 +1,7 @@
-use crate::symmetric::message_hash::{bytes_to_chunks, MessageHash};
+use crate::{
+    symmetric::message_hash::{bytes_to_chunks, MessageHash},
+    MESSAGE_LENGTH,
+};
 
 use super::IncomparableEncoding;
 
@@ -8,9 +11,10 @@ use super::IncomparableEncoding;
 ///
 /// Unfortunately, Rust cannot deal with logarithms and ceils in constants.
 /// Therefore, the user needs to supply NUM_CHUNKS_CHECKSUM. This value can
-/// be computed before compilation with the following steps (written in Python):
+/// be computed before compilation with the following steps:
 ///
 ///     base = 2 ** chunk_size
+///     num_chunks_message = MH::OUTPUT_LENGTH * 8 / chunk_size
 ///     max_checksum = num_chunks_message * (base - 1)
 ///     num_chunks_checksum = 1 + math.ceil(math.log(max_checksum, base))
 
@@ -49,7 +53,7 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
 
     fn encode(
         parameter: &Self::Parameter,
-        message: &[u8; 64],
+        message: &[u8; MESSAGE_LENGTH],
         randomness: &Self::Randomness,
         epoch: u64,
     ) -> Result<Vec<u64>, super::EncodingError> {

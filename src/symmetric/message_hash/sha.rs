@@ -1,3 +1,5 @@
+use crate::MESSAGE_LENGTH;
+
 use super::MessageHash;
 
 use sha2::{Digest, Sha256};
@@ -6,7 +8,11 @@ use sha2::{Digest, Sha256};
 /// All lengths must be given in Bytes.
 /// All lengths must be less than 255 bits.
 /// Randomness length must be non-zero.
-pub struct Sha256MessageHash<const PARAMETER_LEN: usize, const RAND_LEN: usize, const MESSAGE_HASH_LEN: usize>;
+pub struct Sha256MessageHash<
+    const PARAMETER_LEN: usize,
+    const RAND_LEN: usize,
+    const MESSAGE_HASH_LEN: usize,
+>;
 
 impl<const PARAMETER_LEN: usize, const RAND_LEN: usize, const MESSAGE_HASH_LEN: usize> MessageHash
     for Sha256MessageHash<PARAMETER_LEN, RAND_LEN, MESSAGE_HASH_LEN>
@@ -27,14 +33,14 @@ impl<const PARAMETER_LEN: usize, const RAND_LEN: usize, const MESSAGE_HASH_LEN: 
         parameter: &Self::Parameter,
         epoch: u64,
         randomness: &Self::Randomness,
-        message: &[u8; 64],
+        message: &[u8; MESSAGE_LENGTH],
     ) -> Vec<u8> {
         assert!(
-            PARAMETER_LEN < 256/8,
+            PARAMETER_LEN < 256 / 8,
             "SHA256-Message Hash: Parameter Length must be less than 256 bit"
         );
         assert!(
-            RAND_LEN < 256/8,
+            RAND_LEN < 256 / 8,
             "SHA256-Message Hash: Randomness Length must be less than 256 bit"
         );
         assert!(
@@ -42,7 +48,7 @@ impl<const PARAMETER_LEN: usize, const RAND_LEN: usize, const MESSAGE_HASH_LEN: 
             "SHA256-Message Hash: Randomness Length must be non-zero"
         );
         assert!(
-            MESSAGE_HASH_LEN < 256/8,
+            MESSAGE_HASH_LEN < 256 / 8,
             "SHA256-Message Hash: Hash Length must be less than 256 bit"
         );
 
@@ -75,10 +81,11 @@ impl<const PARAMETER_LEN: usize, const RAND_LEN: usize, const MESSAGE_HASH_LEN: 
 pub type Sha256MessageHash128x3 = Sha256MessageHash<16, 16, 16>;
 pub type Sha256MessageHash192x3 = Sha256MessageHash<24, 24, 24>;
 
-
 #[cfg(test)]
 mod tests {
     use rand::{thread_rng, Rng};
+
+    use crate::MESSAGE_LENGTH;
 
     use super::*;
 
@@ -89,7 +96,7 @@ mod tests {
         let mut parameter = [0u8; 16];
         rng.fill(&mut parameter);
 
-        let mut message = [0u8; 64];
+        let mut message = [0u8; MESSAGE_LENGTH];
         rng.fill(&mut message);
 
         let epoch = 13;
@@ -105,7 +112,7 @@ mod tests {
         let mut parameter = [0u8; 24];
         rng.fill(&mut parameter);
 
-        let mut message = [0u8; 64];
+        let mut message = [0u8; MESSAGE_LENGTH];
         rng.fill(&mut message);
 
         let epoch = 13;

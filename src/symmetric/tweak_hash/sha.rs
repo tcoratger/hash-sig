@@ -98,11 +98,11 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
         message: &[Self::Domain],
     ) -> Self::Domain {
         assert!(
-            PARAMETER_LEN < 256/8,
+            PARAMETER_LEN < 256 / 8,
             "SHA256-Tweak Hash: Parameter Length must be less than 256 bit"
         );
         assert!(
-            HASH_LEN < 256/8,
+            HASH_LEN < 256 / 8,
             "SHA256-Tweak Hash: Hash Length must be less than 256 bit"
         );
 
@@ -131,13 +131,10 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
     }
 }
 
-
-
 // Example instantiations
 pub type Sha256Tweak128128 = Sha256TweakHash<16, 16>;
 pub type Sha256Tweak128192 = Sha256TweakHash<16, 24>;
 pub type Sha256Tweak192192 = Sha256TweakHash<24, 24>;
-
 
 #[cfg(test)]
 mod tests {

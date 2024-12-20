@@ -1,5 +1,7 @@
 use rand::Rng;
 
+use crate::MESSAGE_LENGTH;
+
 /// Error during encoding
 pub type EncodingError = ();
 
@@ -36,7 +38,7 @@ pub trait IncomparableEncoding {
     /// result is indeed a valid codeword.
     fn encode(
         parameter: &Self::Parameter,
-        message: &[u8; 64],
+        message: &[u8; MESSAGE_LENGTH],
         randomness: &Self::Randomness,
         epoch: u64,
     ) -> Result<Vec<u64>, EncodingError>;

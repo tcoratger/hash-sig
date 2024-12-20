@@ -1,5 +1,7 @@
 use rand::Rng;
 
+use crate::MESSAGE_LENGTH;
+
 /// Trait to model a hash function used for message hashing.
 ///
 /// This is a variant of a tweakable hash function that we use for
@@ -24,7 +26,7 @@ pub trait MessageHash {
         parameter: &Self::Parameter,
         epoch: u64,
         randomness: &Self::Randomness,
-        message: &[u8; 64],
+        message: &[u8; MESSAGE_LENGTH],
     ) -> Vec<u8>;
 }
 

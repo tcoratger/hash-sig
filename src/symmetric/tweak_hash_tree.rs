@@ -148,14 +148,13 @@ pub fn hash_tree_verify<TH: TweakableHash>(
         current_position = current_position >> 1;
 
         // now hash to get the parent
-        let tweak = TH::tree_tweak((l+1) as u64, current_position);
+        let tweak = TH::tree_tweak((l + 1) as u64, current_position);
         current_node = TH::apply(parameter, &tweak, &children);
     }
 
     // Finally, check that recomputed root matches given root
     current_node == *root
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -191,8 +190,7 @@ mod tests {
             leafs.push(leaf);
         }
 
-        let leafs_slices: Vec<_> =
-            leafs.iter().map(|v| v.as_slice()).collect();
+        let leafs_slices: Vec<_> = leafs.iter().map(|v| v.as_slice()).collect();
 
         // Build the hash tree using the random parameter and leaves
         let tree = build_tree::<TestTH>(&parameter, &leafs_slices);
@@ -206,7 +204,7 @@ mod tests {
             let path = hash_tree_path(&tree, position);
             // now assert that it verifies
             let leaf = leafs[position as usize].as_slice();
-            assert!(hash_tree_verify(&parameter, &root, position, leaf , &path));
+            assert!(hash_tree_verify(&parameter, &root, position, leaf, &path));
         }
     }
 }

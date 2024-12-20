@@ -9,18 +9,20 @@ use crate::{
         },
         Pseudorandom,
     },
-    LIFETIME, MESSAGE_LENGTH,
+    MESSAGE_LENGTH,
 };
 
 use super::{SignatureScheme, SigningError};
 
 /// Implementation of the generalized XMSS signature scheme
 /// from any incomparable encoding scheme and any tweakable hash
-/// It also uses a PRF for key generation.
+/// It also uses a PRF for key generation, and one has to specify
+/// the (base 2 log of the) key lifetime
 pub struct GeneralizedXMSSSignatureScheme<
     PRF: Pseudorandom,
     IE: IncomparableEncoding,
     TH: TweakableHash,
+    const LOG_LIFETIME: usize,
 > {
     _marker_prf: std::marker::PhantomData<PRF>,
     _marker_ie: std::marker::PhantomData<IE>,
@@ -53,8 +55,8 @@ pub struct GeneralizedXMSSSecretKey<PRF: Pseudorandom, TH: TweakableHash> {
     parameter: TH::Parameter,
 }
 
-impl<PRF: Pseudorandom, IE: IncomparableEncoding, TH: TweakableHash> SignatureScheme
-    for GeneralizedXMSSSignatureScheme<PRF, IE, TH>
+impl<PRF: Pseudorandom, IE: IncomparableEncoding, TH: TweakableHash, const LOG_LIFETIME: usize>
+    SignatureScheme for GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>
 where
     PRF::Output: Into<TH::Domain>,
     TH::Parameter: Into<IE::Parameter>,
@@ -64,6 +66,8 @@ where
     type SecretKey = GeneralizedXMSSSecretKey<PRF, TH>;
 
     type Signature = GeneralizedXMSSSignature<IE, TH>;
+
+    const LIFETIME: usize = 1 << LOG_LIFETIME;
 
     fn gen<R: Rng>(rng: &mut R) -> (Self::PublicKey, Self::SecretKey) {
         // we need a random parameter to be used for the tweakable hash
@@ -80,10 +84,10 @@ where
         // chain starting at the secret key.
         let num_chains = IE::NUM_CHUNKS;
         let chain_length = 1 << IE::CHUNK_SIZE;
-        let mut chain_starts = Vec::with_capacity(LIFETIME);
-        let mut chain_ends = Vec::with_capacity(LIFETIME);
+        let mut chain_starts = Vec::with_capacity(Self::LIFETIME);
+        let mut chain_ends = Vec::with_capacity(Self::LIFETIME);
 
-        for epoch in 0..LIFETIME {
+        for epoch in 0..Self::LIFETIME {
             let mut epoch_chain_starts = Vec::with_capacity(num_chains);
             let mut epoch_chain_ends = Vec::with_capacity(num_chains);
 
@@ -202,11 +206,16 @@ where
         Ok(GeneralizedXMSSSignature { path, rho, hashes })
     }
 
-    fn verify(pk: &Self::PublicKey, epoch: u64, message: &[u8; 64], sig: &Self::Signature) -> bool {
-        // check first that we have the correct message length
-        if message.len() != MESSAGE_LENGTH {
-            return false;
-        }
+    fn verify(
+        pk: &Self::PublicKey,
+        epoch: u64,
+        message: &[u8; MESSAGE_LENGTH],
+        sig: &Self::Signature,
+    ) -> bool {
+        assert!(
+            epoch < Self::LIFETIME as u64,
+            "Generalized XMSS - Verify: Epoch too large."
+        );
 
         // first get back the codeword and make sure
         // encoding succeeded with the given randomness.
@@ -254,4 +263,62 @@ where
     }
 }
 
-// TODO: Tests.
+// TODO: add some predefined instantiations that have safe parameters
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        inc_encoding::{basic_winternitz::WinternitzEncoding, target_sum::TargetSumEncoding},
+        signature::test_templates::_test_signature_scheme_correctness,
+        symmetric::{
+            hashprf::Sha256PRF,
+            message_hash::{
+                sha::Sha256MessageHash192x3,
+                MessageHash,
+            },
+            tweak_hash::sha::Sha256Tweak192192,
+        },
+    };
+
+    use super::*;
+
+    #[test]
+    pub fn test_correctness_winternitz() {
+        // Note: do not use these parameters, they are just for testing
+        type PRF = Sha256PRF<24>;
+        type TH = Sha256Tweak192192;
+        type MH = Sha256MessageHash192x3;
+        const CHUNK_SIZE: usize = 2;
+        const NUM_CHUNKS_CHECKSUM: usize = 6;
+        type IE = WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>;
+        const LOG_LIFETIME: usize = 9;
+        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+
+        _test_signature_scheme_correctness::<SIG>(289);
+        _test_signature_scheme_correctness::<SIG>(2);
+        _test_signature_scheme_correctness::<SIG>(19);
+        _test_signature_scheme_correctness::<SIG>(0);
+        _test_signature_scheme_correctness::<SIG>(11);
+    }
+
+    #[test]
+    pub fn test_correctness_target_sum() {
+        // Note: do not use these parameters, they are just for testing
+        type PRF = Sha256PRF<24>;
+        type TH = Sha256Tweak192192;
+        type MH = Sha256MessageHash192x3;
+        const CHUNK_SIZE: usize = 2;
+        const NUM_CHUNKS: usize = MH::OUTPUT_LENGTH * 8 / CHUNK_SIZE;
+        const MAX_CHUNK_VALUE: usize = (1 << CHUNK_SIZE) - 1;
+        const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
+        type IE = TargetSumEncoding<MH, CHUNK_SIZE, EXPECTED_SUM>;
+        const LOG_LIFETIME: usize = 8;
+        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+
+        _test_signature_scheme_correctness::<SIG>(13);
+        _test_signature_scheme_correctness::<SIG>(9);
+        _test_signature_scheme_correctness::<SIG>(21);
+        _test_signature_scheme_correctness::<SIG>(0);
+        _test_signature_scheme_correctness::<SIG>(31);
+    }
+}
