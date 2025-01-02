@@ -44,6 +44,11 @@ fn isolate_chunk_from_byte(byte: u8, chunk_index: usize, chunk_size: usize) -> u
     // Ensure the chunk index is within bounds
     assert!(chunk_index < 8 / chunk_size);
 
+    // exit early if chunk is the entire byte
+    if chunk_size == 8 {
+        return byte;
+    }
+
     // Calculate the start bit position of the i-th chunk
     let start_bit_pos = chunk_index * chunk_size;
 
@@ -124,5 +129,12 @@ mod tests {
         for i in 0..chunks.len() {
             assert_eq!(chunks[i], expected_chunks[i]);
         }
+
+        // now test chunk size 8
+        let chunks = bytes_to_chunks(&bytes, 8);
+
+        assert_eq!(chunks.len(), 2);
+        assert_eq!(chunks[0], byte_a);
+        assert_eq!(chunks[1], byte_b);
     }
 }

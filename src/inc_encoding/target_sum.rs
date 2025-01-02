@@ -37,7 +37,7 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const TARGET_SUM: usize> Incompar
     /// we did one experiment with random message hashes.
     /// In production, this should be estimated via more
     /// extensive experiments with concrete hash functions.
-    const MAX_TRIES: usize = 5000;
+    const MAX_TRIES: usize = 100000;
 
     const CHUNK_SIZE: usize = CHUNK_SIZE;
 

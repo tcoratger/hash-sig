@@ -70,6 +70,15 @@ where
     const LIFETIME: usize = 1 << LOG_LIFETIME;
 
     fn gen<R: Rng>(rng: &mut R) -> (Self::PublicKey, Self::SecretKey) {
+        // Note: this implementation first generates all one-time sk's
+        // and one-time pk's and then computes a Merkle tree in one go.
+        // For a large lifetime (e.g., L = 2^32), this approach is not
+        // well  suited  when  running on, say, 16 GiB of RAM. In this
+        // setting, a more sophisticated approach is needed, e.g., one
+        // could first  compute half (or quarter) of  one-time sk/pk's
+        // and then their root, then save them to disc,  continue with
+        // the second half, and then combine both.
+
         // we need a random parameter to be used for the tweakable hash
         let parameter = TH::rand_parameter(rng);
 
@@ -263,7 +272,8 @@ where
     }
 }
 
-// TODO: add some predefined instantiations that have safe parameters
+/// Instantiations of the generalized XMSS signature scheme based on SHA
+pub mod instantiations_sha;
 
 #[cfg(test)]
 mod tests {

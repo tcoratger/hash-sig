@@ -1,18 +1,41 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, SamplingMode};
 use hashsig::{
-    inc_encoding::target_sum::TargetSumEncoding,
-    signature::{generalized_xmss::GeneralizedXMSSSignatureScheme, SignatureScheme},
-    symmetric::{
-        message_hash::{sha::Sha256MessageHash192x3, MessageHash},
-        prf::hashprf::Sha256PRF,
-        tweak_hash::sha::Sha256Tweak192192,
+    signature::{
+        generalized_xmss::instantiations_sha::{
+            lifetime_2_to_the_18::{
+                target_sum::{
+                    SIGTargetSumLifetime18W1NoOff, SIGTargetSumLifetime18W1Off10,
+                    SIGTargetSumLifetime18W2NoOff, SIGTargetSumLifetime18W2Off10,
+                    SIGTargetSumLifetime18W4NoOff, SIGTargetSumLifetime18W4Off10,
+                    SIGTargetSumLifetime18W8NoOff, SIGTargetSumLifetime18W8Off10,
+                },
+                winternitz::{
+                    SIGWinternitzLifetime18W1, SIGWinternitzLifetime18W2,
+                    SIGWinternitzLifetime18W4, SIGWinternitzLifetime18W8,
+                },
+            },
+            lifetime_2_to_the_20::{
+                target_sum::{
+                    SIGTargetSumLifetime20W1NoOff, SIGTargetSumLifetime20W1Off10,
+                    SIGTargetSumLifetime20W2NoOff, SIGTargetSumLifetime20W2Off10,
+                    SIGTargetSumLifetime20W4NoOff, SIGTargetSumLifetime20W4Off10,
+                    SIGTargetSumLifetime20W8NoOff, SIGTargetSumLifetime20W8Off10,
+                },
+                winternitz::{
+                    SIGWinternitzLifetime20W1, SIGWinternitzLifetime20W2,
+                    SIGWinternitzLifetime20W4, SIGWinternitzLifetime20W8,
+                },
+            },
+        },
+        SignatureScheme,
     },
+    MESSAGE_LENGTH,
 };
 use rand::{thread_rng, Rng};
 
 /// A template for benchmarking signature schemes (key gen, signing, verification)
 pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, description: &str) {
-    let mut group = c.benchmark_group(format!("{} - signature_scheme", description));
+    let mut group = c.benchmark_group(format!("Scheme: {}", description));
 
     // key gen takes long, so don't do that many repetitions
     group.sampling_mode(SamplingMode::Flat);
@@ -20,20 +43,21 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
 
     let mut rng = thread_rng();
 
-    const MESSAGE_LENGTH: usize = 64;
+    // Note: benchmarking key generation takes long, so it is
+    // commented out for now. You can enable it here.
 
-    group.bench_function(format!("{} - gen", description), |b| {
+    /*group.bench_function(format!("- gen"), |b| {
         b.iter(|| {
             // Benchmark key generation
             let _ = S::gen(black_box(&mut rng));
         });
-    });
+    });*/
 
     group.sample_size(100);
 
     let (pk, sk) = S::gen(&mut rng);
 
-    group.bench_function(format!("{} - sign", description), |b| {
+    group.bench_function(format!("- sign"), |b| {
         b.iter(|| {
             // Sample random test message
             let mut message = [0u8; MESSAGE_LENGTH];
@@ -65,7 +89,7 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
         .collect();
 
     // Verification benchmark
-    group.bench_function(format!("{}_verify", description), |b| {
+    group.bench_function(format!("- verify"), |b| {
         b.iter(|| {
             // Randomly pick a precomputed signature to verify
             let (epoch, message, signature) =
@@ -82,22 +106,114 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
     group.finish();
 }
 
-// Some example parameter settings to check if the benchmark works
-// TODO: Use the actual parameters
-type PRF = Sha256PRF<24>;
-type TH = Sha256Tweak192192;
-type MH = Sha256MessageHash192x3;
-const CHUNK_SIZE: usize = 2;
-const NUM_CHUNKS: usize = MH::OUTPUT_LENGTH * 8 / CHUNK_SIZE;
-const MAX_CHUNK_VALUE: usize = (1 << CHUNK_SIZE) - 1;
-const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
-type IE = TargetSumEncoding<MH, CHUNK_SIZE, EXPECTED_SUM>;
-const LOG_LIFETIME: usize = 20;
-type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+/// Benchmarking Lifetime 2^18 for Winternitz Encoding
+fn bench_lifetime18_winternitz(c: &mut Criterion) {
+    benchmark_signature_scheme::<SIGWinternitzLifetime18W1>(c, "Winternitz, Lifetime 2^18, w = 1");
+    benchmark_signature_scheme::<SIGWinternitzLifetime18W2>(c, "Winternitz, Lifetime 2^18, w = 2");
+    benchmark_signature_scheme::<SIGWinternitzLifetime18W4>(c, "Winternitz, Lifetime 2^18, w = 4");
+    benchmark_signature_scheme::<SIGWinternitzLifetime18W8>(c, "Winternitz, Lifetime 2^18, w = 8");
+}
+
+/// Benchmarking Lifetime 2^20 for Winternitz Encoding
+fn bench_lifetime20_winternitz(c: &mut Criterion) {
+    benchmark_signature_scheme::<SIGWinternitzLifetime20W1>(c, "Winternitz, Lifetime 2^20, w = 1");
+    benchmark_signature_scheme::<SIGWinternitzLifetime20W2>(c, "Winternitz, Lifetime 2^20, w = 2");
+    benchmark_signature_scheme::<SIGWinternitzLifetime20W4>(c, "Winternitz, Lifetime 2^20, w = 4");
+    benchmark_signature_scheme::<SIGWinternitzLifetime20W8>(c, "Winternitz, Lifetime 2^20, w = 8");
+}
+
+/// Benchmarking Lifetime 2^18 for Target Sum Encoding
+fn bench_lifetime18_target_sum(c: &mut Criterion) {
+    benchmark_signature_scheme::<SIGTargetSumLifetime18W1NoOff>(
+        c,
+        "Target Sum, Lifetime 2^18, w = 1, no offset",
+    );
+    benchmark_signature_scheme::<SIGTargetSumLifetime18W1Off10>(
+        c,
+        "Target Sum, Lifetime 2^18, w = 1, 10% offset",
+    );
+
+    benchmark_signature_scheme::<SIGTargetSumLifetime18W2NoOff>(
+        c,
+        "Target Sum, Lifetime 2^18, w = 2, no offset",
+    );
+    benchmark_signature_scheme::<SIGTargetSumLifetime18W2Off10>(
+        c,
+        "Target Sum, Lifetime 2^18, w = 2, 10% offset",
+    );
+
+    benchmark_signature_scheme::<SIGTargetSumLifetime18W4NoOff>(
+        c,
+        "Target Sum, Lifetime 2^18, w = 4, no offset",
+    );
+    benchmark_signature_scheme::<SIGTargetSumLifetime18W4Off10>(
+        c,
+        "Target Sum, Lifetime 2^18, w = 4, 10% offset",
+    );
+
+    benchmark_signature_scheme::<SIGTargetSumLifetime18W8NoOff>(
+        c,
+        "Target Sum, Lifetime 2^18, w = 8, no offset",
+    );
+    benchmark_signature_scheme::<SIGTargetSumLifetime18W8Off10>(
+        c,
+        "Target Sum, Lifetime 2^18, w = 8, 10% offset",
+    );
+}
+
+/// Benchmarking Lifetime 2^20 for Target Sum Encoding
+fn bench_lifetime20_target_sum(c: &mut Criterion) {
+    benchmark_signature_scheme::<SIGTargetSumLifetime20W1NoOff>(
+        c,
+        "Target Sum, Lifetime 2^20, w = 1, no offset",
+    );
+    benchmark_signature_scheme::<SIGTargetSumLifetime20W1Off10>(
+        c,
+        "Target Sum, Lifetime 2^20, w = 1, 10% offset",
+    );
+
+    benchmark_signature_scheme::<SIGTargetSumLifetime20W2NoOff>(
+        c,
+        "Target Sum, Lifetime 2^20, w = 2, no offset",
+    );
+    benchmark_signature_scheme::<SIGTargetSumLifetime20W2Off10>(
+        c,
+        "Target Sum, Lifetime 2^20, w = 2, 10% offset",
+    );
+
+    benchmark_signature_scheme::<SIGTargetSumLifetime20W4NoOff>(
+        c,
+        "Target Sum, Lifetime 2^20, w = 4, no offset",
+    );
+    benchmark_signature_scheme::<SIGTargetSumLifetime20W4Off10>(
+        c,
+        "Target Sum, Lifetime 2^20, w = 4, 10% offset",
+    );
+
+    benchmark_signature_scheme::<SIGTargetSumLifetime20W8NoOff>(
+        c,
+        "Target Sum, Lifetime 2^20, w = 8, no offset",
+    );
+    benchmark_signature_scheme::<SIGTargetSumLifetime20W8Off10>(
+        c,
+        "Target Sum, Lifetime 2^20, w = 8, 10% offset",
+    );
+}
 
 fn bench_function(c: &mut Criterion) {
-    benchmark_signature_scheme::<SIG>(c, "example");
+    // benchmarking lifetime 2^18 - Winternitz
+    bench_lifetime18_winternitz(c);
+
+    // benchmarking lifetime 2^18 - Target Sum
+    bench_lifetime18_target_sum(c);
+
+    // benchmarking lifetime 2^20 - Winternitz
+    bench_lifetime20_winternitz(c);
+
+    // benchmarking lifetime 2^20 - Target Sum
+    bench_lifetime20_target_sum(c);
 }
+
 
 criterion_group!(benches, bench_function);
 criterion_main!(benches);
