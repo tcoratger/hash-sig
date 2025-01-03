@@ -10,10 +10,11 @@ use super::IncomparableEncoding;
 /// or equivalently the success probability of this encoding scheme.
 /// It is recommended to set it close to the expected sum, which is:
 ///
-///     const NUM_CHUNKS: usize = MH::OUTPUT_LENGTH * 8 / CHUNK_SIZE;
-///     const MAX_CHUNK_VALUE: usize = (1 << CHUNK_SIZE) - 1;
-///     const EXPECTED_SUM: usize = Self::NUM_CHUNKS * Self::MAX_CHUNK_VALUE / 2;
-///
+/// ```ignore
+///     const NUM_CHUNKS: usize = MH::OUTPUT_LENGTH * 8 / CHUNK_SIZE
+///     const MAX_CHUNK_VALUE: usize = (1 << CHUNK_SIZE) - 1
+///     const EXPECTED_SUM: usize = Self::NUM_CHUNKS * Self::MAX_CHUNK_VALUE / 2
+/// ```
 pub struct TargetSumEncoding<MH: MessageHash, const CHUNK_SIZE: usize, const TARGET_SUM: usize> {
     _marker_mh: std::marker::PhantomData<MH>,
 }

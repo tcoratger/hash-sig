@@ -25,7 +25,7 @@ pub trait TweakableHash {
 
     /// Returns a tweak to be used in the Merkle tree.
     /// Note: this is assumed to be distinct from the outputs of chain_tweak
-    fn tree_tweak(level: u64, pos_in_level: u64) -> Self::Tweak;
+    fn tree_tweak(level: u8, pos_in_level: u64) -> Self::Tweak;
 
     /// Returns a tweak to be used in chains.
     /// Note: this is assumed to be distinct from the outputs of tree_tweak

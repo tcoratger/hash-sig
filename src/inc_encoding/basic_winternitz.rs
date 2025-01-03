@@ -12,11 +12,12 @@ use super::IncomparableEncoding;
 /// Unfortunately, Rust cannot deal with logarithms and ceils in constants.
 /// Therefore, the user needs to supply NUM_CHUNKS_CHECKSUM. This value can
 /// be computed before compilation with the following steps:
-///
+/// ```ignore
 ///     base = 2 ** chunk_size
 ///     num_chunks_message = MH::OUTPUT_LENGTH * 8 / chunk_size
 ///     max_checksum = num_chunks_message * (base - 1)
 ///     num_chunks_checksum = 1 + math.floor(math.log(max_checksum, base))
+/// ```
 
 pub struct WinternitzEncoding<
     MH: MessageHash,

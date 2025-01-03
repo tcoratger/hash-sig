@@ -5,7 +5,7 @@ use super::TweakableHash;
 /// Enum to implement tweaks.
 pub enum Sha256Tweak {
     TreeTweak {
-        level: u64,
+        level: u8,
         pos_in_level: u64,
     },
     ChainTweak {
@@ -77,7 +77,7 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
         dom
     }
 
-    fn tree_tweak(level: u64, pos_in_level: u64) -> Self::Tweak {
+    fn tree_tweak(level: u8, pos_in_level: u64) -> Self::Tweak {
         Sha256Tweak::TreeTweak {
             level,
             pos_in_level,

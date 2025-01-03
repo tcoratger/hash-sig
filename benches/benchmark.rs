@@ -214,6 +214,5 @@ fn bench_function(c: &mut Criterion) {
     bench_lifetime20_target_sum(c);
 }
 
-
 criterion_group!(benches, bench_function);
 criterion_main!(benches);
