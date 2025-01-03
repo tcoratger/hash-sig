@@ -21,7 +21,7 @@ pub mod lifetime_2_to_the_18 {
         const HASH_LEN_W1: usize = 25;
         type THw1 = Sha256TweakHash<PARAMETER_LEN, HASH_LEN_W1>;
         type PRFw1 = Sha256PRF<HASH_LEN_W1>;
-        type IEw1 = WinternitzEncoding<MH, 1, 9>;
+        type IEw1 = WinternitzEncoding<MH, 1, 8>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 1
         pub type SIGWinternitzLifetime18W1 =
             GeneralizedXMSSSignatureScheme<PRFw1, IEw1, THw1, LOG_LIFETIME>;
@@ -29,7 +29,7 @@ pub mod lifetime_2_to_the_18 {
         const HASH_LEN_W2: usize = 25;
         type THw2 = Sha256TweakHash<PARAMETER_LEN, HASH_LEN_W2>;
         type PRFw2 = Sha256PRF<HASH_LEN_W2>;
-        type IEw2 = WinternitzEncoding<MH, 2, 5>;
+        type IEw2 = WinternitzEncoding<MH, 2, 4>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 2
         pub type SIGWinternitzLifetime18W2 =
             GeneralizedXMSSSignatureScheme<PRFw2, IEw2, THw2, LOG_LIFETIME>;
@@ -37,7 +37,7 @@ pub mod lifetime_2_to_the_18 {
         const HASH_LEN_W4: usize = 26;
         type THw4 = Sha256TweakHash<PARAMETER_LEN, HASH_LEN_W4>;
         type PRFw4 = Sha256PRF<HASH_LEN_W4>;
-        type IEw4 = WinternitzEncoding<MH, 4, 4>;
+        type IEw4 = WinternitzEncoding<MH, 4, 3>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 4
         pub type SIGWinternitzLifetime18W4 =
             GeneralizedXMSSSignatureScheme<PRFw4, IEw4, THw4, LOG_LIFETIME>;
@@ -45,7 +45,7 @@ pub mod lifetime_2_to_the_18 {
         const HASH_LEN_W8: usize = 28;
         type THw8 = Sha256TweakHash<PARAMETER_LEN, HASH_LEN_W8>;
         type PRFw8 = Sha256PRF<HASH_LEN_W8>;
-        type IEw8 = WinternitzEncoding<MH, 8, 3>;
+        type IEw8 = WinternitzEncoding<MH, 8, 2>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 8
         pub type SIGWinternitzLifetime18W8 =
             GeneralizedXMSSSignatureScheme<PRFw8, IEw8, THw8, LOG_LIFETIME>;
@@ -150,7 +150,7 @@ pub mod lifetime_2_to_the_20 {
         const HASH_LEN_W1: usize = 25;
         type THw1 = Sha256TweakHash<PARAMETER_LEN, HASH_LEN_W1>;
         type PRFw1 = Sha256PRF<HASH_LEN_W1>;
-        type IEw1 = WinternitzEncoding<MH, 1, 9>;
+        type IEw1 = WinternitzEncoding<MH, 1, 8>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 1
         pub type SIGWinternitzLifetime20W1 =
             GeneralizedXMSSSignatureScheme<PRFw1, IEw1, THw1, LOG_LIFETIME>;
@@ -158,7 +158,7 @@ pub mod lifetime_2_to_the_20 {
         const HASH_LEN_W2: usize = 26;
         type THw2 = Sha256TweakHash<PARAMETER_LEN, HASH_LEN_W2>;
         type PRFw2 = Sha256PRF<HASH_LEN_W2>;
-        type IEw2 = WinternitzEncoding<MH, 2, 5>;
+        type IEw2 = WinternitzEncoding<MH, 2, 4>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 2
         pub type SIGWinternitzLifetime20W2 =
             GeneralizedXMSSSignatureScheme<PRFw2, IEw2, THw2, LOG_LIFETIME>;
@@ -166,7 +166,7 @@ pub mod lifetime_2_to_the_20 {
         const HASH_LEN_W4: usize = 26;
         type THw4 = Sha256TweakHash<PARAMETER_LEN, HASH_LEN_W4>;
         type PRFw4 = Sha256PRF<HASH_LEN_W4>;
-        type IEw4 = WinternitzEncoding<MH, 4, 4>;
+        type IEw4 = WinternitzEncoding<MH, 4, 3>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 4
         pub type SIGWinternitzLifetime20W4 =
             GeneralizedXMSSSignatureScheme<PRFw4, IEw4, THw4, LOG_LIFETIME>;
@@ -174,7 +174,7 @@ pub mod lifetime_2_to_the_20 {
         const HASH_LEN_W8: usize = 28;
         type THw8 = Sha256TweakHash<PARAMETER_LEN, HASH_LEN_W8>;
         type PRFw8 = Sha256PRF<HASH_LEN_W8>;
-        type IEw8 = WinternitzEncoding<MH, 8, 3>;
+        type IEw8 = WinternitzEncoding<MH, 8, 2>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 8
         pub type SIGWinternitzLifetime20W8 =
             GeneralizedXMSSSignatureScheme<PRFw8, IEw8, THw8, LOG_LIFETIME>;

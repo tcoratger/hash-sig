@@ -16,7 +16,7 @@ use super::IncomparableEncoding;
 ///     base = 2 ** chunk_size
 ///     num_chunks_message = MH::OUTPUT_LENGTH * 8 / chunk_size
 ///     max_checksum = num_chunks_message * (base - 1)
-///     num_chunks_checksum = 1 + math.ceil(math.log(max_checksum, base))
+///     num_chunks_checksum = 1 + math.floor(math.log(max_checksum, base))
 
 pub struct WinternitzEncoding<
     MH: MessageHash,
