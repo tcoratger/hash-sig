@@ -54,18 +54,16 @@ impl<const PARAMETER_LEN: usize, const RAND_LEN: usize, const MESSAGE_HASH_LEN: 
 
         let mut hasher = Sha256::new();
 
-        // first add the lengths of parameters, the epoch, and randomness
-        // we assume they only use 8 bits = 1 Byte
-        let par_len: u8 = PARAMETER_LEN.to_le_bytes()[0];
-        let epoch_len: u8 = 1;
-        let rand_len = RAND_LEN.to_le_bytes()[0];
-        hasher.update(&[par_len]);
-        hasher.update(&[epoch_len]);
-        hasher.update(&[rand_len]);
-
-        // now add the parameter, epoch, and randomness
+        // now add the parameter
         hasher.update(parameter);
+
+        // now add tweak (= domain separator + epoch)
+        // domain separater: this is a message hash tweak.
+        // So we start with a 0x02 byte.
+        hasher.update(&[0x02]);
         hasher.update(epoch.to_le_bytes());
+
+        // now add randomness
         hasher.update(randomness);
 
         // now add the actual message to be hashed

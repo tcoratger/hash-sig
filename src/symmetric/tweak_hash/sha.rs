@@ -28,8 +28,10 @@ impl Sha256Tweak {
                 // then we extend with the actual data
                 bytes.extend(&level.to_be_bytes());
                 bytes.extend(&pos_in_level.to_be_bytes());
-                // and finally a 7 0-bytes to ensure the same length
-                bytes.extend_from_slice(&[0; 7]);
+                // Note: it is fine that both tweaks have different
+                // lengths as the domain separator (0x00 or 0x01)
+                // ensures that the length is known and we know when
+                // the tweak ends.
                 bytes
             }
             Sha256Tweak::ChainTweak {
@@ -108,15 +110,7 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
 
         let mut hasher = Sha256::new();
 
-        // first add the lengths of parameters and tweaks
-        // we assume they only use 8 bits = 1 Byte
-        let par_len: u8 = PARAMETER_LEN.to_le_bytes()[0];
-        let tweak_len: u8 = (8 + 64 + 64 + 64) / 8;
-        hasher.update(&[par_len]);
-        hasher.update(&[tweak_len]);
-        hasher.update(&[0x00]);
-
-        // now add the parameter and tweak
+        // add the parameter and tweak
         hasher.update(parameter);
         hasher.update(tweak.to_bytes());
 
