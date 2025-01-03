@@ -6,10 +6,10 @@ use super::TweakableHash;
 pub enum Sha256Tweak {
     TreeTweak {
         level: u8,
-        pos_in_level: u64,
+        pos_in_level: u32,
     },
     ChainTweak {
-        epoch: u64,
+        epoch: u32,
         chain_index: u64,
         pos_in_chain: u64,
     },
@@ -77,14 +77,14 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
         dom
     }
 
-    fn tree_tweak(level: u8, pos_in_level: u64) -> Self::Tweak {
+    fn tree_tweak(level: u8, pos_in_level: u32) -> Self::Tweak {
         Sha256Tweak::TreeTweak {
             level,
             pos_in_level,
         }
     }
 
-    fn chain_tweak(epoch: u64, chain_index: u64, pos_in_chain: u64) -> Self::Tweak {
+    fn chain_tweak(epoch: u32, chain_index: u64, pos_in_chain: u64) -> Self::Tweak {
         Sha256Tweak::ChainTweak {
             epoch,
             chain_index,

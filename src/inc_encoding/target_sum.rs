@@ -50,7 +50,7 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const TARGET_SUM: usize> Incompar
         parameter: &Self::Parameter,
         message: &[u8; 64],
         randomness: &Self::Randomness,
-        epoch: u64,
+        epoch: u32,
     ) -> Result<Vec<u64>, super::EncodingError> {
         // apply the message hash first, get bytes
         let hash_bytes = MH::apply(parameter, epoch, randomness, message);

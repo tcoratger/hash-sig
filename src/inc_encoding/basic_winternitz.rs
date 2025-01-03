@@ -56,7 +56,7 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
         parameter: &Self::Parameter,
         message: &[u8; MESSAGE_LENGTH],
         randomness: &Self::Randomness,
-        epoch: u64,
+        epoch: u32,
     ) -> Result<Vec<u64>, super::EncodingError> {
         // apply the message hash first, get bytes, and then convert into chunks
         let hash_bytes = MH::apply(parameter, epoch, randomness, message);

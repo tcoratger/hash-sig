@@ -28,7 +28,7 @@ pub fn build_tree<TH: TweakableHash>(
     // the bottom layer contains the individual hashes of all leafs
     layers.push(Vec::new());
     for i in 0..layer_size {
-        let tweak = TH::tree_tweak(0, i as u64);
+        let tweak = TH::tree_tweak(0, i as u32);
         let hash = TH::apply(parameter, &tweak, leafs[i]);
         layers[0].push(hash);
     }
@@ -43,7 +43,7 @@ pub fn build_tree<TH: TweakableHash>(
         for i in 0..layer_size {
             let left_idx = 2 * i;
             let right_idx = 2 * i + 1;
-            let tweak = TH::tree_tweak(level, i as u64);
+            let tweak = TH::tree_tweak(level, i as u32);
             let children = &layers[(level - 1) as usize][left_idx..=right_idx];
             let parent = TH::apply(parameter, &tweak, children);
             layers[level as usize].push(parent);
@@ -79,14 +79,14 @@ pub struct HashTreeOpening<TH: TweakableHash> {
 /// size 1.
 pub fn hash_tree_path<TH: TweakableHash>(
     tree: &HashTree<TH>,
-    position: u64,
+    position: u32,
 ) -> HashTreeOpening<TH> {
     assert!(
         !tree.layers.is_empty(),
         "Hash-Tree hash tree path: Need at least one layer"
     );
     assert!(
-        position < tree.layers[0].len() as u64,
+        (position as u64) < (tree.layers[0].len() as u64),
         "Hash-Tree hash tree path: Invalid position"
     );
 
@@ -119,7 +119,7 @@ pub fn hash_tree_path<TH: TweakableHash>(
 pub fn hash_tree_verify<TH: TweakableHash>(
     parameter: &TH::Parameter,
     root: &TH::Domain,
-    position: u64,
+    position: u32,
     leaf: &[TH::Domain],
     opening: &HashTreeOpening<TH>,
 ) -> bool {
@@ -135,7 +135,7 @@ pub fn hash_tree_verify<TH: TweakableHash>(
     );
 
     assert!(
-        position < num_leafs,
+        (position as u64) < num_leafs,
         "Hash-Tree hash tree verify: Position and Path Length not compatible"
     );
 

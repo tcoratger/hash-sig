@@ -17,7 +17,9 @@ use super::{SignatureScheme, SigningError};
 /// Implementation of the generalized XMSS signature scheme
 /// from any incomparable encoding scheme and any tweakable hash
 /// It also uses a PRF for key generation, and one has to specify
-/// the (base 2 log of the) key lifetime
+/// the (base 2 log of the) key lifetime.
+///
+/// Note: lifetimes beyond 2^32 are not supported.
 pub struct GeneralizedXMSSSignatureScheme<
     PRF: Pseudorandom,
     IE: IncomparableEncoding,
@@ -67,7 +69,7 @@ where
 
     type Signature = GeneralizedXMSSSignature<IE, TH>;
 
-    const LIFETIME: usize = 1 << LOG_LIFETIME;
+    const LIFETIME: u64 = 1 << LOG_LIFETIME;
 
     fn gen<R: Rng>(rng: &mut R) -> (Self::PublicKey, Self::SecretKey) {
         // Note: this implementation first generates all one-time sk's
@@ -93,8 +95,8 @@ where
         // chain starting at the secret key.
         let num_chains = IE::NUM_CHUNKS;
         let chain_length = 1 << IE::CHUNK_SIZE;
-        let mut chain_starts = Vec::with_capacity(Self::LIFETIME);
-        let mut chain_ends = Vec::with_capacity(Self::LIFETIME);
+        let mut chain_starts = Vec::with_capacity(Self::LIFETIME as usize);
+        let mut chain_ends = Vec::with_capacity(Self::LIFETIME as usize);
 
         for epoch in 0..Self::LIFETIME {
             let mut epoch_chain_starts = Vec::with_capacity(num_chains);
@@ -103,11 +105,11 @@ where
             // each epoch has a number of chains
             for chain_index in 0..num_chains {
                 // each chain start is just a PRF evaluation
-                let start = PRF::apply(&prf_key, epoch as u64, chain_index as u64).into();
+                let start = PRF::apply(&prf_key, epoch as u32, chain_index as u64).into();
                 // walk the chain to get the public chain end
                 let end = chain::<TH>(
                     &parameter,
-                    epoch as u64,
+                    epoch as u32,
                     chain_index as u64,
                     0,
                     chain_length - 1,
@@ -144,7 +146,7 @@ where
     fn sign<R: Rng>(
         rng: &mut R,
         sk: &Self::SecretKey,
-        epoch: u64,
+        epoch: u32,
         message: &[u8; 64],
     ) -> Result<Self::Signature, SigningError> {
         // check first that we have the correct message length
@@ -197,7 +199,7 @@ where
         let mut hashes = Vec::with_capacity(num_chains);
         for chain_index in 0..num_chains {
             // get back the start of the chain from the PRF
-            let start = PRF::apply(&sk.prf_key, epoch as u64, chain_index as u64).into();
+            let start = PRF::apply(&sk.prf_key, epoch as u32, chain_index as u64).into();
             // now walk the chain for a number of steps determined by x
             let steps = x[chain_index];
             let hash_in_chain = chain::<TH>(
@@ -217,12 +219,12 @@ where
 
     fn verify(
         pk: &Self::PublicKey,
-        epoch: u64,
+        epoch: u32,
         message: &[u8; MESSAGE_LENGTH],
         sig: &Self::Signature,
     ) -> bool {
         assert!(
-            epoch < Self::LIFETIME as u64,
+            (epoch as u64) < Self::LIFETIME,
             "Generalized XMSS - Verify: Epoch too large."
         );
 

@@ -20,7 +20,7 @@ impl<const OUTPUT_LENGTH: usize> Pseudorandom for Sha256PRF<OUTPUT_LENGTH> {
         key
     }
 
-    fn apply(key: &Self::Key, epoch: u64, index: u64) -> Self::Output {
+    fn apply(key: &Self::Key, epoch: u32, index: u64) -> Self::Output {
         assert!(
             OUTPUT_LENGTH < 256 / 8,
             "SHA256-PRF: Output length must be less than 256 bit"
@@ -40,7 +40,7 @@ impl<const OUTPUT_LENGTH: usize> Pseudorandom for Sha256PRF<OUTPUT_LENGTH> {
         // Hash the index
         hasher.update(index.to_be_bytes());
 
-        // Finalize and convert the first 8 bytes to u64
+        // Finalize and convert to output
         let result = hasher.finalize();
         result[0..OUTPUT_LENGTH].try_into().unwrap()
     }

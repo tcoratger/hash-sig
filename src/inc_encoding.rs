@@ -40,7 +40,7 @@ pub trait IncomparableEncoding {
         parameter: &Self::Parameter,
         message: &[u8; MESSAGE_LENGTH],
         randomness: &Self::Randomness,
-        epoch: u64,
+        epoch: u32,
     ) -> Result<Vec<u64>, EncodingError>;
 }
 

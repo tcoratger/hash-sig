@@ -19,7 +19,7 @@ pub trait SignatureScheme {
 
     /// number of epochs that are supported
     /// with one key. Must be a power of two.
-    const LIFETIME: usize;
+    const LIFETIME: u64;
 
     /// Generates a new key pair, returning the public and private keys.
     fn gen<R: Rng>(rng: &mut R) -> (Self::PublicKey, Self::SecretKey);
@@ -29,14 +29,14 @@ pub trait SignatureScheme {
     fn sign<R: Rng>(
         rng: &mut R,
         sk: &Self::SecretKey,
-        epoch: u64,
+        epoch: u32,
         message: &[u8; MESSAGE_LENGTH],
     ) -> Result<Self::Signature, SigningError>;
 
     /// Verifies a signature with respect to public key, epoch, and message digest.
     fn verify(
         pk: &Self::PublicKey,
-        epoch: u64,
+        epoch: u32,
         message: &[u8; MESSAGE_LENGTH],
         sig: &Self::Signature,
     ) -> bool;
@@ -53,7 +53,7 @@ mod test_templates {
     /// Generic test for any implementation of the `SignatureScheme` trait.
     /// Tests correctness, i.e., that honest key gen, honest signing, implies
     /// that the verifier accepts the signature. A random message is used.
-    pub fn _test_signature_scheme_correctness<T: SignatureScheme>(epoch: u64) {
+    pub fn _test_signature_scheme_correctness<T: SignatureScheme>(epoch: u32) {
         let mut rng = thread_rng();
 
         // Generate a key pair

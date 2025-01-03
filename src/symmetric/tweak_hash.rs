@@ -25,11 +25,11 @@ pub trait TweakableHash {
 
     /// Returns a tweak to be used in the Merkle tree.
     /// Note: this is assumed to be distinct from the outputs of chain_tweak
-    fn tree_tweak(level: u8, pos_in_level: u64) -> Self::Tweak;
+    fn tree_tweak(level: u8, pos_in_level: u32) -> Self::Tweak;
 
     /// Returns a tweak to be used in chains.
     /// Note: this is assumed to be distinct from the outputs of tree_tweak
-    fn chain_tweak(epoch: u64, chain_index: u64, pos_in_chain: u64) -> Self::Tweak;
+    fn chain_tweak(epoch: u32, chain_index: u64, pos_in_chain: u64) -> Self::Tweak;
 
     /// Applies the tweakable hash to parameter, tweak, and message.
     fn apply(
@@ -48,7 +48,7 @@ pub trait TweakableHash {
 /// with `start = A` would mean we walk A -> B -> C, and then return C.
 pub(crate) fn chain<TH: TweakableHash>(
     parameter: &TH::Parameter,
-    epoch: u64,
+    epoch: u32,
     chain_index: u64,
     start_pos_in_chain: u64,
     steps: usize,
