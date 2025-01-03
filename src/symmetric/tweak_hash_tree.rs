@@ -28,13 +28,13 @@ pub fn build_tree<TH: TweakableHash>(
     // the bottom layer contains the individual hashes of all leafs
     layers.push(Vec::new());
     for i in 0..layer_size {
-        let tweak = TH::tree_tweak(0, i as u64);
+        let tweak = TH::tree_tweak(0, i as u32);
         let hash = TH::apply(parameter, &tweak, leafs[i]);
         layers[0].push(hash);
     }
 
     // now, we build each layer by hashing pairs in the previous layer
-    let mut level = 1;
+    let mut level: u8 = 1;
     while layer_size >= 2 {
         // start a new layer
         layers.push(Vec::new());
@@ -43,7 +43,7 @@ pub fn build_tree<TH: TweakableHash>(
         for i in 0..layer_size {
             let left_idx = 2 * i;
             let right_idx = 2 * i + 1;
-            let tweak = TH::tree_tweak(level, i as u64);
+            let tweak = TH::tree_tweak(level, i as u32);
             let children = &layers[(level - 1) as usize][left_idx..=right_idx];
             let parent = TH::apply(parameter, &tweak, children);
             layers[level as usize].push(parent);
@@ -79,20 +79,26 @@ pub struct HashTreeOpening<TH: TweakableHash> {
 /// size 1.
 pub fn hash_tree_path<TH: TweakableHash>(
     tree: &HashTree<TH>,
-    position: u64,
+    position: u32,
 ) -> HashTreeOpening<TH> {
     assert!(
         !tree.layers.is_empty(),
         "Hash-Tree hash tree path: Need at least one layer"
     );
     assert!(
-        position < tree.layers[0].len() as u64,
+        (position as u64) < (tree.layers[0].len() as u64),
         "Hash-Tree hash tree path: Invalid position"
+    );
+
+    let depth = tree.layers.len() - 1;
+
+    assert!(
+        depth <= 64,
+        "Hash-Tree hash tree path: Tree depth must be at most 64"
     );
 
     // in our co-path, we will have one node per layer
     // except the final layer (which is just the root)
-    let depth = tree.layers.len() - 1;
     let mut co_path: Vec<TH::Domain> = Vec::with_capacity(depth);
     let mut current_position = position;
     for l in 0..depth {
@@ -113,7 +119,7 @@ pub fn hash_tree_path<TH: TweakableHash>(
 pub fn hash_tree_verify<TH: TweakableHash>(
     parameter: &TH::Parameter,
     root: &TH::Domain,
-    position: u64,
+    position: u32,
     leaf: &[TH::Domain],
     opening: &HashTreeOpening<TH>,
 ) -> bool {
@@ -122,8 +128,14 @@ pub fn hash_tree_verify<TH: TweakableHash>(
     // position makes sense.
     let depth = opening.co_path.len();
     let num_leafs: u64 = 1 << depth;
+
     assert!(
-        position < num_leafs,
+        depth <= 64,
+        "Hash-Tree hash tree verify: Tree depth must be at most 64"
+    );
+
+    assert!(
+        (position as u64) < num_leafs,
         "Hash-Tree hash tree verify: Position and Path Length not compatible"
     );
 
@@ -148,7 +160,7 @@ pub fn hash_tree_verify<TH: TweakableHash>(
         current_position = current_position >> 1;
 
         // now hash to get the parent
-        let tweak = TH::tree_tweak((l + 1) as u64, current_position);
+        let tweak = TH::tree_tweak((l + 1) as u8, current_position);
         current_node = TH::apply(parameter, &tweak, &children);
     }
 

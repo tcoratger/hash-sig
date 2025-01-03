@@ -31,7 +31,7 @@ impl<const PARAMETER_LEN: usize, const RAND_LEN: usize, const MESSAGE_HASH_LEN: 
 
     fn apply(
         parameter: &Self::Parameter,
-        epoch: u64,
+        epoch: u32,
         randomness: &Self::Randomness,
         message: &[u8; MESSAGE_LENGTH],
     ) -> Vec<u8> {

@@ -40,8 +40,8 @@ pub trait IncomparableEncoding {
         parameter: &Self::Parameter,
         message: &[u8; MESSAGE_LENGTH],
         randomness: &Self::Randomness,
-        epoch: u64,
-    ) -> Result<Vec<u64>, EncodingError>;
+        epoch: u32,
+    ) -> Result<Vec<u32>, EncodingError>;
 }
 
 pub mod basic_winternitz;

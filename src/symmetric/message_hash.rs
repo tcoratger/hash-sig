@@ -24,7 +24,7 @@ pub trait MessageHash {
     /// use the function `bytes_to_chunks`.
     fn apply(
         parameter: &Self::Parameter,
-        epoch: u64,
+        epoch: u32,
         randomness: &Self::Randomness,
         message: &[u8; MESSAGE_LENGTH],
     ) -> Vec<u8>;
