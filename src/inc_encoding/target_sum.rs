@@ -51,18 +51,18 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const TARGET_SUM: usize> Incompar
         message: &[u8; 64],
         randomness: &Self::Randomness,
         epoch: u32,
-    ) -> Result<Vec<u64>, super::EncodingError> {
+    ) -> Result<Vec<u32>, super::EncodingError> {
         // apply the message hash first, get bytes
         let hash_bytes = MH::apply(parameter, epoch, randomness, message);
         // convert the bytes into chunks
         let chunks: Vec<u8> = bytes_to_chunks(&hash_bytes, Self::CHUNK_SIZE);
-        let chunks_u64: Vec<u64> = chunks.iter().map(|&x| x as u64).collect();
-        let sum: u64 = chunks_u64.iter().sum();
+        let chunks_u32: Vec<u32> = chunks.iter().map(|&x| x as u32).collect();
+        let sum: u32 = chunks_u32.iter().sum();
         // only output the chunks sum to the target sum
         return if sum as usize != Self::TARGET_SUM {
             Err(())
         } else {
-            Ok(chunks_u64)
+            Ok(chunks_u32)
         };
     }
 }

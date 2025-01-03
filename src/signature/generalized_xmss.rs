@@ -110,7 +110,7 @@ where
                 let end = chain::<TH>(
                     &parameter,
                     epoch as u32,
-                    chain_index as u64,
+                    chain_index as u32,
                     0,
                     chain_length - 1,
                     &start,
@@ -205,7 +205,7 @@ where
             let hash_in_chain = chain::<TH>(
                 &sk.parameter,
                 epoch,
-                chain_index as u64,
+                chain_index as u32,
                 0,
                 steps as usize,
                 &start,
@@ -254,7 +254,7 @@ where
             let end = chain::<TH>(
                 &pk.parameter,
                 epoch,
-                chain_index as u64,
+                chain_index as u32,
                 start_pos_in_chain,
                 steps as usize,
                 start,

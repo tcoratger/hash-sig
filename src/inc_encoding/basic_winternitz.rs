@@ -57,7 +57,7 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
         message: &[u8; MESSAGE_LENGTH],
         randomness: &Self::Randomness,
         epoch: u32,
-    ) -> Result<Vec<u64>, super::EncodingError> {
+    ) -> Result<Vec<u32>, super::EncodingError> {
         // apply the message hash first, get bytes, and then convert into chunks
         let hash_bytes = MH::apply(parameter, epoch, randomness, message);
         let chunks_message: Vec<u8> = bytes_to_chunks(&hash_bytes, Self::CHUNK_SIZE);
@@ -79,7 +79,7 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
         let mut chunks = Vec::with_capacity(chunks_message.len() + NUM_CHUNKS_CHECKSUM);
         chunks.extend_from_slice(&chunks_message);
         chunks.extend_from_slice(&chunks_checksum[..NUM_CHUNKS_CHECKSUM]);
-        let chunks_u64: Vec<u64> = chunks.iter().map(|&x| x as u64).collect();
-        Ok(chunks_u64)
+        let chunks_u32: Vec<u32> = chunks.iter().map(|&x| x as u32).collect();
+        Ok(chunks_u32)
     }
 }
