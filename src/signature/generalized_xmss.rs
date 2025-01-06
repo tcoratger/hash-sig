@@ -297,9 +297,9 @@ mod tests {
         type PRF = Sha256PRF<24>;
         type TH = Sha256Tweak192192;
         type MH = Sha256MessageHash192x3;
-        const CHUNK_SIZE: usize = 2;
-        const NUM_CHUNKS_CHECKSUM: usize = 6;
-        type IE = WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>;
+        const _CHUNK_SIZE: usize = 2;
+        const NUM_CHUNKS_CHECKSUM: usize = 3;
+        type IE = WinternitzEncoding<MH, NUM_CHUNKS_CHECKSUM>;
         const LOG_LIFETIME: usize = 9;
         type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
@@ -316,11 +316,11 @@ mod tests {
         type PRF = Sha256PRF<24>;
         type TH = Sha256Tweak192192;
         type MH = Sha256MessageHash192x3;
-        const CHUNK_SIZE: usize = 2;
-        const NUM_CHUNKS: usize = MH::OUTPUT_LENGTH * 8 / CHUNK_SIZE;
+        const CHUNK_SIZE: usize = MH::CHUNK_SIZE;
+        const NUM_CHUNKS: usize = MH::NUM_CHUNKS;
         const MAX_CHUNK_VALUE: usize = (1 << CHUNK_SIZE) - 1;
         const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
-        type IE = TargetSumEncoding<MH, CHUNK_SIZE, EXPECTED_SUM>;
+        type IE = TargetSumEncoding<MH, EXPECTED_SUM>;
         const LOG_LIFETIME: usize = 8;
         type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 

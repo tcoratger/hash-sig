@@ -7,36 +7,32 @@ use super::IncomparableEncoding;
 
 /// Incomparable Encoding Scheme based on the basic
 /// Winternitz scheme, implemented from a given message hash.
-/// CHUNK_SIZE has to be 1,2,4, or 8.
+///
 ///
 /// Unfortunately, Rust cannot deal with logarithms and ceils in constants.
 /// Therefore, the user needs to supply NUM_CHUNKS_CHECKSUM. This value can
 /// be computed before compilation with the following steps:
 /// ```ignore
-///     base = 2 ** chunk_size
-///     num_chunks_message = MH::OUTPUT_LENGTH * 8 / chunk_size
+///     base = 2 ** MH::CHUNK_SIZE
+///     num_chunks_message = MH::NUM_CHUNKS
 ///     max_checksum = num_chunks_message * (base - 1)
 ///     num_chunks_checksum = 1 + math.floor(math.log(max_checksum, base))
 /// ```
 
-pub struct WinternitzEncoding<
-    MH: MessageHash,
-    const CHUNK_SIZE: usize,
-    const NUM_CHUNKS_CHECKSUM: usize,
-> {
+pub struct WinternitzEncoding<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize> {
     _marker_mh: std::marker::PhantomData<MH>,
 }
 
-impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
-    WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>
+impl<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize>
+    WinternitzEncoding<MH, NUM_CHUNKS_CHECKSUM>
 {
-    const NUM_CHUNKS_MESSAGE: usize = MH::OUTPUT_LENGTH * 8 / CHUNK_SIZE;
-    const BASE: usize = 1 << CHUNK_SIZE;
+    const NUM_CHUNKS_MESSAGE: usize = MH::NUM_CHUNKS;
+    const BASE: usize = 1 << MH::CHUNK_SIZE;
     const NUM_CHUNKS: usize = Self::NUM_CHUNKS_MESSAGE + NUM_CHUNKS_CHECKSUM;
 }
 
-impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
-    IncomparableEncoding for WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>
+impl<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize> IncomparableEncoding
+    for WinternitzEncoding<MH, NUM_CHUNKS_CHECKSUM>
 {
     type Parameter = MH::Parameter;
 
@@ -46,7 +42,7 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
 
     const MAX_TRIES: usize = 1;
 
-    const CHUNK_SIZE: usize = CHUNK_SIZE;
+    const CHUNK_SIZE: usize = MH::CHUNK_SIZE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
         MH::rand(rng)
@@ -58,9 +54,8 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
         randomness: &Self::Randomness,
         epoch: u32,
     ) -> Result<Vec<u32>, super::EncodingError> {
-        // apply the message hash first, get bytes, and then convert into chunks
-        let hash_bytes = MH::apply(parameter, epoch, randomness, message);
-        let chunks_message: Vec<u8> = bytes_to_chunks(&hash_bytes, Self::CHUNK_SIZE);
+        // apply the message hash to get chunks
+        let chunks_message = MH::apply(parameter, epoch, randomness, message);
 
         // now, we compute the checksum
         let checksum: u64 = chunks_message

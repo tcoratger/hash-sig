@@ -12,16 +12,18 @@ pub trait MessageHash {
     type Parameter: Clone + Sized;
     type Randomness;
 
-    /// Output length of the hash function, in bytes
-    const OUTPUT_LENGTH: usize;
+    const NUM_CHUNKS: usize;
+
+    /// Must be 1, 2, 4, or 8
+    const CHUNK_SIZE: usize;
 
     /// Generates a random domain element.
     fn rand<R: Rng>(rng: &mut R) -> Self::Randomness;
 
     /// Applies the message hash to a parameter, an epoch,
-    /// a randomness, and a message. It outputs a list of bytes.
-    /// Note: if chunks instead of bytes are needed, one can
-    /// use the function `bytes_to_chunks`.
+    /// a randomness, and a message. It outputs a list of chunks.
+    /// The list contains NUM_CHUNKS many elements, each between
+    /// 0 and 2^CHUNK_SIZE - 1 (inclusive).
     fn apply(
         parameter: &Self::Parameter,
         epoch: u32,

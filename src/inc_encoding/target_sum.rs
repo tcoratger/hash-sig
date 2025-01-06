@@ -1,4 +1,4 @@
-use crate::symmetric::message_hash::{bytes_to_chunks, MessageHash};
+use crate::symmetric::message_hash::MessageHash;
 
 use super::IncomparableEncoding;
 
@@ -11,23 +11,20 @@ use super::IncomparableEncoding;
 /// It is recommended to set it close to the expected sum, which is:
 ///
 /// ```ignore
-///     const NUM_CHUNKS: usize = MH::OUTPUT_LENGTH * 8 / CHUNK_SIZE
-///     const MAX_CHUNK_VALUE: usize = (1 << CHUNK_SIZE) - 1
-///     const EXPECTED_SUM: usize = Self::NUM_CHUNKS * Self::MAX_CHUNK_VALUE / 2
+///     const MAX_CHUNK_VALUE: usize = (1 << MH::CHUNK_SIZE) - 1
+///     const EXPECTED_SUM: usize = MH::NUM_CHUNKS * Self::MAX_CHUNK_VALUE / 2
 /// ```
-pub struct TargetSumEncoding<MH: MessageHash, const CHUNK_SIZE: usize, const TARGET_SUM: usize> {
+pub struct TargetSumEncoding<MH: MessageHash, const TARGET_SUM: usize> {
     _marker_mh: std::marker::PhantomData<MH>,
 }
 
-impl<MH: MessageHash, const CHUNK_SIZE: usize, const TARGET_SUM: usize>
-    TargetSumEncoding<MH, CHUNK_SIZE, TARGET_SUM>
-{
-    const NUM_CHUNKS: usize = MH::OUTPUT_LENGTH * 8 / CHUNK_SIZE;
+impl<MH: MessageHash, const TARGET_SUM: usize> TargetSumEncoding<MH, TARGET_SUM> {
+    const NUM_CHUNKS: usize = MH::NUM_CHUNKS;
     const TARGET_SUM: usize = TARGET_SUM;
 }
 
-impl<MH: MessageHash, const CHUNK_SIZE: usize, const TARGET_SUM: usize> IncomparableEncoding
-    for TargetSumEncoding<MH, CHUNK_SIZE, TARGET_SUM>
+impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
+    for TargetSumEncoding<MH, TARGET_SUM>
 {
     type Parameter = MH::Parameter;
 
@@ -40,7 +37,7 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const TARGET_SUM: usize> Incompar
     /// extensive experiments with concrete hash functions.
     const MAX_TRIES: usize = 100000;
 
-    const CHUNK_SIZE: usize = CHUNK_SIZE;
+    const CHUNK_SIZE: usize = MH::CHUNK_SIZE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
         MH::rand(rng)
@@ -52,10 +49,8 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const TARGET_SUM: usize> Incompar
         randomness: &Self::Randomness,
         epoch: u32,
     ) -> Result<Vec<u32>, super::EncodingError> {
-        // apply the message hash first, get bytes
-        let hash_bytes = MH::apply(parameter, epoch, randomness, message);
-        // convert the bytes into chunks
-        let chunks: Vec<u8> = bytes_to_chunks(&hash_bytes, Self::CHUNK_SIZE);
+        // apply the message hash first to get chunks
+        let chunks = MH::apply(parameter, epoch, randomness, message);
         let chunks_u32: Vec<u32> = chunks.iter().map(|&x| x as u32).collect();
         let sum: u32 = chunks_u32.iter().sum();
         // only output the chunks sum to the target sum

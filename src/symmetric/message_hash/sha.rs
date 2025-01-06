@@ -1,4 +1,4 @@
-use crate::MESSAGE_LENGTH;
+use crate::{symmetric::message_hash::bytes_to_chunks, MESSAGE_LENGTH};
 
 use super::MessageHash;
 
@@ -8,20 +8,28 @@ use sha2::{Digest, Sha256};
 /// All lengths must be given in Bytes.
 /// All lengths must be less than 255 bits.
 /// Randomness length must be non-zero.
+/// CHUNK_SIZE has to be 1,2,4, or 8.
 pub struct Sha256MessageHash<
     const PARAMETER_LEN: usize,
     const RAND_LEN: usize,
-    const MESSAGE_HASH_LEN: usize,
+    const NUM_CHUNKS: usize,
+    const CHUNK_SIZE: usize,
 >;
 
-impl<const PARAMETER_LEN: usize, const RAND_LEN: usize, const MESSAGE_HASH_LEN: usize> MessageHash
-    for Sha256MessageHash<PARAMETER_LEN, RAND_LEN, MESSAGE_HASH_LEN>
+impl<
+        const PARAMETER_LEN: usize,
+        const RAND_LEN: usize,
+        const NUM_CHUNKS: usize,
+        const CHUNK_SIZE: usize,
+    > MessageHash for Sha256MessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS, CHUNK_SIZE>
 {
     type Parameter = [u8; PARAMETER_LEN];
 
     type Randomness = [u8; RAND_LEN];
 
-    const OUTPUT_LENGTH: usize = MESSAGE_HASH_LEN;
+    const NUM_CHUNKS: usize = NUM_CHUNKS;
+
+    const CHUNK_SIZE: usize = CHUNK_SIZE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
         let mut rand = [0u8; RAND_LEN];
@@ -48,8 +56,8 @@ impl<const PARAMETER_LEN: usize, const RAND_LEN: usize, const MESSAGE_HASH_LEN: 
             "SHA256-Message Hash: Randomness Length must be non-zero"
         );
         assert!(
-            MESSAGE_HASH_LEN < 256 / 8,
-            "SHA256-Message Hash: Hash Length must be less than 256 bit"
+            NUM_CHUNKS * CHUNK_SIZE < 256,
+            "SHA256-Message Hash: Hash Length (= NUM_CHUNKS * CHUNK_SIZE) must be less than 256 bit"
         );
 
         let mut hasher = Sha256::new();
@@ -70,14 +78,17 @@ impl<const PARAMETER_LEN: usize, const RAND_LEN: usize, const MESSAGE_HASH_LEN: 
         hasher.update(message);
 
         // finalize the hash, and take as many bytes as we need
-        let result = hasher.finalize();
-        result[0..MESSAGE_HASH_LEN].try_into().unwrap()
+        let hash = hasher.finalize();
+        // turn the bytes in the hash into chunks
+        let chunks: Vec<u8> =
+            bytes_to_chunks(&hash[0..NUM_CHUNKS * CHUNK_SIZE / 8], Self::CHUNK_SIZE);
+        chunks
     }
 }
 
 // Example instantiations
-pub type Sha256MessageHash128x3 = Sha256MessageHash<16, 16, 16>;
-pub type Sha256MessageHash192x3 = Sha256MessageHash<24, 24, 24>;
+pub type Sha256MessageHash128x3 = Sha256MessageHash<16, 16, 16, 8>;
+pub type Sha256MessageHash192x3 = Sha256MessageHash<24, 24, 48, 4>;
 
 #[cfg(test)]
 mod tests {
