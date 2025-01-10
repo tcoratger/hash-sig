@@ -18,3 +18,4 @@ pub trait Pseudorandom {
 }
 
 pub mod sha;
+pub mod shake_to_field;

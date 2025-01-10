@@ -278,6 +278,7 @@ where
     }
 }
 
+/// Instantiations of the generalized XMSS signature scheme based on Poseidon2
 pub mod instantiations_poseidon;
 /// Instantiations of the generalized XMSS signature scheme based on SHA
 pub mod instantiations_sha;
@@ -291,11 +292,8 @@ mod tests {
             message_hash::{
                 poseidon::PoseidonMessageHashW1, sha::ShaMessageHash192x3, MessageHash,
             },
-            prf::sha::{ShaPRF, ShaPRFtoF},
-            tweak_hash::{
-                poseidon::{PoseidonTweakW1L18, PoseidonTweakW1L5},
-                sha::ShaTweak192192,
-            },
+            prf::{sha::ShaPRF, shake_to_field::ShakePRFtoF},
+            tweak_hash::{poseidon::PoseidonTweakW1L5, sha::ShaTweak192192},
         },
     };
 
@@ -324,7 +322,7 @@ mod tests {
     #[test]
     pub fn test_winternitz_poseidon() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShaPRFtoF<7>;
+        type PRF = ShakePRFtoF<7>;
         type TH = PoseidonTweakW1L5;
         type MH = PoseidonMessageHashW1;
         const _CHUNK_SIZE: usize = 1;
@@ -333,7 +331,7 @@ mod tests {
         const LOG_LIFETIME: usize = 5;
         type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
-        _test_signature_scheme_internal_consistency::<SIG>();
+        SIG::internal_consistency_check();
 
         _test_signature_scheme_correctness::<SIG>(2);
         _test_signature_scheme_correctness::<SIG>(19);
@@ -367,7 +365,7 @@ mod tests {
     #[test]
     pub fn test_target_sum_winternitz_poseidon() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShaPRFtoF<7>;
+        type PRF = ShakePRFtoF<7>;
         type TH = PoseidonTweakW1L5;
         type MH = PoseidonMessageHashW1;
         const CHUNK_SIZE: usize = MH::CHUNK_SIZE;
@@ -378,7 +376,7 @@ mod tests {
         const LOG_LIFETIME: usize = 5;
         type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
-        _test_signature_scheme_internal_consistency::<SIG>();
+        SIG::internal_consistency_check();
 
         _test_signature_scheme_correctness::<SIG>(2);
         _test_signature_scheme_correctness::<SIG>(19);

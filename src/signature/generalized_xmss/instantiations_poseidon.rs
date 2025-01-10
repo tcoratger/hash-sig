@@ -6,7 +6,7 @@ pub mod lifetime_2_to_the_18 {
             inc_encoding::basic_winternitz::WinternitzEncoding,
             signature::generalized_xmss::GeneralizedXMSSSignatureScheme,
             symmetric::{
-                message_hash::poseidon::PoseidonMessageHash, prf::sha::ShaPRFtoF,
+                message_hash::poseidon::PoseidonMessageHash, prf::shake_to_field::ShakePRFtoF,
                 tweak_hash::poseidon::PoseidonTweakHash,
             },
         };
@@ -42,7 +42,7 @@ pub mod lifetime_2_to_the_18 {
             CAPACITY,
             NUM_CHUNKS_W1,
         >;
-        type PRFw1 = ShaPRFtoF<HASH_LEN_FE>;
+        type PRFw1 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw1 = WinternitzEncoding<MHw1, NUM_CHUNKS_CHECKSUM_W1>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 1
         pub type SIGWinternitzLifetime18W1 =
@@ -71,7 +71,7 @@ pub mod lifetime_2_to_the_18 {
             CAPACITY,
             NUM_CHUNKS_W2,
         >;
-        type PRFw2 = ShaPRFtoF<HASH_LEN_FE>;
+        type PRFw2 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw2 = WinternitzEncoding<MHw2, NUM_CHUNKS_CHECKSUM_W2>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 2
         pub type SIGWinternitzLifetime18W2 =
@@ -100,7 +100,7 @@ pub mod lifetime_2_to_the_18 {
             CAPACITY,
             NUM_CHUNKS_W4,
         >;
-        type PRFw4 = ShaPRFtoF<HASH_LEN_FE>;
+        type PRFw4 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw4 = WinternitzEncoding<MHw4, NUM_CHUNKS_CHECKSUM_W4>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 4
         pub type SIGWinternitzLifetime18W4 =
@@ -129,11 +129,62 @@ pub mod lifetime_2_to_the_18 {
             CAPACITY,
             NUM_CHUNKS_W8,
         >;
-        type PRFw8 = ShaPRFtoF<HASH_LEN_FE>;
-        type IEw8 = WinternitzEncoding<MHw8, 2>;
+        type PRFw8 = ShakePRFtoF<HASH_LEN_FE>;
+        type IEw8 = WinternitzEncoding<MHw8, NUM_CHUNKS_CHECKSUM_W8>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 8
         pub type SIGWinternitzLifetime18W8 =
             GeneralizedXMSSSignatureScheme<PRFw8, IEw8, THw8, LOG_LIFETIME>;
+
+        #[cfg(test)]
+        mod test {
+            use crate::signature::SignatureScheme;
+
+            #[cfg(feature = "slow-tests")]
+            use crate::signature::test_templates::_test_signature_scheme_correctness;
+
+            use super::{
+                SIGWinternitzLifetime18W1, SIGWinternitzLifetime18W2, SIGWinternitzLifetime18W4,
+                SIGWinternitzLifetime18W8,
+            };
+
+            #[test]
+            pub fn test_w1_internal_consistency() {
+                SIGWinternitzLifetime18W1::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w2_internal_consistency() {
+                SIGWinternitzLifetime18W2::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w4_internal_consistency() {
+                SIGWinternitzLifetime18W4::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w8_internal_consistency() {
+                SIGWinternitzLifetime18W8::internal_consistency_check();
+            }
+
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w1_correctness() {
+                _test_signature_scheme_correctness::<SIGWinternitzLifetime18W1>(1032);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w2_correctness() {
+                _test_signature_scheme_correctness::<SIGWinternitzLifetime18W2>(32);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w4_correctness() {
+                _test_signature_scheme_correctness::<SIGWinternitzLifetime18W4>(2032);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w8_correctness() {
+                _test_signature_scheme_correctness::<SIGWinternitzLifetime18W8>(2142);
+            }
+        }
     }
     /// Instantiations based on the target sum encoding
     pub mod target_sum {
@@ -141,7 +192,7 @@ pub mod lifetime_2_to_the_18 {
             inc_encoding::target_sum::TargetSumEncoding,
             signature::generalized_xmss::GeneralizedXMSSSignatureScheme,
             symmetric::{
-                message_hash::poseidon::PoseidonMessageHash, prf::sha::ShaPRFtoF,
+                message_hash::poseidon::PoseidonMessageHash, prf::shake_to_field::ShakePRFtoF,
                 tweak_hash::poseidon::PoseidonTweakHash,
             },
         };
@@ -176,7 +227,7 @@ pub mod lifetime_2_to_the_18 {
             CAPACITY,
             NUM_CHUNKS_W1,
         >;
-        type PRFw1 = ShaPRFtoF<HASH_LEN_FE>;
+        type PRFw1 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw1<const TARGET_SUM: usize> = TargetSumEncoding<MHw1, TARGET_SUM>;
         /// Instantiation with Lifetime 2^18, Target sum encoding, chunk size w = 1,
         /// and target sum set at expectation
@@ -209,7 +260,7 @@ pub mod lifetime_2_to_the_18 {
             CAPACITY,
             NUM_CHUNKS_W2,
         >;
-        type PRFw2 = ShaPRFtoF<HASH_LEN_FE>;
+        type PRFw2 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw2<const TARGET_SUM: usize> = TargetSumEncoding<MHw2, TARGET_SUM>;
         /// Instantiation with Lifetime 2^18, Target sum encoding, chunk size w = 2,
         /// and target sum set at expectation
@@ -242,7 +293,7 @@ pub mod lifetime_2_to_the_18 {
             CAPACITY,
             NUM_CHUNKS_W4,
         >;
-        type PRFw4 = ShaPRFtoF<HASH_LEN_FE>;
+        type PRFw4 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw4<const TARGET_SUM: usize> = TargetSumEncoding<MHw4, TARGET_SUM>;
         /// Instantiation with Lifetime 2^18, Target sum encoding, chunk size w = 4,
         /// and target sum set at expectation
@@ -275,7 +326,7 @@ pub mod lifetime_2_to_the_18 {
             CAPACITY,
             NUM_CHUNKS_W8,
         >;
-        type PRFw8 = ShaPRFtoF<HASH_LEN_FE>;
+        type PRFw8 = ShakePRFtoF<HASH_LEN_FE>;
         type IEw8<const TARGET_SUM: usize> = TargetSumEncoding<MHw8, TARGET_SUM>;
         /// Instantiation with Lifetime 2^18, Target sum encoding, chunk size w = 8,
         /// and target sum set at expectation
@@ -289,5 +340,66 @@ pub mod lifetime_2_to_the_18 {
         /// and so signing may fail from time to time. It is not recommended to use this.
         pub type SIGTargetSumLifetime18W8Off10 =
             GeneralizedXMSSSignatureScheme<PRFw8, IEw8<2805>, THw8, LOG_LIFETIME>;
+
+        #[cfg(test)]
+        mod test {
+            use crate::signature::SignatureScheme;
+
+            #[cfg(feature = "slow-tests")]
+            use crate::signature::test_templates::_test_signature_scheme_correctness;
+
+            use super::{
+                SIGTargetSumLifetime18W1NoOff, SIGTargetSumLifetime18W1Off10,
+                SIGTargetSumLifetime18W2NoOff, SIGTargetSumLifetime18W2Off10,
+                SIGTargetSumLifetime18W4NoOff, SIGTargetSumLifetime18W4Off10,
+                SIGTargetSumLifetime18W8NoOff, SIGTargetSumLifetime18W8Off10,
+            };
+
+            #[test]
+            pub fn test_w1_internal_consistency() {
+                SIGTargetSumLifetime18W1NoOff::internal_consistency_check();
+                SIGTargetSumLifetime18W1Off10::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w2_internal_consistency() {
+                SIGTargetSumLifetime18W2NoOff::internal_consistency_check();
+                SIGTargetSumLifetime18W2Off10::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w4_internal_consistency() {
+                SIGTargetSumLifetime18W4NoOff::internal_consistency_check();
+                SIGTargetSumLifetime18W4Off10::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w8_internal_consistency() {
+                SIGTargetSumLifetime18W8NoOff::internal_consistency_check();
+                SIGTargetSumLifetime18W8Off10::internal_consistency_check();
+            }
+
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w1_correctness() {
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W1NoOff>(1032);
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W1Off10>(32);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w2_correctness() {
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W2NoOff>(436);
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W2Off10>(312);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w4_correctness() {
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W4NoOff>(21);
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W4Off10>(3211);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w8_correctness() {
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W8NoOff>(32);
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W8Off10>(768);
+            }
+        }
     }
 }

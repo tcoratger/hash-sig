@@ -164,11 +164,13 @@ pub fn poseidon_sponge<const OUT_LEN: usize>(
     // padding with 0s
     input_vector.resize_with(input.len() + extra_elements, F::zero);
 
-    // Initialize
+    // sponge mode has three phases: initialize, absorb, squeeze
+
+    // initialize
     let mut state = vec![F::zero(); rate];
     state.extend_from_slice(capacity_value);
 
-    // Absorb
+    // absorb
     for chunk in input_vector.chunks(rate) {
         for i in 0..chunk.len() {
             state[i] = state[i] + chunk[i];
@@ -176,7 +178,7 @@ pub fn poseidon_sponge<const OUT_LEN: usize>(
         }
     }
 
-    // Squeeze
+    // squeeze
     let mut out = vec![];
     while out.len() < OUT_LEN {
         out.extend_from_slice(&state[..rate]);
@@ -188,7 +190,7 @@ pub fn poseidon_sponge<const OUT_LEN: usize>(
 
 /// A tweakable hash function implemented using Poseidon2
 ///
-/// Note: HASH_LEN,TWEAK_LEN, CAPACITY, and PARAMETER_LEN must
+/// Note: HASH_LEN, TWEAK_LEN, CAPACITY, and PARAMETER_LEN must
 /// be given in the unit "number of field elements".
 pub struct PoseidonTweakHash<
     const LOG_LIFETIME: usize,
@@ -339,7 +341,7 @@ impl<
         ) * f64::from(24 as u32);
         assert!(
             state_bits >= f64::from((DOMAIN_PARAMETERS_LENGTH * 32) as u32),
-            "Parameter mismatch: not enough field elements to hash the domain separator"
+            "Poseidon Tweak Leaf Hash: not enough field elements to hash the domain separator"
         );
     }
 }
