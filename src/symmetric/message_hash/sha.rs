@@ -69,22 +69,23 @@ impl<
         chunks
     }
 
-    fn consistency_check() {
+    #[cfg(test)]
+    fn internal_consistency_check() {
         assert!(
             PARAMETER_LEN < 256 / 8,
-            "SHA256-Message Hash: Parameter Length must be less than 256 bit"
+            "SHA Message Hash: Parameter Length must be less than 256 bit"
         );
         assert!(
             RAND_LEN < 256 / 8,
-            "SHA256-Message Hash: Randomness Length must be less than 256 bit"
+            "SHA Message Hash: Randomness Length must be less than 256 bit"
         );
         assert!(
             RAND_LEN > 0,
-            "SHA256-Message Hash: Randomness Length must be non-zero"
+            "SHA Message Hash: Randomness Length must be non-zero"
         );
         assert!(
             NUM_CHUNKS * CHUNK_SIZE < 256,
-            "SHA256-Message Hash: Hash Length (= NUM_CHUNKS * CHUNK_SIZE) must be less than 256 bit"
+            "SHA Message Hash: Hash Length (= NUM_CHUNKS * CHUNK_SIZE) must be less than 256 bit"
         );
     }
 }
@@ -114,7 +115,7 @@ mod tests {
         let epoch = 13;
         let randomness = ShaMessageHash128x3::rand(&mut rng);
 
-        ShaMessageHash128x3::consistency_check();
+        ShaMessageHash128x3::internal_consistency_check();
         ShaMessageHash128x3::apply(&parameter, epoch, &randomness, &message);
     }
 
@@ -131,7 +132,7 @@ mod tests {
         let epoch = 13;
         let randomness = ShaMessageHash192x3::rand(&mut rng);
 
-        ShaMessageHash192x3::consistency_check();
+        ShaMessageHash192x3::internal_consistency_check();
         ShaMessageHash192x3::apply(&parameter, epoch, &randomness, &message);
     }
 }

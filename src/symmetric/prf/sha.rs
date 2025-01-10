@@ -21,11 +21,6 @@ impl<const OUTPUT_LENGTH: usize> Pseudorandom for ShaPRF<OUTPUT_LENGTH> {
     }
 
     fn apply(key: &Self::Key, epoch: u32, index: u64) -> Self::Output {
-        assert!(
-            OUTPUT_LENGTH < 256 / 8,
-            "SHA PRF: Output length must be less than 256 bit"
-        );
-
         let mut hasher = Sha3_256::new();
 
         // Hash the domain separator
@@ -43,5 +38,13 @@ impl<const OUTPUT_LENGTH: usize> Pseudorandom for ShaPRF<OUTPUT_LENGTH> {
         // Finalize and convert to output
         let result = hasher.finalize();
         result[0..OUTPUT_LENGTH].try_into().unwrap()
+    }
+
+    #[cfg(test)]
+    fn internal_consistency_check() {
+        assert!(
+            OUTPUT_LENGTH < 256 / 8,
+            "SHA PRF: Output length must be less than 256 bit"
+        );
     }
 }

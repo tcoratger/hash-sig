@@ -154,7 +154,8 @@ impl<
         decode_to_chunks::<NUM_CHUNKS, CHUNK_SIZE, HASH_LEN_FE>(&hash_fe)
     }
 
-    fn consistency_check() {
+    #[cfg(test)]
+    fn internal_consistency_check() {
         // message check
         let message_fe_bits = f64::log2(
             BigUint::from(FqConfig::MODULUS)
@@ -217,7 +218,7 @@ mod tests {
         let epoch = 13;
         let randomness = PoseidonMessageHash445::rand(&mut rng);
 
-        PoseidonMessageHash445::consistency_check();
+        PoseidonMessageHash445::internal_consistency_check();
         PoseidonMessageHash445::apply(&parameter, epoch, &randomness, &message);
     }
 }

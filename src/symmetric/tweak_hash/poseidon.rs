@@ -257,28 +257,6 @@ impl<
         }
     }
 
-    fn consistency_check() -> bool {
-        assert!(
-            PARAMETER_LEN + TWEAK_LEN + HASH_LEN <= 16,
-            "Poseidon Tweak Chain Hash: Input lengths too large for Poseidon instance"
-        );
-        assert!(
-            PARAMETER_LEN + TWEAK_LEN + 2 * HASH_LEN <= 24,
-            "Poseidon Tweak Tree Hash: Input lengths too large for Poseidon instance"
-        );
-        let state_bits = f64::log2(
-            BigUint::from(FqConfig::MODULUS)
-                .to_string()
-                .parse()
-                .unwrap(),
-        ) * f64::from(24 as u32);
-        assert!(
-            state_bits >= f64::from((DOMAIN_PARAMETERS_LENGTH * 32) as u32),
-            "Parameter mismatch: not enough field elements to hash the domain separator"
-        );
-        true
-    }
-
     fn apply(
         parameter: &Self::Parameter,
         tweak: &Self::Tweak,
@@ -336,6 +314,28 @@ impl<
         // will never be reached
         [F::one(); HASH_LEN]
     }
+
+    #[cfg(test)]
+    fn internal_consistency_check() {
+        assert!(
+            PARAMETER_LEN + TWEAK_LEN + HASH_LEN <= 16,
+            "Poseidon Tweak Chain Hash: Input lengths too large for Poseidon instance"
+        );
+        assert!(
+            PARAMETER_LEN + TWEAK_LEN + 2 * HASH_LEN <= 24,
+            "Poseidon Tweak Tree Hash: Input lengths too large for Poseidon instance"
+        );
+        let state_bits = f64::log2(
+            BigUint::from(FqConfig::MODULUS)
+                .to_string()
+                .parse()
+                .unwrap(),
+        ) * f64::from(24 as u32);
+        assert!(
+            state_bits >= f64::from((DOMAIN_PARAMETERS_LENGTH * 32) as u32),
+            "Parameter mismatch: not enough field elements to hash the domain separator"
+        );
+    }
 }
 
 // Example instantiations
@@ -351,6 +351,9 @@ mod tests {
     #[test]
     fn test_apply_44() {
         let mut rng = thread_rng();
+
+        // make sure parameters make sense
+        PoseidonTweak44::internal_consistency_check();
 
         // test that nothing is panicking
         let parameter = PoseidonTweak44::rand_parameter(&mut rng);
@@ -375,6 +378,9 @@ mod tests {
     #[test]
     fn test_apply_37() {
         let mut rng = thread_rng();
+
+        // make sure parameters make sense
+        PoseidonTweak37::internal_consistency_check();
 
         // test that nothing is panicking
         let parameter = PoseidonTweak37::rand_parameter(&mut rng);

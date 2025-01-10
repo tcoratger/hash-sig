@@ -117,7 +117,8 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
         result[0..HASH_LEN].try_into().unwrap()
     }
 
-    fn consistency_check() -> bool {
+    #[cfg(test)]
+    fn internal_consistency_check() {
         assert!(
             PARAMETER_LEN < 256 / 8,
             "SHA Tweak Hash: Parameter Length must be less than 256 bit"
@@ -126,7 +127,6 @@ impl<const PARAMETER_LEN: usize, const HASH_LEN: usize> TweakableHash
             HASH_LEN < 256 / 8,
             "SHA Tweak Hash: Hash Length must be less than 256 bit"
         );
-        true
     }
 }
 
@@ -145,7 +145,8 @@ mod tests {
     fn test_apply_128_128() {
         let mut rng = thread_rng();
 
-        ShaTweak128128::consistency_check();
+        // make sure parameters make sense
+        ShaTweak128128::internal_consistency_check();
 
         // test that nothing is panicking
         let parameter = ShaTweak128128::rand_parameter(&mut rng);
@@ -166,7 +167,8 @@ mod tests {
     fn test_apply_128_192() {
         let mut rng = thread_rng();
 
-        ShaTweak128192::consistency_check();
+        // make sure parameters make sense
+        ShaTweak128192::internal_consistency_check();
 
         // test that nothing is panicking
         let parameter = ShaTweak128192::rand_parameter(&mut rng);
@@ -186,6 +188,9 @@ mod tests {
     #[test]
     fn test_apply_192_192() {
         let mut rng = thread_rng();
+
+        // make sure parameters make sense
+        ShaTweak192192::internal_consistency_check();
 
         // test that nothing is panicking
         let parameter = ShaTweak192192::rand_parameter(&mut rng);
