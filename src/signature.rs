@@ -56,12 +56,6 @@ mod test_templates {
     use super::*;
 
     /// Generic test for any implementation of the `SignatureScheme` trait.
-    /// Tests internal consistency of parameters
-    pub fn _test_signature_scheme_internal_consistency<T: SignatureScheme>() {
-        T::internal_consistency_check();
-    }
-
-    /// Generic test for any implementation of the `SignatureScheme` trait.
     /// Tests correctness, i.e., that honest key gen, honest signing, implies
     /// that the verifier accepts the signature. A random message is used.
     pub fn _test_signature_scheme_correctness<T: SignatureScheme>(epoch: u32) {

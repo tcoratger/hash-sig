@@ -12,6 +12,8 @@ num-bigint = "0.4.6"
 [dev-dependencies]
 criterion = "0.4"
 
+[features]
+slow-tests = []
 
 [[bench]]
 name = "benchmark"

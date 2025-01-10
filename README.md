@@ -11,6 +11,15 @@ Run the tests with
 cargo test
 ```
 
+By default, this will exclude some of the tests. In particular, correctness tests for real instantiations take quite long and are excluded.
+If you want to run *all* tests, you can use
+
+```
+cargo test --release --features slow-tests
+```
+
+Removing the `--release` is also an option but tests will take even longer.
+
 ## Benchmarks
 
 Benchmarks are provided using criterion. They take a while, as key generation is expensive, and as a large number of schemes are benchmarked.

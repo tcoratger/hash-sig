@@ -58,6 +58,57 @@ pub mod lifetime_2_to_the_18 {
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 8
         pub type SIGWinternitzLifetime18W8 =
             GeneralizedXMSSSignatureScheme<PRFw8, IEw8, THw8, LOG_LIFETIME>;
+
+        #[cfg(test)]
+        mod test {
+            use crate::signature::SignatureScheme;
+
+            #[cfg(feature = "slow-tests")]
+            use crate::signature::test_templates::_test_signature_scheme_correctness;
+
+            use super::{
+                SIGWinternitzLifetime18W1, SIGWinternitzLifetime18W2, SIGWinternitzLifetime18W4,
+                SIGWinternitzLifetime18W8,
+            };
+
+            #[test]
+            pub fn test_w1_internal_consistency() {
+                SIGWinternitzLifetime18W1::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w2_internal_consistency() {
+                SIGWinternitzLifetime18W2::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w4_internal_consistency() {
+                SIGWinternitzLifetime18W4::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w8_internal_consistency() {
+                SIGWinternitzLifetime18W8::internal_consistency_check();
+            }
+
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w1_correctness() {
+                _test_signature_scheme_correctness::<SIGWinternitzLifetime18W1>(1032);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w2_correctness() {
+                _test_signature_scheme_correctness::<SIGWinternitzLifetime18W2>(32);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w4_correctness() {
+                _test_signature_scheme_correctness::<SIGWinternitzLifetime18W4>(2032);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w8_correctness() {
+                _test_signature_scheme_correctness::<SIGWinternitzLifetime18W8>(2142);
+            }
+        }
     }
     /// Instantiations based on the target sum encoding
     pub mod target_sum {
@@ -141,6 +192,67 @@ pub mod lifetime_2_to_the_18 {
         /// and so signing may fail from time to time. It is not recommended to use this.
         pub type SIGTargetSumLifetime18W8Off10 =
             GeneralizedXMSSSignatureScheme<PRFw8, IEw8<2525>, THw8, LOG_LIFETIME>;
+
+        #[cfg(test)]
+        mod test {
+            use crate::signature::SignatureScheme;
+
+            #[cfg(feature = "slow-tests")]
+            use crate::signature::test_templates::_test_signature_scheme_correctness;
+
+            use super::{
+                SIGTargetSumLifetime18W1NoOff, SIGTargetSumLifetime18W1Off10,
+                SIGTargetSumLifetime18W2NoOff, SIGTargetSumLifetime18W2Off10,
+                SIGTargetSumLifetime18W4NoOff, SIGTargetSumLifetime18W4Off10,
+                SIGTargetSumLifetime18W8NoOff, SIGTargetSumLifetime18W8Off10,
+            };
+
+            #[test]
+            pub fn test_w1_internal_consistency() {
+                SIGTargetSumLifetime18W1NoOff::internal_consistency_check();
+                SIGTargetSumLifetime18W1Off10::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w2_internal_consistency() {
+                SIGTargetSumLifetime18W2NoOff::internal_consistency_check();
+                SIGTargetSumLifetime18W2Off10::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w4_internal_consistency() {
+                SIGTargetSumLifetime18W4NoOff::internal_consistency_check();
+                SIGTargetSumLifetime18W4Off10::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w8_internal_consistency() {
+                SIGTargetSumLifetime18W8NoOff::internal_consistency_check();
+                SIGTargetSumLifetime18W8Off10::internal_consistency_check();
+            }
+
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w1_correctness() {
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W1NoOff>(1032);
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W1Off10>(32);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w2_correctness() {
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W2NoOff>(436);
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W2Off10>(312);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w4_correctness() {
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W4NoOff>(21);
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W4Off10>(3211);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w8_correctness() {
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W8NoOff>(32);
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime18W8Off10>(768);
+            }
+        }
     }
 }
 
@@ -205,6 +317,57 @@ pub mod lifetime_2_to_the_20 {
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 8
         pub type SIGWinternitzLifetime20W8 =
             GeneralizedXMSSSignatureScheme<PRFw8, IEw8, THw8, LOG_LIFETIME>;
+
+        #[cfg(test)]
+        mod test {
+            #[cfg(feature = "slow-tests")]
+            use crate::signature::test_templates::_test_signature_scheme_correctness;
+
+            use crate::signature::SignatureScheme;
+
+            use super::{
+                SIGWinternitzLifetime20W1, SIGWinternitzLifetime20W2, SIGWinternitzLifetime20W4,
+                SIGWinternitzLifetime20W8,
+            };
+
+            #[test]
+            pub fn test_w1_internal_consistency() {
+                SIGWinternitzLifetime20W1::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w2_internal_consistency() {
+                SIGWinternitzLifetime20W2::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w4_internal_consistency() {
+                SIGWinternitzLifetime20W4::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w8_internal_consistency() {
+                SIGWinternitzLifetime20W8::internal_consistency_check();
+            }
+
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w1_correctness() {
+                _test_signature_scheme_correctness::<SIGWinternitzLifetime20W1>(1032);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w2_correctness() {
+                _test_signature_scheme_correctness::<SIGWinternitzLifetime20W2>(32);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w4_correctness() {
+                _test_signature_scheme_correctness::<SIGWinternitzLifetime20W4>(2032);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w8_correctness() {
+                _test_signature_scheme_correctness::<SIGWinternitzLifetime20W8>(2142);
+            }
+        }
     }
 
     /// Instantiations based on the target sum encoding
@@ -289,5 +452,66 @@ pub mod lifetime_2_to_the_20 {
         /// and so signing may fail from time to time. It is not recommended to use this.
         pub type SIGTargetSumLifetime20W8Off10 =
             GeneralizedXMSSSignatureScheme<PRFw8, IEw8<2525>, THw8, LOG_LIFETIME>;
+
+        #[cfg(test)]
+        mod test {
+            #[cfg(feature = "slow-tests")]
+            use crate::signature::test_templates::_test_signature_scheme_correctness;
+
+            use crate::signature::SignatureScheme;
+
+            use super::{
+                SIGTargetSumLifetime20W1NoOff, SIGTargetSumLifetime20W1Off10,
+                SIGTargetSumLifetime20W2NoOff, SIGTargetSumLifetime20W2Off10,
+                SIGTargetSumLifetime20W4NoOff, SIGTargetSumLifetime20W4Off10,
+                SIGTargetSumLifetime20W8NoOff, SIGTargetSumLifetime20W8Off10,
+            };
+
+            #[test]
+            pub fn test_w1_internal_consistency() {
+                SIGTargetSumLifetime20W1NoOff::internal_consistency_check();
+                SIGTargetSumLifetime20W1Off10::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w2_internal_consistency() {
+                SIGTargetSumLifetime20W2NoOff::internal_consistency_check();
+                SIGTargetSumLifetime20W2Off10::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w4_internal_consistency() {
+                SIGTargetSumLifetime20W4NoOff::internal_consistency_check();
+                SIGTargetSumLifetime20W4Off10::internal_consistency_check();
+            }
+            #[test]
+            pub fn test_w8_internal_consistency() {
+                SIGTargetSumLifetime20W8NoOff::internal_consistency_check();
+                SIGTargetSumLifetime20W8Off10::internal_consistency_check();
+            }
+
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w1_correctness() {
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime20W1NoOff>(932);
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime20W1Off10>(321);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w2_correctness() {
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime20W2NoOff>(54);
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime20W2Off10>(435);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w4_correctness() {
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime20W4NoOff>(3435);
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime20W4Off10>(3424);
+            }
+            #[test]
+            #[cfg(feature = "slow-tests")]
+            pub fn test_w8_correctness() {
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime20W8NoOff>(3241);
+                _test_signature_scheme_correctness::<SIGTargetSumLifetime20W8Off10>(34);
+            }
+        }
     }
 }

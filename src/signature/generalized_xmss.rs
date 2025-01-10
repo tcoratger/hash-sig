@@ -285,9 +285,7 @@ pub mod instantiations_sha;
 mod tests {
     use crate::{
         inc_encoding::{basic_winternitz::WinternitzEncoding, target_sum::TargetSumEncoding},
-        signature::test_templates::{
-            _test_signature_scheme_correctness, _test_signature_scheme_internal_consistency,
-        },
+        signature::test_templates::_test_signature_scheme_correctness,
         symmetric::{
             message_hash::{sha::ShaMessageHash192x3, MessageHash},
             prf::sha::ShaPRF,
@@ -309,7 +307,7 @@ mod tests {
         const LOG_LIFETIME: usize = 9;
         type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
-        _test_signature_scheme_internal_consistency::<SIG>();
+        SIG::internal_consistency_check();
 
         _test_signature_scheme_correctness::<SIG>(289);
         _test_signature_scheme_correctness::<SIG>(2);
@@ -332,7 +330,7 @@ mod tests {
         const LOG_LIFETIME: usize = 8;
         type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
-        _test_signature_scheme_internal_consistency::<SIG>();
+        SIG::internal_consistency_check();
 
         _test_signature_scheme_correctness::<SIG>(13);
         _test_signature_scheme_correctness::<SIG>(9);
