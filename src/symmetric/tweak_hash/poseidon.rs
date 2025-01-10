@@ -150,7 +150,7 @@ pub fn poseidon_sponge<const OUT_LEN: usize>(
     capacity_value: &[F],
     input: &[F],
 ) -> [F; OUT_LEN] {
-    //capacity must be shorter than the width
+    // capacity must be shorter than the width
     assert!(
         capacity_value.len() < instance.get_t(),
         "Poseidon Sponge: Capacity must be smaller than the state size."
@@ -160,7 +160,9 @@ pub fn poseidon_sponge<const OUT_LEN: usize>(
 
     let extra_elements = (rate - (input.len() % rate)) % rate;
     let mut input_vector = input.to_vec().clone();
-    input_vector.resize_with(extra_elements, F::zero); //padding with 0s
+
+    // padding with 0s
+    input_vector.resize_with(input.len() + extra_elements, F::zero);
 
     // Initialize
     let mut state = vec![F::zero(); rate];
@@ -307,8 +309,7 @@ impl<
             let lengths: [usize; DOMAIN_PARAMETERS_LENGTH] =
                 [PARAMETER_LEN, TWEAK_LEN, NUM_CHUNKS, HASH_LEN];
             let safe_input = poseidon_safe_domain_separator::<CAPACITY>(&instance, &lengths);
-            let capacity_value = poseidon_compress::<CAPACITY>(&instance, &safe_input);
-            let res = poseidon_sponge(&instance, &capacity_value, &combined_input);
+            let res = poseidon_sponge(&instance, &safe_input, &combined_input);
             return res;
         }
         // will never be reached
@@ -317,6 +318,11 @@ impl<
 
     #[cfg(test)]
     fn internal_consistency_check() {
+        assert!(
+            CAPACITY < 24,
+            "Poseidon Tweak Chain Hash: Capacity must be less than 24"
+        );
+
         assert!(
             PARAMETER_LEN + TWEAK_LEN + HASH_LEN <= 16,
             "Poseidon Tweak Chain Hash: Input lengths too large for Poseidon instance"
