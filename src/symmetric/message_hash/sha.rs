@@ -1,4 +1,6 @@
-use crate::{symmetric::message_hash::bytes_to_chunks, MESSAGE_LENGTH};
+use crate::{
+    symmetric::message_hash::bytes_to_chunks, MESSAGE_LENGTH, TWEAK_SEPARATOR_FOR_MESSAGE_HASH,
+};
 
 use super::MessageHash;
 
@@ -52,9 +54,8 @@ impl<
         hasher.update(parameter);
 
         // now add tweak (= domain separator + epoch)
-        // domain separater: this is a message hash tweak.
-        // So we start with a 0x02 byte.
-        hasher.update(&[0x02]);
+        // domain separator: this is a message hash tweak.
+        hasher.update(&[TWEAK_SEPARATOR_FOR_MESSAGE_HASH]);
         hasher.update(epoch.to_le_bytes());
 
         // now add the actual message to be hashed

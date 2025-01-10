@@ -12,4 +12,4 @@ pub trait Pseudorandom {
     fn apply(key: &Self::Key, epoch: u32, index: u64) -> Self::Output;
 }
 
-pub mod hashprf;
+pub mod sha;

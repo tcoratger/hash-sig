@@ -284,7 +284,7 @@ mod tests {
         signature::test_templates::_test_signature_scheme_correctness,
         symmetric::{
             message_hash::{sha::ShaMessageHash192x3, MessageHash},
-            prf::hashprf::ShaPRF,
+            prf::sha::ShaPRF,
             tweak_hash::sha::ShaTweak192192,
         },
     };

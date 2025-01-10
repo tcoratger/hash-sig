@@ -1,5 +1,7 @@
 use sha3::{Digest, Sha3_256};
 
+use crate::{TWEAK_SEPARATOR_FOR_CHAIN_HASH, TWEAK_SEPARATOR_FOR_TREE_HASH};
+
 use super::TweakableHash;
 
 /// Enum to implement tweaks.
@@ -24,7 +26,7 @@ impl ShaTweak {
             } => {
                 let mut bytes = Vec::new();
                 // this is a tree tweak, so we start with a 0x00 byte
-                bytes.push(0x00);
+                bytes.push(TWEAK_SEPARATOR_FOR_TREE_HASH);
                 // then we extend with the actual data
                 bytes.extend(&level.to_be_bytes());
                 bytes.extend(&pos_in_level.to_be_bytes());
@@ -41,7 +43,7 @@ impl ShaTweak {
             } => {
                 let mut bytes = Vec::new();
                 // this is a chain tweak, so we start with a 0x01 byte
-                bytes.push(0x01);
+                bytes.push(TWEAK_SEPARATOR_FOR_CHAIN_HASH);
                 // then we extend with the actual data
                 bytes.extend(&epoch.to_be_bytes());
                 bytes.extend(&chain_index.to_be_bytes());
