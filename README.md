@@ -22,14 +22,15 @@ Removing the `--release` is also an option but tests will take even longer.
 
 ## Benchmarks
 
-Benchmarks are provided using criterion. They take a while, as key generation is expensive, and as a large number of schemes are benchmarked.
+Benchmarks are provided using criterion.
+They take a while, as key generation is expensive, and as a large number of schemes are benchmarked.
 Run them with
 
 ```
 cargo bench
 ```
 
-The schemes that are benchmarked are hardcoded instantiations of the generic framework, which are defined in `hashsig::signature::generalized_xmss::instantiations_sha`.
+The schemes that are benchmarked are hardcoded instantiations of the generic framework, which are defined in `hashsig::signature::generalized_xmss`.
 The parameters of these instantiations have been chosen carefully with the aim to achieve a desired security level.
 
 If criterion only generates json files, one way to extract all means for all benchmarks easily (without re-running criterion) is to run
