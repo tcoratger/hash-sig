@@ -47,12 +47,13 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
     // Note: benchmarking key generation takes long, so it is
     // commented out for now. You can enable it here.
 
-    /*group.bench_function(format!("- gen"), |b| {
+    #[cfg(feature = "with-gen-benches-poseidon")]
+    group.bench_function(format!("- gen"), |b| {
         b.iter(|| {
             // Benchmark key generation
             let _ = S::gen(black_box(&mut rng));
         });
-    });*/
+    });
 
     group.sample_size(100);
 

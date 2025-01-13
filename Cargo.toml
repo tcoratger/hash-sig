@@ -14,6 +14,8 @@ criterion = "0.4"
 
 [features]
 slow-tests = []
+with-gen-benches-sha = []
+with-gen-benches-poseidon = []
 
 [[bench]]
 name = "benchmark"
