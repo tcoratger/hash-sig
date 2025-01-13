@@ -607,7 +607,7 @@ pub mod lifetime_2_to_the_20 {
             },
         };
 
-        const LOG_LIFETIME: usize = 18;
+        const LOG_LIFETIME: usize = 20;
         const PARAMETER_LEN: usize = 5;
         const HASH_LEN_FE: usize = 7;
         const MSG_HASH_LEN_FE: usize = 5;

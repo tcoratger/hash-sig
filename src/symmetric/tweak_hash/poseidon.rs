@@ -174,15 +174,15 @@ pub fn poseidon_sponge<const OUT_LEN: usize>(
     for chunk in input_vector.chunks(rate) {
         for i in 0..chunk.len() {
             state[i] = state[i] + chunk[i];
-            instance.permutation(&state);
         }
+        state = instance.permutation(&state);
     }
 
     // squeeze
     let mut out = vec![];
     while out.len() < OUT_LEN {
         out.extend_from_slice(&state[..rate]);
-        instance.permutation(&state);
+        state = instance.permutation(&state);
     }
     let slice = &out[0..OUT_LEN];
     slice.try_into().expect("Length mismatch")
