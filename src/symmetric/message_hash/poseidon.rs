@@ -143,9 +143,9 @@ impl<
         // now, we hash randomness, parameters, epoch, message using PoseidonCompress
         let combined_input: Vec<F> = randomness
             .iter()
+            .chain(parameter.iter())
             .chain(epoch_fe.iter())
             .chain(message_fe.iter())
-            .chain(parameter.iter())
             .cloned()
             .collect();
         let hash_fe = poseidon_compress::<HASH_LEN_FE>(&instance, &combined_input);
