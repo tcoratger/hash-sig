@@ -18,7 +18,6 @@ use super::IncomparableEncoding;
 ///     max_checksum = num_chunks_message * (base - 1)
 ///     num_chunks_checksum = 1 + math.floor(math.log(max_checksum, base))
 /// ```
-
 pub struct WinternitzEncoding<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize> {
     _marker_mh: std::marker::PhantomData<MH>,
 }

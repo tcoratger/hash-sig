@@ -55,7 +55,7 @@ impl<
 
         // now add tweak (= domain separator + epoch)
         // domain separator: this is a message hash tweak.
-        hasher.update(&[TWEAK_SEPARATOR_FOR_MESSAGE_HASH]);
+        hasher.update([TWEAK_SEPARATOR_FOR_MESSAGE_HASH]);
         hasher.update(epoch.to_le_bytes());
 
         // now add the actual message to be hashed

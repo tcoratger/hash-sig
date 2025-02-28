@@ -20,7 +20,7 @@ pub enum ShaTweak {
 impl ShaTweak {
     fn to_bytes(&self) -> Vec<u8> {
         match self {
-            ShaTweak::TreeTweak {
+            Self::TreeTweak {
                 level,
                 pos_in_level,
             } => {
@@ -36,7 +36,7 @@ impl ShaTweak {
                 // the tweak ends.
                 bytes
             }
-            ShaTweak::ChainTweak {
+            Self::ChainTweak {
                 epoch,
                 chain_index,
                 pos_in_chain,

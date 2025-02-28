@@ -129,10 +129,7 @@ where
         let root = hash_tree_root(&tree);
 
         // assemble public key and secret key
-        let pk = GeneralizedXMSSPublicKey {
-            root,
-            parameter: parameter.clone(),
-        };
+        let pk = GeneralizedXMSSPublicKey { root, parameter };
         let sk = GeneralizedXMSSSecretKey {
             prf_key,
             tree,
@@ -191,11 +188,11 @@ where
             "Encoding is broken: returned too many or too few chunks."
         );
         let mut hashes = Vec::with_capacity(num_chains);
-        for chain_index in 0..num_chains {
+        for (chain_index, xi) in x.iter().enumerate().take(num_chains) {
             // get back the start of the chain from the PRF
-            let start = PRF::apply(&sk.prf_key, epoch as u32, chain_index as u64).into();
+            let start = PRF::apply(&sk.prf_key, epoch, chain_index as u64).into();
             // now walk the chain for a number of steps determined by x
-            let steps = x[chain_index];
+            let steps = *xi;
             let hash_in_chain = chain::<TH>(
                 &sk.parameter,
                 epoch,
@@ -239,11 +236,11 @@ where
             "Encoding is broken: returned too many or too few chunks."
         );
         let mut chain_ends = Vec::with_capacity(num_chains);
-        for chain_index in 0..num_chains {
+        for (chain_index, xi) in x.iter().enumerate().take(num_chains) {
             // If the signer has already walked x[i] steps, then we need
             // to walk chain_length - 1 - x[i] steps to reach the end of the chain
-            let steps = chain_length - 1 - x[chain_index];
-            let start_pos_in_chain = x[chain_index];
+            let steps = chain_length - 1 - xi;
+            let start_pos_in_chain = *xi;
             let start = &sig.hashes[chain_index];
             let end = chain::<TH>(
                 &pk.parameter,

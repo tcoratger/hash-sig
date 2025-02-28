@@ -52,7 +52,7 @@ impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SI
 
         // we first represent the entire tweak as one big integer
         let tweak_bigint = match self {
-            PoseidonTweak::TreeTweak {
+            Self::TreeTweak {
                 level,
                 pos_in_level,
             } => {
@@ -60,7 +60,7 @@ impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SI
                     + (BigUint::from(*pos_in_level) << 8)
                     + TWEAK_SEPARATOR_FOR_TREE_HASH
             }
-            PoseidonTweak::ChainTweak {
+            Self::ChainTweak {
                 epoch,
                 chain_index,
                 pos_in_chain,
@@ -70,7 +70,7 @@ impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SI
                     + (BigUint::from(*pos_in_chain) << 8)
                     + TWEAK_SEPARATOR_FOR_CHAIN_HASH
             }
-            _ => BigUint::from(0 as u32),
+            _ => BigUint::from(0_u32),
         };
 
         // now we interpret this integer in base-p to get field elements
@@ -129,7 +129,7 @@ pub fn poseidon_safe_domain_separator<const OUT_LEN: usize>(
 ) -> [F; OUT_LEN] {
     // turn params into a big integer
     let domain_uint = params.iter().fold(BigUint::ZERO, |acc, &item| {
-        acc * BigUint::from(((1 as u64) << 32) as u64) + (item as u32)
+        acc * BigUint::from((1_u64) << 32) + (item as u32)
     });
     // create the Poseidon input by interpreting the number in base-p
     let mut input = vec![F::zero(); instance.get_t()];
@@ -159,7 +159,7 @@ pub fn poseidon_sponge<const OUT_LEN: usize>(
     let rate = instance.get_t() - capacity_value.len();
 
     let extra_elements = (rate - (input.len() % rate)) % rate;
-    let mut input_vector = input.to_vec().clone();
+    let mut input_vector = input.to_vec();
 
     // padding with 0s
     input_vector.resize_with(input.len() + extra_elements, F::zero);
@@ -173,7 +173,7 @@ pub fn poseidon_sponge<const OUT_LEN: usize>(
     // absorb
     for chunk in input_vector.chunks(rate) {
         for i in 0..chunk.len() {
-            state[i] = state[i] + chunk[i];
+            state[i] += chunk[i];
         }
         state = instance.permutation(&state);
     }
@@ -232,16 +232,16 @@ impl<
 
     fn rand_parameter<R: rand::Rng>(rng: &mut R) -> Self::Parameter {
         let mut par = [F::one(); PARAMETER_LEN];
-        for i in 0..PARAMETER_LEN {
-            par[i] = F::rand(rng);
+        for p in par.iter_mut().take(PARAMETER_LEN) {
+            *p = F::rand(rng);
         }
         par
     }
 
     fn rand_domain<R: rand::Rng>(rng: &mut R) -> Self::Domain {
         let mut dom = [F::one(); HASH_LEN];
-        for i in 0..HASH_LEN {
-            dom[i] = F::rand(rng);
+        for d in dom.iter_mut().take(HASH_LEN) {
+            *d = F::rand(rng);
         }
         dom
     }
@@ -282,7 +282,7 @@ impl<
                 .iter()
                 .chain(tweak_fe.iter())
                 .chain(message_unpacked.iter())
-                .cloned()
+                .copied()
                 .collect();
             return poseidon_compress::<HASH_LEN>(&instance_short, &combined_input);
         }
@@ -296,7 +296,7 @@ impl<
                 .chain(tweak_fe.iter())
                 .chain(message_unpacked_left.iter())
                 .chain(message_unpacked_right.iter())
-                .cloned()
+                .copied()
                 .collect();
             return poseidon_compress::<HASH_LEN>(&instance, &combined_input);
         }
@@ -306,7 +306,7 @@ impl<
                 .iter()
                 .chain(tweak_fe.iter())
                 .chain(message.iter().flat_map(|sub_arr| sub_arr.iter()))
-                .cloned()
+                .copied()
                 .collect();
             let lengths: [usize; DOMAIN_PARAMETERS_LENGTH] =
                 [PARAMETER_LEN, TWEAK_LEN, NUM_CHUNKS, HASH_LEN];
@@ -338,7 +338,7 @@ impl<
                 .to_string()
                 .parse()
                 .unwrap(),
-        ) * f64::from(24 as u32);
+        ) * f64::from(24_u32);
         assert!(
             state_bits >= f64::from((DOMAIN_PARAMETERS_LENGTH * 32) as u32),
             "Poseidon Tweak Leaf Hash: not enough field elements to hash the domain separator"

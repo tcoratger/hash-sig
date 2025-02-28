@@ -119,16 +119,7 @@ mod tests {
         let byte_b: u8 = 0b10100110;
 
         let bytes = [byte_a, byte_b];
-        let mut expected_chunks: Vec<u8> = Vec::new();
-        expected_chunks.push(0b00);
-        expected_chunks.push(0b11);
-        expected_chunks.push(0b10);
-        expected_chunks.push(0b01);
-
-        expected_chunks.push(0b10);
-        expected_chunks.push(0b01);
-        expected_chunks.push(0b10);
-        expected_chunks.push(0b10);
+        let expected_chunks = [0b00, 0b11, 0b10, 0b01, 0b10, 0b01, 0b10, 0b10];
 
         let chunks = bytes_to_chunks(&bytes, 2);
 

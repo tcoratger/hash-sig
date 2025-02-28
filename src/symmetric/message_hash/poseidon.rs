@@ -61,7 +61,7 @@ fn decode_to_chunks<const NUM_CHUNKS: usize, const CHUNK_SIZE: usize, const HASH
     // Split the integer into chunks
     let max_chunk_len = (1 << CHUNK_SIZE) as u16;
 
-    let mut hash_chunked: [u8; NUM_CHUNKS] = [0 as u8; NUM_CHUNKS];
+    let mut hash_chunked: [u8; NUM_CHUNKS] = [0; NUM_CHUNKS];
     hash_chunked.iter_mut().fold(hash_uint, |acc, item| {
         *item = (acc.clone() % max_chunk_len).to_bytes_be()[0];
         (acc - *item) / max_chunk_len
@@ -117,8 +117,8 @@ impl<
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
         let mut rnd = [F::one(); RAND_LEN];
-        for i in 0..RAND_LEN {
-            rnd[i] = F::rand(rng);
+        for r in rnd.iter_mut().take(RAND_LEN) {
+            *r = F::rand(rng);
         }
         rnd
     }
@@ -146,7 +146,7 @@ impl<
             .chain(parameter.iter())
             .chain(epoch_fe.iter())
             .chain(message_fe.iter())
-            .cloned()
+            .copied()
             .collect();
         let hash_fe = poseidon_compress::<HASH_LEN_FE>(&instance, &combined_input);
 
@@ -164,7 +164,7 @@ impl<
                 .unwrap(),
         ) * f64::from(MSG_LEN_FE as u32);
         assert!(
-            message_fe_bits >= f64::from((8 as u32) * (MESSAGE_LENGTH as u32)),
+            message_fe_bits >= f64::from((8_u32) * (MESSAGE_LENGTH as u32)),
             "Poseidon Message hash. Parameter mismatch: not enough field elements to encode the message"
         );
 
@@ -176,7 +176,7 @@ impl<
                 .unwrap(),
         ) * f64::from(TWEAK_LEN_FE as u32);
         assert!(
-            tweak_fe_bits >= f64::from(32 + 8 as u32),
+            tweak_fe_bits >= f64::from(32 + 8_u32),
             "Poseidon Message hash. Parameter mismatch: not enough field elements to encode the epoch tweak"
         );
 
@@ -209,8 +209,8 @@ mod tests {
         let mut rng = thread_rng();
 
         let mut parameter = [F::one(); 4];
-        for i in 0..4 {
-            parameter[i] = F::rand(&mut rng);
+        for p in &mut parameter {
+            *p = F::rand(&mut rng);
         }
 
         let mut message = [0u8; MESSAGE_LENGTH];
@@ -227,8 +227,8 @@ mod tests {
         let mut rng = thread_rng();
 
         let mut parameter = [F::one(); 5];
-        for i in 0..5 {
-            parameter[i] = F::rand(&mut rng);
+        for p in &mut parameter {
+            *p = F::rand(&mut rng);
         }
 
         let mut message = [0u8; MESSAGE_LENGTH];
