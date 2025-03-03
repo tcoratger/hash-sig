@@ -232,8 +232,8 @@ impl<
 
     fn rand_parameter<R: rand::Rng>(rng: &mut R) -> Self::Parameter {
         let mut par = [F::one(); PARAMETER_LEN];
-        for p in par.iter_mut().take(PARAMETER_LEN) {
-            *p = F::rand(rng);
+      for i in 0..PARAMETER_LEN {
+par[i] = F::rand(rng);
         }
         par
     }
