@@ -232,15 +232,15 @@ impl<
 
     fn rand_parameter<R: rand::Rng>(rng: &mut R) -> Self::Parameter {
         let mut par = [F::one(); PARAMETER_LEN];
-      for i in 0..PARAMETER_LEN {
-par[i] = F::rand(rng);
+        for i in 0..PARAMETER_LEN {
+            par[i] = F::rand(rng);
         }
         par
     }
 
     fn rand_domain<R: rand::Rng>(rng: &mut R) -> Self::Domain {
         let mut dom = [F::one(); HASH_LEN];
-      for i in 0..HASH_LEN {
+        for i in 0..HASH_LEN {
             dom[i] = F::rand(rng);
         }
         dom
