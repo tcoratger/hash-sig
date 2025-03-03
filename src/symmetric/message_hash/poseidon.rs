@@ -117,8 +117,8 @@ impl<
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
         let mut rnd = [F::one(); RAND_LEN];
-        for r in rnd.iter_mut().take(RAND_LEN) {
-            *r = F::rand(rng);
+for i in 0..RAND_LEN {
+            rnd[i] = F::rand(rng);
         }
         rnd
     }
