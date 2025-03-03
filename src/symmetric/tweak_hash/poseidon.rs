@@ -240,8 +240,8 @@ par[i] = F::rand(rng);
 
     fn rand_domain<R: rand::Rng>(rng: &mut R) -> Self::Domain {
         let mut dom = [F::one(); HASH_LEN];
-        for d in dom.iter_mut().take(HASH_LEN) {
-            *d = F::rand(rng);
+      for i in 0..HASH_LEN {
+            dom[i] = F::rand(rng);
         }
         dom
     }
