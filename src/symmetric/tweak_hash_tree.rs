@@ -33,7 +33,7 @@ pub fn build_tree<TH: TweakableHash>(
     let mut level: u8 = 1;
     while layer_size >= 2 {
         // this new layer will have half the size
-        layer_size = layer_size / 2;
+        layer_size /= 2;
         // parallelize the two to one compressions
         layers.push(
             (0..layer_size)
@@ -60,7 +60,7 @@ pub fn hash_tree_root<TH: TweakableHash>(tree: &HashTree<TH>) -> TH::Domain {
         !tree.layers.is_empty(),
         "Hash-Tree hash tree root: Need at least one layer"
     );
-    tree.layers.last().unwrap()[0].clone()
+    tree.layers.last().unwrap()[0]
 }
 
 /// Opening in a hash-tree: a co-path, without the leaf
@@ -104,10 +104,10 @@ pub fn hash_tree_path<TH: TweakableHash>(
         // position of the sibling that we want to include
         let sibling_position = current_position ^ 0x01;
         // add to the co-path
-        let sibling = tree.layers[l][sibling_position as usize].clone();
+        let sibling = tree.layers[l][sibling_position as usize];
         co_path.push(sibling);
         // new position in next layer
-        current_position = current_position >> 1;
+        current_position >>= 1;
     }
 
     HashTreeOpening { co_path }
@@ -156,7 +156,7 @@ pub fn hash_tree_verify<TH: TweakableHash>(
         };
 
         // determine new position, which is position of the parent
-        current_position = current_position >> 1;
+        current_position >>= 1;
 
         // now hash to get the parent
         let tweak = TH::tree_tweak((l + 1) as u8, current_position);

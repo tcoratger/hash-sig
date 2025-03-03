@@ -60,7 +60,7 @@ pub(crate) fn chain<TH: TweakableHash>(
     start: &TH::Domain,
 ) -> TH::Domain {
     // keep track of what we have
-    let mut current = start.clone();
+    let mut current = *start;
 
     // otherwise, walk the right amount of steps
     for j in 0..steps {

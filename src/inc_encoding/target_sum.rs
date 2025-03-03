@@ -55,12 +55,12 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
         let chunks_u32: Vec<u32> = chunks.iter().map(|&x| x as u32).collect();
 
         let sum: u32 = chunks_u32.iter().sum();
-        // only output the chunks sum to the target sum
-        return if sum as usize != Self::TARGET_SUM {
-            Err(())
-        } else {
+        // only output something if the chunks sum to the target sum
+        if sum as usize == Self::TARGET_SUM {
             Ok(chunks_u16)
-        };
+        } else {
+            Err(())
+        }
     }
 
     #[cfg(test)]
