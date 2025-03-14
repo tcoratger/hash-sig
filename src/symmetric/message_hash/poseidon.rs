@@ -237,4 +237,21 @@ mod tests {
         PoseidonMessageHashW1::internal_consistency_check();
         PoseidonMessageHashW1::apply(&parameter, epoch, &randomness, &message);
     }
+
+    #[test]
+    fn test_rand_all_elements_unique() {
+        let mut rng = thread_rng();
+        let randomness = PoseidonMessageHash445::rand(&mut rng);
+
+        // Iterate through all pairs and check that no two elements are the same
+        for i in 0..randomness.len() {
+            for j in (i + 1)..randomness.len() {
+                assert_ne!(
+                    randomness[i], randomness[j],
+                    "Randomness array contains duplicate elements at indices {} and {}",
+                    i, j
+                );
+            }
+        }
+    }
 }

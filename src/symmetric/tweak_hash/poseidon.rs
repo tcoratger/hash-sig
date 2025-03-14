@@ -388,4 +388,36 @@ mod tests {
         let tweak_chain = PoseidonTweak37::chain_tweak(2, 3, 4);
         PoseidonTweak37::apply(&parameter, &tweak_chain, &[message_one]);
     }
+
+    #[test]
+    fn test_rand_parameter_all_elements_unique() {
+        let mut rng = thread_rng();
+        let parameter = PoseidonTweak44::rand_parameter(&mut rng);
+
+        for i in 0..parameter.len() {
+            for j in (i + 1)..parameter.len() {
+                assert_ne!(
+                    parameter[i], parameter[j],
+                    "rand_parameter contains duplicate elements at indices {} and {}",
+                    i, j
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_rand_domain_all_elements_unique() {
+        let mut rng = thread_rng();
+        let domain = PoseidonTweak44::rand_domain(&mut rng);
+
+        for i in 0..domain.len() {
+            for j in (i + 1)..domain.len() {
+                assert_ne!(
+                    domain[i], domain[j],
+                    "rand_domain contains duplicate elements at indices {} and {}",
+                    i, j
+                );
+            }
+        }
+    }
 }
