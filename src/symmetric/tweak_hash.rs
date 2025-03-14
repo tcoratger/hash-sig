@@ -59,17 +59,10 @@ pub(crate) fn chain<TH: TweakableHash>(
     steps: usize,
     start: &TH::Domain,
 ) -> TH::Domain {
-    // keep track of what we have
-    let mut current = *start;
-
-    // otherwise, walk the right amount of steps
-    for j in 0..steps {
-        let tweak = TH::chain_tweak(epoch, chain_index, start_pos_in_chain + (j as u16) + 1);
-        current = TH::apply(parameter, &tweak, &[current]);
-    }
-
-    // return where we are now
-    current
+    (0..steps).fold(*start, |current, j| {
+        let tweak = TH::chain_tweak(epoch, chain_index, start_pos_in_chain + j as u16 + 1);
+        TH::apply(parameter, &tweak, &[current])
+    })
 }
 
 pub mod poseidon;

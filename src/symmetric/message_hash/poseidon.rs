@@ -2,7 +2,7 @@ use num_bigint::BigUint;
 use zkhash::ark_ff::MontConfig;
 use zkhash::ark_ff::PrimeField;
 use zkhash::ark_ff::UniformRand;
-use zkhash::ark_ff::{One, Zero};
+use zkhash::ark_ff::Zero;
 use zkhash::fields::babybear::FpBabyBear;
 use zkhash::fields::babybear::FqConfig;
 use zkhash::poseidon2::poseidon2::Poseidon2;
@@ -116,11 +116,7 @@ impl<
     const CHUNK_SIZE: usize = CHUNK_SIZE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
-        let mut rnd = [F::one(); RAND_LEN];
-        for i in 0..RAND_LEN {
-            rnd[i] = F::rand(rng);
-        }
-        rnd
+        std::array::from_fn(|_| F::rand(rng))
     }
 
     fn apply(
@@ -202,6 +198,7 @@ pub type PoseidonMessageHashW1 = PoseidonMessageHash<5, 5, 5, 163, 1, 2, 9>;
 mod tests {
     use super::*;
     use rand::{thread_rng, Rng};
+    use zkhash::ark_ff::One;
     use zkhash::ark_ff::UniformRand;
 
     #[test]

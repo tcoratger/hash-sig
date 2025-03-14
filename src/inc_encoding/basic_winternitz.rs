@@ -64,17 +64,17 @@ impl<MH: MessageHash, const NUM_CHUNKS_CHECKSUM: usize> IncomparableEncoding
 
         // we split the checksum into chunks, in little-endian
         let checksum_bytes = checksum.to_le_bytes();
-        let chunks_checksum: Vec<u8> = bytes_to_chunks(&checksum_bytes, Self::CHUNK_SIZE);
+        let chunks_checksum = bytes_to_chunks(&checksum_bytes, Self::CHUNK_SIZE);
 
         // Assemble the resulting vector
         // we take all message chunks, followed by the checksum chunks.
         // Note that we only want to take the first NUM_CHUNKS_CHECKSUM chunks.
         // The remaining ones must be zero anyways.
-        let mut chunks = Vec::with_capacity(chunks_message.len() + NUM_CHUNKS_CHECKSUM);
-        chunks.extend_from_slice(&chunks_message);
-        chunks.extend_from_slice(&chunks_checksum[..NUM_CHUNKS_CHECKSUM]);
-        let chunks_u16: Vec<u16> = chunks.iter().map(|&x| x as u16).collect();
-        Ok(chunks_u16)
+        Ok(chunks_message
+            .iter()
+            .chain(chunks_checksum.iter().take(NUM_CHUNKS_CHECKSUM))
+            .map(|&x| x as u16)
+            .collect())
     }
 
     #[cfg(test)]

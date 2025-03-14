@@ -64,9 +64,7 @@ impl<
         // finalize the hash, and take as many bytes as we need
         let hash = hasher.finalize();
         // turn the bytes in the hash into chunks
-        let chunks: Vec<u8> =
-            bytes_to_chunks(&hash[0..NUM_CHUNKS * CHUNK_SIZE / 8], Self::CHUNK_SIZE);
-        chunks
+        bytes_to_chunks(&hash[0..NUM_CHUNKS * CHUNK_SIZE / 8], Self::CHUNK_SIZE)
     }
 
     #[cfg(test)]

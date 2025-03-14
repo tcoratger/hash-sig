@@ -49,13 +49,18 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
         randomness: &Self::Randomness,
         epoch: u32,
     ) -> Result<Vec<u16>, super::EncodingError> {
-        // apply the message hash first to get chunks
-        let chunks = MH::apply(parameter, epoch, randomness, message);
-        let chunks_u16: Vec<u16> = chunks.iter().map(|&x| x as u16).collect();
-        let chunks_u32: Vec<u32> = chunks.iter().map(|&x| x as u32).collect();
+        let mut sum = 0;
 
-        let sum: u32 = chunks_u32.iter().sum();
-        // only output something if the chunks sum to the target sum
+        // Apply the message hash first to get chunks
+        let chunks_u16: Vec<u16> = MH::apply(parameter, epoch, randomness, message)
+            .into_iter()
+            .map_while(|x| {
+                sum += x as u32;
+                Some(x as u16)
+            })
+            .collect();
+
+        // Only output something if the chunks sum to the target sum
         if sum as usize == Self::TARGET_SUM {
             Ok(chunks_u16)
         } else {
