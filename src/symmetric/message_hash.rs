@@ -45,7 +45,7 @@ pub mod sha;
 /// This function takes a byte and extracts a specified chunk of bits, where the chunk's
 /// position is determined by the `chunk_index` and the size of the chunk is defined
 /// by `chunk_size`. It is assumed that `window_size` divides 8 and is between 1 and 8.
-fn isolate_chunk_from_byte(byte: u8, chunk_index: usize, chunk_size: usize) -> u8 {
+const fn isolate_chunk_from_byte(byte: u8, chunk_index: usize, chunk_size: usize) -> u8 {
     // Ensure chunk size divides 8 and is between 1 and 8
     assert!(chunk_size > 0 && chunk_size <= 8 && 8 % chunk_size == 0);
 

@@ -70,7 +70,7 @@ impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SI
                     + (BigUint::from(*pos_in_chain) << 8)
                     + TWEAK_SEPARATOR_FOR_CHAIN_HASH
             }
-            _ => BigUint::from(0_u32),
+            _ => BigUint::ZERO,
         };
 
         // now we interpret this integer in base-p to get field elements
@@ -114,11 +114,7 @@ pub fn poseidon_compress<const OUT_LEN: usize>(
     // first permute input
     let permuted_input = poseidon_padded_permute(instance, input);
     // now, add them, but only for the positions we actually output.
-    let mut output = [F::zero(); OUT_LEN];
-    for i in 0..OUT_LEN {
-        output[i] = permuted_input[i] + input[i];
-    }
-    output
+    std::array::from_fn(|i| permuted_input[i] + input[i])
 }
 
 /// This function creates a domain separator based on @params array of usize treated as u32.
@@ -231,19 +227,11 @@ impl<
     type Domain = [F; HASH_LEN];
 
     fn rand_parameter<R: rand::Rng>(rng: &mut R) -> Self::Parameter {
-        let mut par = [F::one(); PARAMETER_LEN];
-        for i in 0..PARAMETER_LEN {
-            par[i] = F::rand(rng);
-        }
-        par
+        std::array::from_fn(|_| F::rand(rng))
     }
 
     fn rand_domain<R: rand::Rng>(rng: &mut R) -> Self::Domain {
-        let mut dom = [F::one(); HASH_LEN];
-        for i in 0..HASH_LEN {
-            dom[i] = F::rand(rng);
-        }
-        dom
+        std::array::from_fn(|_| F::rand(rng))
     }
 
     fn tree_tweak(level: u8, pos_in_level: u32) -> Self::Tweak {
@@ -271,51 +259,46 @@ impl<
         // (2) hashing two siblings in the tree. We use compression mode.
         // (3) hashing a long vector of chain ends. We use sponge mode.
 
-        let l = message.len();
         let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
         let instance_short = Poseidon2::new(&POSEIDON2_BABYBEAR_16_PARAMS);
-        if l == 1 {
-            // we compress parameter, tweak, message
-            let message_unpacked = message[0];
-            let tweak_fe = PoseidonTweak::to_field_elements::<TWEAK_LEN>(tweak);
-            let combined_input: Vec<F> = parameter
-                .iter()
-                .chain(tweak_fe.iter())
-                .chain(message_unpacked.iter())
-                .copied()
-                .collect();
-            return poseidon_compress::<HASH_LEN>(&instance_short, &combined_input);
+        let tweak_fe = PoseidonTweak::to_field_elements::<TWEAK_LEN>(tweak);
+
+        match message {
+            [single] => {
+                // we compress parameter, tweak, message
+                let combined_input: Vec<F> = parameter
+                    .iter()
+                    .chain(tweak_fe.iter())
+                    .chain(single.iter())
+                    .copied()
+                    .collect();
+                poseidon_compress::<HASH_LEN>(&instance_short, &combined_input)
+            }
+            [left, right] => {
+                // we compress parameter, tweak, message (now containing two parts)
+                let combined_input: Vec<F> = parameter
+                    .iter()
+                    .chain(tweak_fe.iter())
+                    .chain(left.iter())
+                    .chain(right.iter())
+                    .copied()
+                    .collect();
+                poseidon_compress::<HASH_LEN>(&instance, &combined_input)
+            }
+            _ if message.len() > 2 => {
+                let combined_input: Vec<F> = parameter
+                    .iter()
+                    .chain(tweak_fe.iter())
+                    .chain(message.iter().flatten())
+                    .copied()
+                    .collect();
+                let lengths: [_; DOMAIN_PARAMETERS_LENGTH] =
+                    [PARAMETER_LEN, TWEAK_LEN, NUM_CHUNKS, HASH_LEN];
+                let safe_input = poseidon_safe_domain_separator::<CAPACITY>(&instance, &lengths);
+                poseidon_sponge(&instance, &safe_input, &combined_input)
+            }
+            _ => [F::one(); HASH_LEN], // Unreachable case, added for safety
         }
-        if l == 2 {
-            // we compress parameter, tweak, message (now containing two parts)
-            let message_unpacked_left = message[0];
-            let message_unpacked_right = message[1];
-            let tweak_fe = PoseidonTweak::to_field_elements::<TWEAK_LEN>(tweak);
-            let combined_input: Vec<F> = parameter
-                .iter()
-                .chain(tweak_fe.iter())
-                .chain(message_unpacked_left.iter())
-                .chain(message_unpacked_right.iter())
-                .copied()
-                .collect();
-            return poseidon_compress::<HASH_LEN>(&instance, &combined_input);
-        }
-        if l > 2 {
-            let tweak_fe = PoseidonTweak::to_field_elements::<TWEAK_LEN>(tweak);
-            let combined_input: Vec<F> = parameter
-                .iter()
-                .chain(tweak_fe.iter())
-                .chain(message.iter().flat_map(|sub_arr| sub_arr.iter()))
-                .copied()
-                .collect();
-            let lengths: [usize; DOMAIN_PARAMETERS_LENGTH] =
-                [PARAMETER_LEN, TWEAK_LEN, NUM_CHUNKS, HASH_LEN];
-            let safe_input = poseidon_safe_domain_separator::<CAPACITY>(&instance, &lengths);
-            let res = poseidon_sponge(&instance, &safe_input, &combined_input);
-            return res;
-        }
-        // will never be reached
-        [F::one(); HASH_LEN]
     }
 
     #[cfg(test)]
@@ -404,5 +387,55 @@ mod tests {
         let message_one = PoseidonTweak37::rand_domain(&mut rng);
         let tweak_chain = PoseidonTweak37::chain_tweak(2, 3, 4);
         PoseidonTweak37::apply(&parameter, &tweak_chain, &[message_one]);
+    }
+
+    #[test]
+    fn test_rand_parameter_not_all_same() {
+        let mut rng = thread_rng();
+        // Setup a umber of trials
+        const K: usize = 10;
+        let mut all_same_count = 0;
+
+        for _ in 0..K {
+            let parameter = PoseidonTweak44::rand_parameter(&mut rng);
+
+            // Check if all elements in `parameter` are identical
+            let first = parameter[0];
+            if parameter.iter().all(|&x| x == first) {
+                all_same_count += 1;
+            }
+        }
+
+        // If all K trials resulted in identical values, fail the test
+        assert!(
+            all_same_count < K,
+            "rand_parameter generated identical elements in all {} trials",
+            K
+        );
+    }
+
+    #[test]
+    fn test_rand_domain_not_all_same() {
+        let mut rng = thread_rng();
+        // Setup a umber of trials
+        const K: usize = 10;
+        let mut all_same_count = 0;
+
+        for _ in 0..K {
+            let domain = PoseidonTweak44::rand_domain(&mut rng);
+
+            // Check if all elements in `domain` are identical
+            let first = domain[0];
+            if domain.iter().all(|&x| x == first) {
+                all_same_count += 1;
+            }
+        }
+
+        // If all K trials resulted in identical values, fail the test
+        assert!(
+            all_same_count < K,
+            "rand_domain generated identical elements in all {} trials",
+            K
+        );
     }
 }

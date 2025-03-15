@@ -56,11 +56,9 @@ pub fn build_tree<TH: TweakableHash>(
 /// Function to get a root from a tree. The tree must have at least one layer.
 /// A root is just an output of the tweakable hash.
 pub fn hash_tree_root<TH: TweakableHash>(tree: &HashTree<TH>) -> TH::Domain {
-    assert!(
-        !tree.layers.is_empty(),
-        "Hash-Tree hash tree root: Need at least one layer"
-    );
-    tree.layers.last().unwrap()[0]
+    tree.layers
+        .last()
+        .expect("Hash-Tree must have at least one layer")[0]
 }
 
 /// Opening in a hash-tree: a co-path, without the leaf
@@ -98,7 +96,7 @@ pub fn hash_tree_path<TH: TweakableHash>(
 
     // in our co-path, we will have one node per layer
     // except the final layer (which is just the root)
-    let mut co_path: Vec<TH::Domain> = Vec::with_capacity(depth);
+    let mut co_path = Vec::with_capacity(depth);
     let mut current_position = position;
     for l in 0..depth {
         // position of the sibling that we want to include

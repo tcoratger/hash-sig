@@ -2,7 +2,7 @@ use num_bigint::BigUint;
 use zkhash::ark_ff::MontConfig;
 use zkhash::ark_ff::PrimeField;
 use zkhash::ark_ff::UniformRand;
-use zkhash::ark_ff::{One, Zero};
+use zkhash::ark_ff::Zero;
 use zkhash::fields::babybear::FpBabyBear;
 use zkhash::fields::babybear::FqConfig;
 use zkhash::poseidon2::poseidon2::Poseidon2;
@@ -116,11 +116,7 @@ impl<
     const CHUNK_SIZE: usize = CHUNK_SIZE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
-        let mut rnd = [F::one(); RAND_LEN];
-        for i in 0..RAND_LEN {
-            rnd[i] = F::rand(rng);
-        }
-        rnd
+        std::array::from_fn(|_| F::rand(rng))
     }
 
     fn apply(
@@ -202,6 +198,7 @@ pub type PoseidonMessageHashW1 = PoseidonMessageHash<5, 5, 5, 163, 1, 2, 9>;
 mod tests {
     use super::*;
     use rand::{thread_rng, Rng};
+    use zkhash::ark_ff::One;
     use zkhash::ark_ff::UniformRand;
 
     #[test]
@@ -239,5 +236,30 @@ mod tests {
 
         PoseidonMessageHashW1::internal_consistency_check();
         PoseidonMessageHashW1::apply(&parameter, epoch, &randomness, &message);
+    }
+
+    #[test]
+    fn test_rand_not_all_same() {
+        let mut rng = thread_rng();
+        // Setup a number of trials
+        const K: usize = 10;
+        let mut all_same_count = 0;
+
+        for _ in 0..K {
+            let randomness = PoseidonMessageHash445::rand(&mut rng);
+
+            // Check if all elements in `randomness` are identical
+            let first = randomness[0];
+            if randomness.iter().all(|&x| x == first) {
+                all_same_count += 1;
+            }
+        }
+
+        // If all K trials resulted in identical values, fail the test
+        assert!(
+            all_same_count < K,
+            "rand generated identical elements in all {} trials",
+            K
+        );
     }
 }
