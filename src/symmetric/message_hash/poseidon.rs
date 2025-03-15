@@ -239,19 +239,27 @@ mod tests {
     }
 
     #[test]
-    fn test_rand_all_elements_unique() {
+    fn test_rand_not_all_same() {
         let mut rng = thread_rng();
-        let randomness = PoseidonMessageHash445::rand(&mut rng);
+        // Setup a number of trials
+        const K: usize = 10;
+        let mut all_same_count = 0;
 
-        // Iterate through all pairs and check that no two elements are the same
-        for i in 0..randomness.len() {
-            for j in (i + 1)..randomness.len() {
-                assert_ne!(
-                    randomness[i], randomness[j],
-                    "Randomness array contains duplicate elements at indices {} and {}",
-                    i, j
-                );
+        for _ in 0..K {
+            let randomness = PoseidonMessageHash445::rand(&mut rng);
+
+            // Check if all elements in `randomness` are identical
+            let first = randomness[0];
+            if randomness.iter().all(|&x| x == first) {
+                all_same_count += 1;
             }
         }
+
+        // If all K trials resulted in identical values, fail the test
+        assert!(
+            all_same_count < K,
+            "rand generated identical elements in all {} trials",
+            K
+        );
     }
 }

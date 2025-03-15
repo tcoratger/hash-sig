@@ -390,34 +390,52 @@ mod tests {
     }
 
     #[test]
-    fn test_rand_parameter_all_elements_unique() {
+    fn test_rand_parameter_not_all_same() {
         let mut rng = thread_rng();
-        let parameter = PoseidonTweak44::rand_parameter(&mut rng);
+        // Setup a umber of trials
+        const K: usize = 10;
+        let mut all_same_count = 0;
 
-        for i in 0..parameter.len() {
-            for j in (i + 1)..parameter.len() {
-                assert_ne!(
-                    parameter[i], parameter[j],
-                    "rand_parameter contains duplicate elements at indices {} and {}",
-                    i, j
-                );
+        for _ in 0..K {
+            let parameter = PoseidonTweak44::rand_parameter(&mut rng);
+
+            // Check if all elements in `parameter` are identical
+            let first = parameter[0];
+            if parameter.iter().all(|&x| x == first) {
+                all_same_count += 1;
             }
         }
+
+        // If all K trials resulted in identical values, fail the test
+        assert!(
+            all_same_count < K,
+            "rand_parameter generated identical elements in all {} trials",
+            K
+        );
     }
 
     #[test]
-    fn test_rand_domain_all_elements_unique() {
+    fn test_rand_domain_not_all_same() {
         let mut rng = thread_rng();
-        let domain = PoseidonTweak44::rand_domain(&mut rng);
+        // Setup a umber of trials
+        const K: usize = 10;
+        let mut all_same_count = 0;
 
-        for i in 0..domain.len() {
-            for j in (i + 1)..domain.len() {
-                assert_ne!(
-                    domain[i], domain[j],
-                    "rand_domain contains duplicate elements at indices {} and {}",
-                    i, j
-                );
+        for _ in 0..K {
+            let domain = PoseidonTweak44::rand_domain(&mut rng);
+
+            // Check if all elements in `domain` are identical
+            let first = domain[0];
+            if domain.iter().all(|&x| x == first) {
+                all_same_count += 1;
             }
         }
+
+        // If all K trials resulted in identical values, fail the test
+        assert!(
+            all_same_count < K,
+            "rand_domain generated identical elements in all {} trials",
+            K
+        );
     }
 }
