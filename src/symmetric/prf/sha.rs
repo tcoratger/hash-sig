@@ -15,9 +15,7 @@ impl<const OUTPUT_LENGTH: usize> Pseudorandom for ShaPRF<OUTPUT_LENGTH> {
     type Output = [u8; OUTPUT_LENGTH];
 
     fn gen<R: rand::Rng>(rng: &mut R) -> Self::Key {
-        let mut key = [0u8; KEY_LENGTH];
-        rng.fill(&mut key);
-        key
+        std::array::from_fn(|_| rng.gen())
     }
 
     fn apply(key: &Self::Key, epoch: u32, index: u64) -> Self::Output {
@@ -37,7 +35,7 @@ impl<const OUTPUT_LENGTH: usize> Pseudorandom for ShaPRF<OUTPUT_LENGTH> {
 
         // Finalize and convert to output
         let result = hasher.finalize();
-        result[0..OUTPUT_LENGTH].try_into().unwrap()
+        result[..OUTPUT_LENGTH].try_into().unwrap()
     }
 
     #[cfg(test)]
@@ -46,5 +44,31 @@ impl<const OUTPUT_LENGTH: usize> Pseudorandom for ShaPRF<OUTPUT_LENGTH> {
             OUTPUT_LENGTH < 256 / 8,
             "SHA PRF: Output length must be less than 256 bit"
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::thread_rng;
+    use std::collections::HashSet;
+
+    #[test]
+    fn test_sha_prf_key_is_random() {
+        const K: usize = 10;
+        type PRF = ShaPRF<16>;
+
+        let mut rng = thread_rng();
+        let mut seen = HashSet::new();
+        let mut collisions = 0;
+
+        for _ in 0..K {
+            let key = PRF::gen(&mut rng);
+            if !seen.insert(key) {
+                collisions += 1;
+            }
+        }
+
+        assert!(collisions < K, "Too many repeated keys in {} trials", K);
     }
 }
