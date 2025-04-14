@@ -30,20 +30,23 @@ fn encode_message<const MSG_LEN_FE: usize>(message: &[u8; MESSAGE_LENGTH]) -> [F
     message_fe
 }
 
-/// Function to encode an epoch (= tweak in the message hash)
-/// as a vector of field elements.
+/// Function to encode an epoch (= tweak in the message hash) as an array of field elements.
+#[inline(always)]
 fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
-    // convert the bytes (together with domain separator) into a number
-    let epoch_uint: BigUint = (BigUint::from(epoch) << 8) + TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
+    // Combine epoch and domain separator
+    let mut acc = ((epoch as u64) << 8) | (TWEAK_SEPARATOR_FOR_MESSAGE_HASH as u64);
 
-    // now interpret the number in base-p
-    let mut tweak_fe: [F; TWEAK_LEN_FE] = [F::zero(); TWEAK_LEN_FE];
-    tweak_fe.iter_mut().fold(epoch_uint, |acc, item| {
-        let tmp = acc.clone() % BigUint::from(FqConfig::MODULUS);
-        *item = F::from(tmp.clone());
-        (acc - tmp) / (BigUint::from(FqConfig::MODULUS))
-    });
-    tweak_fe
+    // Get the modulus
+    //
+    // This is fine to take only the first limb as we are using prime fields with <= 64 bits
+    let p = FqConfig::MODULUS.0[0];
+
+    // Convert into field elements in base-p
+    std::array::from_fn(|_| {
+        let digit = acc % p;
+        acc /= p;
+        F::from(digit)
+    })
 }
 
 /// Function to decode a vector of field elements into
@@ -152,6 +155,12 @@ impl<
 
     #[cfg(test)]
     fn internal_consistency_check() {
+        // Modulus check
+        assert!(
+            BigUint::from(FqConfig::MODULUS) < BigUint::from(u64::MAX),
+            "The prime field used is too large"
+        );
+
         // message check
         let message_fe_bits = f64::log2(
             BigUint::from(FqConfig::MODULUS)
@@ -261,5 +270,66 @@ mod tests {
             "rand generated identical elements in all {} trials",
             K
         );
+    }
+
+    #[test]
+    fn test_encode_epoch_small_value() {
+        let epoch = 42u32;
+        let sep = TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
+
+        // Compute: (epoch << 8) + sep
+        let epoch_bigint = (BigUint::from(epoch) << 8) + sep;
+
+        // Use the field modulus
+        let p = BigUint::from(FqConfig::MODULUS);
+
+        // Compute field elements in base-p
+        let expected = [
+            F::from(&epoch_bigint % &p),
+            F::from((&epoch_bigint / &p) % &p),
+            F::from((&epoch_bigint / (&p * &p)) % &p),
+            F::from((&epoch_bigint / (&p * &p * &p)) % &p),
+        ];
+
+        let result = encode_epoch::<4>(epoch);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_encode_epoch_zero() {
+        let epoch = 0u32;
+        let sep = TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
+
+        let epoch_bigint = BigUint::from(sep);
+        let p = BigUint::from(FqConfig::MODULUS);
+
+        let expected = [
+            F::from(&epoch_bigint % &p),
+            F::from((&epoch_bigint / &p) % &p),
+            F::from((&epoch_bigint / (&p * &p)) % &p),
+            F::from((&epoch_bigint / (&p * &p * &p)) % &p),
+        ];
+
+        let result = encode_epoch::<4>(epoch);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_encode_epoch_max_value() {
+        let epoch = u32::MAX;
+        let sep = TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
+
+        let epoch_bigint = (BigUint::from(epoch) << 8) + sep;
+        let p = BigUint::from(FqConfig::MODULUS);
+
+        let expected = [
+            F::from(&epoch_bigint % &p),
+            F::from((&epoch_bigint / &p) % &p),
+            F::from((&epoch_bigint / (&p * &p)) % &p),
+            F::from((&epoch_bigint / (&p * &p * &p)) % &p),
+        ];
+
+        let result = encode_epoch::<4>(epoch);
+        assert_eq!(result, expected);
     }
 }
