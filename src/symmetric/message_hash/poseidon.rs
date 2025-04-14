@@ -75,27 +75,57 @@ pub fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] 
     })
 }
 
-/// Function to decode a vector of field elements into
-/// a vector of NUM_CHUNKS many chunks. One chunk is
-/// between 0 and 2^CHUNK_SIZE - 1 (inclusive).
-/// CHUNK_SIZE up to 8 (inclusive) is supported
-fn decode_to_chunks<const NUM_CHUNKS: usize, const CHUNK_SIZE: usize, const HASH_LEN_FE: usize>(
+// /// Function to decode a vector of field elements into
+// /// a vector of NUM_CHUNKS many chunks. One chunk is
+// /// between 0 and 2^CHUNK_SIZE - 1 (inclusive).
+// /// CHUNK_SIZE up to 8 (inclusive) is supported
+// pub fn decode_to_chunks<
+//     const NUM_CHUNKS: usize,
+//     const CHUNK_SIZE: usize,
+//     const HASH_LEN_FE: usize,
+// >(
+//     field_elements: &[F; HASH_LEN_FE],
+// ) -> [u8; NUM_CHUNKS] {
+//     // Turn field elements into a big integer
+//     let hash_uint = field_elements.iter().fold(BigUint::ZERO, |acc, &item| {
+//         acc * BigUint::from(FqConfig::MODULUS) + BigUint::from(item.into_bigint())
+//     });
+
+//     // Split the integer into chunks
+//     let max_chunk_len = (1 << CHUNK_SIZE) as u16;
+
+//     let mut hash_chunked: [u8; NUM_CHUNKS] = [0; NUM_CHUNKS];
+//     hash_chunked.iter_mut().fold(hash_uint, |acc, item| {
+//         *item = (acc.clone() % max_chunk_len).to_bytes_be()[0];
+//         (acc - *item) / max_chunk_len
+//     });
+//     hash_chunked
+// }
+
+/// Decodes field elements into NUM_CHUNKS many u8 chunks using base-(2^CHUNK_SIZE) decomposition.
+/// Assumes CHUNK_SIZE ≤ 8 (i.e., each chunk fits in a single byte).
+#[inline(always)]
+pub fn decode_to_chunks<
+    const NUM_CHUNKS: usize,
+    const CHUNK_SIZE: usize,
+    const HASH_LEN_FE: usize,
+>(
     field_elements: &[F; HASH_LEN_FE],
-) -> Vec<u8> {
-    // Turn field elements into a big integer
-    let hash_uint = field_elements.iter().fold(BigUint::ZERO, |acc, &item| {
-        acc * BigUint::from(FqConfig::MODULUS) + BigUint::from(item.into_bigint())
-    });
+) -> [u8; NUM_CHUNKS] {
+    // Combine field elements into one big integer (little-endian base-p)
+    let p = BigUint::from(FqConfig::MODULUS);
+    let mut acc = BigUint::ZERO;
+    for fe in field_elements.iter().rev() {
+        acc = &acc * &p + BigUint::from(fe.into_bigint());
+    }
 
-    // Split the integer into chunks
-    let max_chunk_len = (1 << CHUNK_SIZE) as u16;
-
-    let mut hash_chunked: [u8; NUM_CHUNKS] = [0; NUM_CHUNKS];
-    hash_chunked.iter_mut().fold(hash_uint, |acc, item| {
-        *item = (acc.clone() % max_chunk_len).to_bytes_be()[0];
-        (acc - *item) / max_chunk_len
-    });
-    Vec::from(hash_chunked)
+    // Convert to base-(2^CHUNK_SIZE)
+    let base = (1 << CHUNK_SIZE) as u16;
+    std::array::from_fn(|_| {
+        let chunk = (&acc % base).try_into().unwrap();
+        acc /= base;
+        chunk
+    })
 }
 
 /// A message hash implemented using Poseidon2
@@ -176,7 +206,7 @@ impl<
         let hash_fe = poseidon_compress::<HASH_LEN_FE>(&instance, &combined_input);
 
         // decode field elements into chunks and return them
-        decode_to_chunks::<NUM_CHUNKS, CHUNK_SIZE, HASH_LEN_FE>(&hash_fe)
+        decode_to_chunks::<NUM_CHUNKS, CHUNK_SIZE, HASH_LEN_FE>(&hash_fe).to_vec()
     }
 
     #[cfg(test)]
@@ -432,6 +462,77 @@ mod tests {
         ];
 
         let result = encode_epoch::<4>(epoch);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_decode_to_chunks_all_zeros() {
+        // All field elements are zero
+        let field_elements = [F::ZERO; 5];
+
+        // Should decode to all zero chunks
+        let expected = [0u8; 8];
+        let result = decode_to_chunks::<8, 4, 5>(&field_elements);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_decode_to_chunks_simple_value() {
+        // Field modulus
+        let p = BigUint::from(FqConfig::MODULUS);
+
+        // Create field elements
+        let input = [F::from(1u64), F::from(2u64)];
+        let hash_uint = BigUint::from(2u64) * &p + BigUint::from(1u64);
+
+        // CHUNK_SIZE = 4 → max value = 2^4 = 16
+        // Split hash_uint = 2p + 1 into base-16 digits (little endian)
+        //
+        // Example:
+        //   hash_uint = D_0 + 16*D_1 + 16^2*D_2 + ...
+        //   We compute D_i = hash_uint % 16, then divide by 16
+
+        let mut acc = hash_uint.clone();
+        let mut expected = [0; 4];
+        for i in 0..4 {
+            expected[i] = (&acc % 16u8).try_into().unwrap();
+            acc /= 16u8;
+        }
+
+        let result = decode_to_chunks::<4, 4, 2>(&input);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_decode_to_chunks_max_value() {
+        // Field modulus
+        let p = BigUint::from(FqConfig::MODULUS);
+
+        // Use all field elements set to p - 1
+        let input = [F::from(p.clone() - 1u32); 3];
+
+        // Compute combined hash_uint:
+        //
+        // hash_uint = (p - 1) + (p - 1) * p + (p - 1) * p^2
+        //           = (p^2 + p + 1) * (p - 1)
+        //
+        // We’ll expand it:
+        // = (p - 1) * (p^2 + p + 1)
+        // = p^3 - 1
+
+        let p2 = &p * &p;
+        let p3 = &p * &p2;
+        let hash_uint = &p3 - 1u32;
+
+        // CHUNK_SIZE = 8 → max = 256
+        let mut acc = hash_uint.clone();
+        let mut expected = [0u8; 8];
+        for i in 0..8 {
+            expected[i] = (&acc % 256u32).try_into().unwrap();
+            acc /= 256u32;
+        }
+
+        let result = decode_to_chunks::<8, 8, 3>(&input);
         assert_eq!(result, expected);
     }
 }
