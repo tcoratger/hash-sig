@@ -10,8 +10,6 @@ use zkhash::{
     poseidon2::poseidon2::Poseidon2,
 };
 
-use num_bigint::BigUint;
-
 use crate::TWEAK_SEPARATOR_FOR_CHAIN_HASH;
 use crate::TWEAK_SEPARATOR_FOR_TREE_HASH;
 
@@ -122,23 +120,36 @@ pub fn poseidon_compress<const OUT_LEN: usize>(
 
 /// This function creates a domain separator based on @params array of usize treated as u32.
 /// It does so by hashing params in compression mode
-pub fn poseidon_safe_domain_separator<const OUT_LEN: usize>(
+fn poseidon_safe_domain_separator<const OUT_LEN: usize>(
     instance: &Poseidon2<F>,
-    params: &[usize],
+    params: &[usize; DOMAIN_PARAMETERS_LENGTH],
 ) -> [F; OUT_LEN] {
-    // turn params into a big integer
-    let domain_uint = params.iter().fold(BigUint::ZERO, |acc, &item| {
-        acc * BigUint::from((1_u64) << 32) + (item as u32)
+    // Combine params into a single number in base 2^32
+    //
+    // WARNING: We can use a u128 instead of a BigUint only because `params`
+    // has 4x elements in base 2^32.
+    let mut acc: u128 = 0;
+    for &param in params {
+        acc = (acc << 32) | (param as u128);
+    }
+
+    // Get the modulus
+    //
+    // This is fine to take only the first limb as we are using prime fields with <= 64 bits
+    let p = FqConfig::MODULUS.0[0] as u128;
+
+    // Compute base-p decomposition
+    //
+    // We can use 24 as hardcoded because the only time we use this function
+    // is for the corresponding Poseidon instance.
+    let input = std::array::from_fn::<_, 24, _>(|_| {
+        let digit = acc % p;
+        acc /= p;
+        F::from(digit)
     });
-    // create the Poseidon input by interpreting the number in base-p
-    let mut input = vec![F::zero(); instance.get_t()];
-    input.iter_mut().fold(domain_uint, |acc, item| {
-        let tmp = acc.clone() % BigUint::from(FqConfig::MODULUS);
-        *item = F::from(tmp.clone());
-        (acc - tmp) / (BigUint::from(FqConfig::MODULUS))
-    });
-    // now run Poseidon
-    poseidon_compress::<OUT_LEN>(instance, &input)
+
+    // Compress the padded input using Poseidon
+    poseidon_compress(instance, &input)
 }
 
 /// Poseidon Sponge hash
@@ -306,6 +317,8 @@ impl<
 
     #[cfg(test)]
     fn internal_consistency_check() {
+        use num_bigint::BigUint;
+
         assert!(
             BigUint::from(FqConfig::MODULUS) < BigUint::from(u64::MAX),
             "The prime field used is too large"
@@ -344,6 +357,7 @@ pub type PoseidonTweakW1L5 = PoseidonTweakHash<5, 8, 1, 5, 7, 2, 9, 163>;
 
 #[cfg(test)]
 mod tests {
+    use num_bigint::BigUint;
     use rand::thread_rng;
 
     use super::*;
@@ -558,5 +572,49 @@ mod tests {
         };
         let computed = tweak.to_field_elements::<3>();
         assert_eq!(computed, expected);
+    }
+
+    #[test]
+    fn test_poseidon_safe_domain_separator_small() {
+        let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
+
+        // Some small parameters
+        let params: [usize; 4] = [1, 2, 3, 4];
+
+        // Compute with the optimized function
+        let actual = poseidon_safe_domain_separator::<4>(&instance, &params);
+
+        // Ensure decomposed inputs match the manual base-p values
+        assert_eq!(
+            actual,
+            [
+                F::from(1518816068),
+                F::from(1903366844),
+                F::from(704597956),
+                F::from(30279094)
+            ]
+        );
+    }
+
+    #[test]
+    fn test_poseidon_safe_domain_separator_large() {
+        let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
+
+        // Example parameters: treat them as 32-bit words to be concatenated
+        let params = [usize::MAX; 4];
+
+        // Compute with the optimized function
+        let actual = poseidon_safe_domain_separator::<4>(&instance, &params);
+
+        // Ensure decomposed inputs match the manual base-p values
+        assert_eq!(
+            actual,
+            [
+                F::from(1938593574),
+                F::from(935512994),
+                F::from(910478564),
+                F::from(584381639)
+            ]
+        );
     }
 }
