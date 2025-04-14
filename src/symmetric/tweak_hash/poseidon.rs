@@ -121,16 +121,11 @@ impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SI
         let p = FqConfig::MODULUS.0[0] as u128;
 
         // Now we interpret this integer in base-p to get field elements
-        let mut out: [MaybeUninit<F>; TWEAK_LEN] = unsafe { MaybeUninit::uninit().assume_init() };
-
-        for i in 0..TWEAK_LEN {
+        std::array::from_fn(|_| {
             let digit = acc % p;
             acc /= p;
-            out[i] = MaybeUninit::new(F::from(digit));
-        }
-
-        // SAFETY: all elements initialized above
-        unsafe { std::mem::transmute_copy::<_, [F; TWEAK_LEN]>(&out) }
+            F::from(digit)
+        })
     }
 }
 
