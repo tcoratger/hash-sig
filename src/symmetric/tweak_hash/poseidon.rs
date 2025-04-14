@@ -74,6 +74,8 @@ impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SI
         };
 
         // Get the modulus
+        //
+        // This is fine to take only the first limb as we are using prime fields with <= 64 bits
         let p = FqConfig::MODULUS.0[0] as u128;
 
         // Now we interpret this integer in base-p to get field elements
@@ -304,6 +306,10 @@ impl<
 
     #[cfg(test)]
     fn internal_consistency_check() {
+        assert!(
+            BigUint::from(FqConfig::MODULUS) < BigUint::from(u64::MAX),
+            "The prime field used is too large"
+        );
         assert!(
             CAPACITY < 24,
             "Poseidon Tweak Chain Hash: Capacity must be less than 24"
