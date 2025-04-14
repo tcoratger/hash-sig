@@ -198,7 +198,7 @@ pub mod lifetime_2_to_the_18 {
             },
         };
 
-        const LOG_LIFETIME: usize = 18;
+        const LOG_LIFETIME: usize = 5;
         const PARAMETER_LEN: usize = 5;
         const MSG_HASH_LEN_FE: usize = 5;
         const HASH_LEN_FE: usize = 7;

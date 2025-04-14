@@ -18,6 +18,14 @@ slow-tests = []
 with-gen-benches-sha = []
 with-gen-benches-poseidon = []
 
+# [[bench]]
+# name = "benchmark"
+# harness = false
+
 [[bench]]
-name = "benchmark"
+name = "tweak_hash"
 harness = false
+
+[profile.profiling]
+inherits = "release"
+debug = true
