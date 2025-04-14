@@ -1,4 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use hashsig::symmetric::message_hash::poseidon::encode_epoch;
 use hashsig::symmetric::message_hash::poseidon::encode_message;
 use hashsig::symmetric::tweak_hash::poseidon::PoseidonTweak;
 use hashsig::MESSAGE_LENGTH;
@@ -45,19 +46,36 @@ const CHAIN_SEP: u64 = TWEAK_SEPARATOR_FOR_CHAIN_HASH as u64;
 
 //
 
-fn bench_encode_message(c: &mut Criterion) {
-    // Create a random message of MESSAGE_LENGTH bytes
-    let mut rng = thread_rng();
-    let mut message = [0u8; MESSAGE_LENGTH];
-    rng.fill(&mut message);
+// fn bench_encode_message(c: &mut Criterion) {
+//     // Create a random message of MESSAGE_LENGTH bytes
+//     let mut rng = thread_rng();
+//     let mut message = [0u8; MESSAGE_LENGTH];
+//     rng.fill(&mut message);
 
-    c.bench_function("encode_message", |b| {
+//     c.bench_function("encode_message", |b| {
+//         b.iter(|| {
+//             // Prevent the compiler from optimizing the input away
+//             let _ = encode_message::<3>(black_box(&message));
+//         })
+//     });
+// }
+
+// criterion_group!(benches, bench_encode_message);
+// criterion_main!(benches);
+
+//
+
+const TWEAK_LEN_FE: usize = 1000;
+
+fn bench_encode_epoch(c: &mut Criterion) {
+    c.bench_function("encode_epoch (optimized, u128)", |b| {
         b.iter(|| {
-            // Prevent the compiler from optimizing the input away
-            let _ = encode_message::<3>(black_box(&message));
-        })
+            let epoch = black_box(u32::MAX);
+            let _fe: [F; TWEAK_LEN_FE] = encode_epoch::<TWEAK_LEN_FE>(epoch);
+            black_box(_fe);
+        });
     });
 }
 
-criterion_group!(benches, bench_encode_message);
+criterion_group!(benches, bench_encode_epoch);
 criterion_main!(benches);
