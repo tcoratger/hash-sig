@@ -145,55 +145,44 @@ where
         epoch: u32,
         message: &[u8; MESSAGE_LENGTH],
     ) -> Result<Self::Signature, SigningError> {
-        // first component of the signature is the Merkle path that
-        // opens the one-time pk for that epoch, where the one-time pk
-        // will be recomputed by the verifier from the hashes
+        // First component of the signature is the Merkle path that
+        // opens the one-time pk for that epoch. The one-time pk
+        // will be recomputed by the verifier from the `hashes` vector.
         let path = hash_tree_path(&sk.tree, epoch);
 
-        // now, we need to encode our message using the incomparable encoding
-        // we retry until we get a valid codeword, or until we give up
-        let max_tries = IE::MAX_TRIES;
-        let mut attempts = 0;
-        let mut x = None;
-        let mut rho = None;
-        while attempts < max_tries {
-            // sample a randomness and try to encode the message
-            let curr_rho = IE::rand(rng);
-            let curr_x = IE::encode(&sk.parameter.into(), message, &curr_rho, epoch);
-
-            // check if we have found a valid codeword, and if so, stop searching
-            if curr_x.is_ok() {
-                rho = Some(curr_rho);
-                x = curr_x.ok().map(Some).unwrap_or(None);
-                break;
+        // Now, we need to encode our message using the incomparable encoding.
+        // We retry until we get a valid codeword, or until we give up.
+        let (x, rho) = {
+            let mut attempts = 0;
+            loop {
+                // Sample randomness for encoding
+                let curr_rho = IE::rand(rng);
+                // Try encoding the message
+                match IE::encode(&sk.parameter.into(), message, &curr_rho, epoch) {
+                    Ok(codeword) => break (codeword, curr_rho),
+                    Err(_) if attempts < IE::MAX_TRIES => attempts += 1,
+                    Err(_) => return Err(SigningError::UnluckyFailure),
+                }
             }
+        };
 
-            attempts += 1;
-        }
-
-        // if we have not found a valid codeword, return an error
-        if x.is_none() {
-            return Err(SigningError::UnluckyFailure);
-        }
-
-        // otherwise, unwrap x and rho
-        let x = x.unwrap();
-        let rho = rho.unwrap();
-
-        // we will include rho in the signature, and
-        // we use x to determine how far the signer walks in the chains
+        // We include rho in the signature, and we use x to determine how far
+        // the signer walks in each chain. There should be one chain per chunk.
         let num_chains = IE::NUM_CHUNKS;
         assert!(
             x.len() == num_chains,
             "Encoding is broken: returned too many or too few chunks."
         );
+
+        // Now compute the hash at each position along the chains.
+        // For each chunk index, compute the start value and walk the chain.
         let mut hashes = Vec::with_capacity(num_chains);
-        for (chain_index, xi) in x.iter().enumerate().take(num_chains) {
-            // get back the start of the chain from the PRF
+        for (chain_index, &steps) in x.iter().enumerate() {
+            // Get the starting secret for this chain via PRF
             let start = PRF::apply(&sk.prf_key, epoch, chain_index as u64).into();
-            // now walk the chain for a number of steps determined by x
-            let steps = *xi;
-            let hash_in_chain = chain::<TH>(
+
+            // Walk the chain for `steps` steps starting from that point
+            let hash = chain::<TH>(
                 &sk.parameter,
                 epoch,
                 chain_index as u16,
@@ -201,10 +190,11 @@ where
                 steps as usize,
                 &start,
             );
-            hashes.push(hash_in_chain);
+
+            hashes.push(hash);
         }
 
-        // assemble the signature
+        // Return the full signature: Merkle path, encoding randomness, and hashes
         Ok(GeneralizedXMSSSignature { path, rho, hashes })
     }
 
