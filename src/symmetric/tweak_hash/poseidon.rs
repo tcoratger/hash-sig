@@ -118,8 +118,13 @@ pub fn poseidon_compress<const OUT_LEN: usize>(
     std::array::from_fn(|i| permuted_input[i] + input[i])
 }
 
-/// This function creates a domain separator based on @params array of usize treated as u32.
-/// It does so by hashing params in compression mode
+/// Computes a Poseidon-based domain separator by compressing an array of `usize`
+/// values (interpreted as 32-bit words) using a fixed Poseidon instance.
+///
+/// ### Usage constraints
+/// - This function is private because it's tailored to one very specific case:
+///   the Poseidon2 instance with arity 24 and a fixed 4-word input.
+/// - If generalization is ever needed, a more generic and slower version should be used.
 fn poseidon_safe_domain_separator<const OUT_LEN: usize>(
     instance: &Poseidon2<F>,
     params: &[usize; DOMAIN_PARAMETERS_LENGTH],
