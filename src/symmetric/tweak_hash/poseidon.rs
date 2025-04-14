@@ -1,5 +1,6 @@
 use std::mem::MaybeUninit;
 
+use zkhash::ark_ff::Field;
 use zkhash::ark_ff::MontConfig;
 use zkhash::ark_ff::One;
 use zkhash::ark_ff::UniformRand;
@@ -166,21 +167,40 @@ pub fn poseidon_compress<const OUT_LEN: usize>(
 /// It does so by hashing params in compression mode
 pub fn poseidon_safe_domain_separator<const OUT_LEN: usize>(
     instance: &Poseidon2<F>,
-    params: &[usize],
+    params: &[usize; DOMAIN_PARAMETERS_LENGTH],
 ) -> [F; OUT_LEN] {
-    // turn params into a big integer
-    let domain_uint = params.iter().fold(BigUint::ZERO, |acc, &item| {
-        acc * BigUint::from((1_u64) << 32) + (item as u32)
+    // // turn params into a big integer
+    // let domain_uint = params.iter().fold(BigUint::ZERO, |acc, &item| {
+    //     acc * BigUint::from((1_u64) << 32) + (item as u32)
+    // });
+    // // create the Poseidon input by interpreting the number in base-p
+    // let mut input = vec![F::zero(); instance.get_t()];
+    // input.iter_mut().fold(domain_uint, |acc, item| {
+    //     let tmp = acc.clone() % BigUint::from(FqConfig::MODULUS);
+    //     *item = F::from(tmp.clone());
+    //     (acc - tmp) / (BigUint::from(FqConfig::MODULUS))
+    // });
+    // // now run Poseidon
+    // poseidon_compress::<OUT_LEN>(instance, &input)
+
+    // Combine params into a single u128 number in base 2^32
+    let mut acc: u128 = 0;
+    for &param in params {
+        acc = (acc << 32) | (param as u128);
+    }
+
+    // Modulus
+    let p = FqConfig::MODULUS.0[0] as u128;
+
+    // Compute base-p decomposition using array::from_fn
+    let input = std::array::from_fn::<_, 24, _>(|i| {
+        let digit = acc % p;
+        acc /= p;
+        F::from(digit)
     });
-    // create the Poseidon input by interpreting the number in base-p
-    let mut input = vec![F::zero(); instance.get_t()];
-    input.iter_mut().fold(domain_uint, |acc, item| {
-        let tmp = acc.clone() % BigUint::from(FqConfig::MODULUS);
-        *item = F::from(tmp.clone());
-        (acc - tmp) / (BigUint::from(FqConfig::MODULUS))
-    });
-    // now run Poseidon
-    poseidon_compress::<OUT_LEN>(instance, &input)
+
+    // Compress the padded input using Poseidon
+    poseidon_compress(instance, &input)
 }
 
 /// Poseidon Sponge hash
@@ -596,5 +616,49 @@ mod tests {
         };
         let computed = tweak.to_field_elements::<3>();
         assert_eq!(computed, expected);
+    }
+
+    #[test]
+    fn test_poseidon_safe_domain_separator_small() {
+        let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
+
+        // Example parameters: treat them as 32-bit words to be concatenated
+        let params: [usize; 4] = [1, 2, 3, 4];
+
+        // Compute with the optimized function
+        let actual = poseidon_safe_domain_separator::<4>(&instance, &params);
+
+        // Ensure decomposed inputs match the manual base-p values
+        assert_eq!(
+            actual,
+            [
+                F::from(1518816068),
+                F::from(1903366844),
+                F::from(704597956),
+                F::from(30279094)
+            ]
+        );
+    }
+
+    #[test]
+    fn test_poseidon_safe_domain_separator_large() {
+        let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
+
+        // Example parameters: treat them as 32-bit words to be concatenated
+        let params = [usize::MAX; 4];
+
+        // Compute with the optimized function
+        let actual = poseidon_safe_domain_separator::<4>(&instance, &params);
+
+        // Ensure decomposed inputs match the manual base-p values
+        assert_eq!(
+            actual,
+            [
+                F::from(1938593574),
+                F::from(935512994),
+                F::from(910478564),
+                F::from(584381639)
+            ]
+        );
     }
 }
