@@ -1,3 +1,4 @@
+use std::mem::MaybeUninit;
 use zkhash::ark_ff::MontConfig;
 use zkhash::ark_ff::One;
 use zkhash::ark_ff::UniformRand;
@@ -42,7 +43,7 @@ pub enum PoseidonTweak<
 impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SIZE: usize>
     PoseidonTweak<LOG_LIFETIME, CEIL_LOG_NUM_CHAINS, CHUNK_SIZE>
 {
-    fn to_field_elements<const TWEAK_LEN: usize>(&self) -> Vec<F> {
+    fn to_field_elements<const TWEAK_LEN: usize>(&self) -> [F; TWEAK_LEN] {
         // we need to convert from integers to field elements,
         // Note: taking into account the constants
         // LOG_LIFETIME, CEIL_LOG_NUM_CHAINS, CHUNK_SIZE,
@@ -50,37 +51,43 @@ impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SI
         // LOG_LIFETIME + CEIL_LOG_NUM_CHAINS + CHUNK_SIZE many
         // bits.
 
-        // we first represent the entire tweak as one big integer
-        let tweak_bigint = match self {
+        // We first represent the entire tweak as one big integer
+        let mut acc = match self {
             Self::TreeTweak {
                 level,
                 pos_in_level,
             } => {
-                (BigUint::from(*level) << 40)
-                    + (BigUint::from(*pos_in_level) << 8)
-                    + TWEAK_SEPARATOR_FOR_TREE_HASH
+                ((*level as u128) << 40)
+                    | ((*pos_in_level as u128) << 8)
+                    | (TWEAK_SEPARATOR_FOR_TREE_HASH as u128)
             }
             Self::ChainTweak {
                 epoch,
                 chain_index,
                 pos_in_chain,
             } => {
-                (BigUint::from(*epoch) << 40)
-                    + (BigUint::from(*chain_index) << 24)
-                    + (BigUint::from(*pos_in_chain) << 8)
-                    + TWEAK_SEPARATOR_FOR_CHAIN_HASH
+                ((*epoch as u128) << 40)
+                    | ((*chain_index as u128) << 24)
+                    | ((*pos_in_chain as u128) << 8)
+                    | (TWEAK_SEPARATOR_FOR_CHAIN_HASH as u128)
             }
-            _ => BigUint::ZERO,
+            _ => 0,
         };
 
-        // now we interpret this integer in base-p to get field elements
-        let mut tweak_fe: [F; TWEAK_LEN] = [F::zero(); TWEAK_LEN];
-        tweak_fe.iter_mut().fold(tweak_bigint, |acc, item| {
-            let tmp = acc.clone() % BigUint::from(FqConfig::MODULUS);
-            *item = F::from(tmp.clone());
-            (acc - tmp) / (BigUint::from(FqConfig::MODULUS))
-        });
-        tweak_fe.to_vec()
+        // Get the modulus
+        let p = FqConfig::MODULUS.0[0] as u128;
+
+        // Now we interpret this integer in base-p to get field elements
+        let mut out: [MaybeUninit<F>; TWEAK_LEN] = unsafe { MaybeUninit::uninit().assume_init() };
+
+        for i in 0..TWEAK_LEN {
+            let digit = acc % p;
+            acc /= p;
+            out[i] = MaybeUninit::new(F::from(digit));
+        }
+
+        // SAFETY: all elements initialized above
+        unsafe { std::mem::transmute_copy::<_, [F; TWEAK_LEN]>(&out) }
     }
 }
 
@@ -437,5 +444,119 @@ mod tests {
             "rand_domain generated identical elements in all {} trials",
             K
         );
+    }
+
+    #[test]
+    fn test_tree_tweak_field_elements() {
+        // Tweak
+        let level = 1u8;
+        let pos_in_level = 2u32;
+        let sep = TWEAK_SEPARATOR_FOR_TREE_HASH as u64;
+
+        // Compute tweak_bigint
+        let tweak_bigint = (BigUint::from(level) << 40) + (BigUint::from(pos_in_level) << 8) + sep;
+
+        // Use the field modulus
+        let p = BigUint::from(FqConfig::MODULUS);
+
+        // Extract field elements in base-p
+        let expected = [
+            F::from(&tweak_bigint % &p),
+            F::from((&tweak_bigint / &p) % &p),
+            F::from((&tweak_bigint / (&p * &p)) % &p),
+        ];
+
+        // Check actual output
+        let tweak = PoseidonTweak::<0, 0, 0>::TreeTweak {
+            level,
+            pos_in_level,
+        };
+        let computed = tweak.to_field_elements::<3>();
+        assert_eq!(computed, expected);
+    }
+
+    #[test]
+    fn test_chain_tweak_field_elements() {
+        // Tweak
+        let epoch = 1u32;
+        let chain_index = 2u16;
+        let pos_in_chain = 3u16;
+        let sep = TWEAK_SEPARATOR_FOR_CHAIN_HASH as u64;
+
+        // Compute tweak_bigint = (epoch << 40) + (chain_index << 24) + (pos_in_chain << 8) + sep
+        let tweak_bigint = (BigUint::from(epoch) << 40)
+            + (BigUint::from(chain_index) << 24)
+            + (BigUint::from(pos_in_chain) << 8)
+            + sep;
+
+        // Use the field modulus
+        let p = BigUint::from(FqConfig::MODULUS);
+
+        // Extract field elements in base-p
+        let expected = [
+            F::from(&tweak_bigint % &p),
+            F::from((&tweak_bigint / &p) % &p),
+            F::from((&tweak_bigint / (&p * &p)) % &p),
+        ];
+
+        // Check actual output
+        let tweak = PoseidonTweak::<0, 0, 0>::ChainTweak {
+            epoch,
+            chain_index,
+            pos_in_chain,
+        };
+        let computed = tweak.to_field_elements::<3>();
+        assert_eq!(computed, expected);
+    }
+
+    #[test]
+    fn test_tree_tweak_field_elements_max_values() {
+        let level = u8::MAX;
+        let pos_in_level = u32::MAX;
+        let sep = TWEAK_SEPARATOR_FOR_TREE_HASH as u64;
+
+        let tweak_bigint = (BigUint::from(level) << 40) + (BigUint::from(pos_in_level) << 8) + sep;
+
+        let p = BigUint::from(FqConfig::MODULUS);
+        let expected = [
+            F::from(&tweak_bigint % &p),
+            F::from((&tweak_bigint / &p) % &p),
+            F::from((&tweak_bigint / (&p * &p)) % &p),
+        ];
+
+        let tweak = PoseidonTweak::<0, 0, 0>::TreeTweak {
+            level,
+            pos_in_level,
+        };
+        let computed = tweak.to_field_elements::<3>();
+        assert_eq!(computed, expected);
+    }
+
+    #[test]
+    fn test_chain_tweak_field_elements_max_values() {
+        let epoch = u32::MAX;
+        let chain_index = u16::MAX;
+        let pos_in_chain = u16::MAX;
+        let sep = TWEAK_SEPARATOR_FOR_CHAIN_HASH as u64;
+
+        let tweak_bigint = (BigUint::from(epoch) << 40)
+            + (BigUint::from(chain_index) << 24)
+            + (BigUint::from(pos_in_chain) << 8)
+            + sep;
+
+        let p = BigUint::from(FqConfig::MODULUS);
+        let expected = [
+            F::from(&tweak_bigint % &p),
+            F::from((&tweak_bigint / &p) % &p),
+            F::from((&tweak_bigint / (&p * &p)) % &p),
+        ];
+
+        let tweak = PoseidonTweak::<0, 0, 0>::ChainTweak {
+            epoch,
+            chain_index,
+            pos_in_chain,
+        };
+        let computed = tweak.to_field_elements::<3>();
+        assert_eq!(computed, expected);
     }
 }
