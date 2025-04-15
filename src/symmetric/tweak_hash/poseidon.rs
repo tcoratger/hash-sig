@@ -127,7 +127,7 @@ pub fn poseidon_compress<const OUT_LEN: usize>(
 /// - If generalization is ever needed, a more generic and slower version should be used.
 fn poseidon_safe_domain_separator<const OUT_LEN: usize>(
     instance: &Poseidon2<F>,
-    params: &[usize; DOMAIN_PARAMETERS_LENGTH],
+    params: &[u32; DOMAIN_PARAMETERS_LENGTH],
 ) -> [F; OUT_LEN] {
     // Combine params into a single number in base 2^32
     //
@@ -311,8 +311,12 @@ impl<
                     .chain(message.iter().flatten())
                     .copied()
                     .collect();
-                let lengths: [_; DOMAIN_PARAMETERS_LENGTH] =
-                    [PARAMETER_LEN, TWEAK_LEN, NUM_CHUNKS, HASH_LEN];
+                let lengths: [_; DOMAIN_PARAMETERS_LENGTH] = [
+                    PARAMETER_LEN as u32,
+                    TWEAK_LEN as u32,
+                    NUM_CHUNKS as u32,
+                    HASH_LEN as u32,
+                ];
                 let safe_input = poseidon_safe_domain_separator::<CAPACITY>(&instance, &lengths);
                 poseidon_sponge(&instance, &safe_input, &combined_input)
             }
@@ -584,7 +588,7 @@ mod tests {
         let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
 
         // Some small parameters
-        let params: [usize; 4] = [1, 2, 3, 4];
+        let params: [u32; 4] = [1, 2, 3, 4];
 
         // Compute with the optimized function
         let actual = poseidon_safe_domain_separator::<4>(&instance, &params);
@@ -606,7 +610,7 @@ mod tests {
         let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
 
         // Example parameters: treat them as 32-bit words to be concatenated
-        let params = [usize::MAX; 4];
+        let params = [u32::MAX; 4];
 
         // Compute with the optimized function
         let actual = poseidon_safe_domain_separator::<4>(&instance, &params);
