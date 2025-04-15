@@ -132,7 +132,7 @@ fn poseidon_safe_domain_separator<const OUT_LEN: usize>(
     // Combine params into a single number in base 2^32
     //
     // WARNING: We can use a u128 instead of a BigUint only because `params`
-    // has 4x elements in base 2^32.
+    // has 4 elements in base 2^32.
     let mut acc: u128 = 0;
     for &param in params {
         acc = (acc << 32) | (param as u128);
