@@ -188,7 +188,7 @@ where
             "Encoding is broken: returned too many or too few chunks."
         );
         let mut hashes = Vec::with_capacity(num_chains);
-        for (chain_index, xi) in x.iter().enumerate().take(num_chains) {
+        for (chain_index, xi) in x.iter().enumerate() {
             // get back the start of the chain from the PRF
             let start = PRF::apply(&sk.prf_key, epoch, chain_index as u64).into();
             // now walk the chain for a number of steps determined by x
@@ -236,7 +236,7 @@ where
             "Encoding is broken: returned too many or too few chunks."
         );
         let mut chain_ends = Vec::with_capacity(num_chains);
-        for (chain_index, xi) in x.iter().enumerate().take(num_chains) {
+        for (chain_index, xi) in x.iter().enumerate() {
             // If the signer has already walked x[i] steps, then we need
             // to walk chain_length - 1 - x[i] steps to reach the end of the chain
             let steps = chain_length - 1 - xi;
