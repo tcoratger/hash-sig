@@ -236,7 +236,7 @@ where
             "Encoding is broken: returned too many or too few chunks."
         );
         let mut chain_ends = Vec::with_capacity(num_chains);
-        for (chain_index, xi) in x.iter().enumerate().take(num_chains) {
+        for (chain_index, xi) in x.iter().enumerate() {
             // If the signer has already walked x[i] steps, then we need
             // to walk chain_length - 1 - x[i] steps to reach the end of the chain
             let steps = chain_length - 1 - xi;
