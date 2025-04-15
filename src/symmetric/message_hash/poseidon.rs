@@ -2,7 +2,6 @@ use num_bigint::BigUint;
 use zkhash::ark_ff::MontConfig;
 use zkhash::ark_ff::PrimeField;
 use zkhash::ark_ff::UniformRand;
-use zkhash::ark_ff::Zero;
 use zkhash::fields::babybear::FpBabyBear;
 use zkhash::fields::babybear::FqConfig;
 use zkhash::poseidon2::poseidon2::Poseidon2;
@@ -230,6 +229,7 @@ mod tests {
         PoseidonMessageHash445::internal_consistency_check();
         PoseidonMessageHash445::apply(&parameter, epoch, &randomness, &message);
     }
+
     #[test]
     fn test_apply_w1() {
         let mut rng = thread_rng();
@@ -333,8 +333,8 @@ mod tests {
 
         let result = encode_epoch::<4>(epoch);
         assert_eq!(result, expected);
-  }
-  
+    }
+
     #[test]
     fn test_encode_message_all_zeros() {
         // Message
