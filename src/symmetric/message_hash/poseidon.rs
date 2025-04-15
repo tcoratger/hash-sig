@@ -57,7 +57,7 @@ fn decode_to_chunks<const NUM_CHUNKS: usize, const CHUNK_SIZE: usize, const HASH
     // Combine field elements into one big integer (little-endian base-p)
     let p = BigUint::from(FqConfig::MODULUS);
     let mut acc = BigUint::ZERO;
-    for fe in field_elements.iter().rev() {
+    for fe in field_elements.iter() {
         acc = &acc * &p + BigUint::from(fe.into_bigint());
     }
 
