@@ -15,19 +15,20 @@ use crate::TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
 
 type F = FpBabyBear;
 
-/// Function to encode a message as a vector of field elements
+/// Function to encode a message as an array of field elements
 fn encode_message<const MSG_LEN_FE: usize>(message: &[u8; MESSAGE_LENGTH]) -> [F; MSG_LEN_FE] {
-    // convert the bytes into a number
-    let message_uint = BigUint::from_bytes_le(message);
+    // Interpret message as a little-endian integer
+    let mut acc = BigUint::from_bytes_le(message);
 
-    // now interpret the number in base-p
-    let mut message_fe: [F; MSG_LEN_FE] = [F::zero(); MSG_LEN_FE];
-    message_fe.iter_mut().fold(message_uint, |acc, item| {
-        let tmp = acc.clone() % BigUint::from(FqConfig::MODULUS);
-        *item = F::from(tmp.clone());
-        (acc - tmp) / (BigUint::from(FqConfig::MODULUS))
-    });
-    message_fe
+    // Get the modulus as BigUint once
+    let p = BigUint::from(FqConfig::MODULUS);
+
+    // Perform base-p decomposition
+    std::array::from_fn(|_| {
+        let digit = &acc % &p;
+        acc /= &p;
+        F::from(digit)
+    })
 }
 
 /// Function to encode an epoch (= tweak in the message hash)
@@ -333,5 +334,80 @@ mod tests {
 
         let result = decode_to_chunks::<8, 8, 3>(&input);
         assert_eq!(result, expected);
+  }
+  
+      #[test]
+    fn test_encode_message_all_zeros() {
+        // Message
+        let message = [0u8; 32];
+
+        // Expected = 9 zeros, as 9 * 31 >= 8 * 32
+        let expected = [F::ZERO; 9];
+
+        let computed = super::encode_message::<9>(&message);
+        assert_eq!(computed, expected);
+    }
+
+    #[test]
+    fn test_encode_message_all_max() {
+        // Message
+        let message = [u8::MAX; 32];
+
+        // Convert to bigint
+        let message_bigint = BigUint::from_bytes_le(&message);
+
+        // Field modulus
+        let p = BigUint::from(FqConfig::MODULUS);
+
+        // Compute expected: base-p decomposition
+        //
+        // We compute this by hand to ensure that the test is correct.
+        let expected = [
+            F::from(&message_bigint % &p),
+            F::from((&message_bigint / &p) % &p),
+            F::from((&message_bigint / (&p * &p)) % &p),
+            F::from((&message_bigint / (&p * &p * &p)) % &p),
+            F::from((&message_bigint / (&p * &p * &p * &p)) % &p),
+            F::from((&message_bigint / (&p * &p * &p * &p * &p)) % &p),
+            F::from((&message_bigint / (&p * &p * &p * &p * &p * &p)) % &p),
+            F::from((&message_bigint / (&p * &p * &p * &p * &p * &p * &p)) % &p),
+            F::from((&message_bigint / (&p * &p * &p * &p * &p * &p * &p * &p)) % &p),
+        ];
+
+        let computed = super::encode_message::<9>(&message);
+        assert_eq!(computed, expected);
+    }
+
+    #[test]
+    fn test_encode_message_mixed_bytes() {
+        // Alternating 0x00 and 0xFF
+        let mut message = [0u8; 32];
+        for (i, byte) in message.iter_mut().enumerate() {
+            *byte = if i % 2 == 0 { 0x00 } else { 0xFF };
+        }
+
+        // Convert to bigint
+        let message_bigint = BigUint::from_bytes_le(&message);
+
+        // Field modulus
+        let p = BigUint::from(FqConfig::MODULUS);
+
+        // Compute expected: base-p decomposition
+        //
+        // We compute this by hand to ensure that the test is correct.
+        let expected = [
+            F::from(&message_bigint % &p),
+            F::from((&message_bigint / &p) % &p),
+            F::from((&message_bigint / (&p * &p)) % &p),
+            F::from((&message_bigint / (&p * &p * &p)) % &p),
+            F::from((&message_bigint / (&p * &p * &p * &p)) % &p),
+            F::from((&message_bigint / (&p * &p * &p * &p * &p)) % &p),
+            F::from((&message_bigint / (&p * &p * &p * &p * &p * &p)) % &p),
+            F::from((&message_bigint / (&p * &p * &p * &p * &p * &p * &p)) % &p),
+            F::from((&message_bigint / (&p * &p * &p * &p * &p * &p * &p * &p)) % &p),
+        ];
+
+        let computed = super::encode_message::<9>(&message);
+        assert_eq!(computed, expected);
     }
 }
