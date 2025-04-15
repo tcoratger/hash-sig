@@ -17,6 +17,11 @@ use super::TweakableHash;
 
 type F = FpBabyBear;
 
+/// Modulus of the field as u128
+///
+// Note: It's fine to take only the first limb as we are using prime fields with <= 64 bits
+const MODULUS_128: u128 = FqConfig::MODULUS.0[0] as u128;
+
 const DOMAIN_PARAMETERS_LENGTH: usize = 4;
 
 /// Enum to implement tweaks.
@@ -72,9 +77,7 @@ impl<const LOG_LIFETIME: usize, const CEIL_LOG_NUM_CHAINS: usize, const CHUNK_SI
         };
 
         // Get the modulus
-        //
-        // This is fine to take only the first limb as we are using prime fields with <= 64 bits
-        let p = FqConfig::MODULUS.0[0] as u128;
+        let p = MODULUS_128;
 
         // Now we interpret this integer in base-p to get field elements
         std::array::from_fn(|_| {
@@ -139,9 +142,7 @@ fn poseidon_safe_domain_separator<const OUT_LEN: usize>(
     }
 
     // Get the modulus
-    //
-    // This is fine to take only the first limb as we are using prime fields with <= 64 bits
-    let p = FqConfig::MODULUS.0[0] as u128;
+    let p = MODULUS_128;
 
     // Compute base-p decomposition
     //
