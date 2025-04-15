@@ -55,7 +55,7 @@ fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
 fn decode_to_chunks<const NUM_CHUNKS: usize, const CHUNK_SIZE: usize, const HASH_LEN_FE: usize>(
     field_elements: &[F; HASH_LEN_FE],
 ) -> [u8; NUM_CHUNKS] {
-    // Combine field elements into one big integer (little-endian base-p)
+    // Combine field elements into one big integer
     let p = BigUint::from(FqConfig::MODULUS);
     let mut acc = BigUint::ZERO;
     for fe in field_elements.iter() {
