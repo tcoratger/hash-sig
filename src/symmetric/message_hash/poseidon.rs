@@ -209,6 +209,7 @@ mod tests {
     use zkhash::ark_ff::Field;
     use zkhash::ark_ff::One;
     use zkhash::ark_ff::UniformRand;
+    use zkhash::ark_ff::Zero;
 
     #[test]
     fn test_apply() {
@@ -308,7 +309,10 @@ mod tests {
         }
 
         let result = decode_to_chunks::<4, 4, 2>(&input);
-  }    #[test]
+        assert_eq!(result, expected);
+    }
+
+    #[test]
     fn test_encode_epoch_small_value() {
         let epoch = 42u32;
         let sep = TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
@@ -361,7 +365,10 @@ mod tests {
         }
 
         let result = decode_to_chunks::<8, 8, 3>(&input);
-  }    #[test]
+        assert_eq!(result, expected);
+    }
+
+    #[test]
     fn test_encode_epoch_zero() {
         let epoch = 0u32;
         let sep = TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
