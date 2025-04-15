@@ -270,7 +270,7 @@ mod tests {
         // Message
         let message = [0u8; 32];
 
-        // Expected = 9 zeros
+        // Expected = 9 zeros, as 9 * 31 >= 8 * 32
         let expected = [F::ZERO; 9];
 
         let computed = super::encode_message::<9>(&message);
