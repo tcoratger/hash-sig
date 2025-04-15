@@ -285,7 +285,7 @@ mod tests {
         let input = [F::from(1u64), F::from(2u64)];
         let hash_uint = BigUint::from(2u64) * &p + BigUint::from(1u64);
 
-        // CHUNK_SIZE = 4 → max value = 2^4 = 16
+        // CHUNK_SIZE = 4 => max value = 2^4 = 16
         // Split hash_uint = 2p + 1 into base-16 digits (little endian)
         //
         // Example:
