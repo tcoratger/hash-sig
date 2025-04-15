@@ -77,7 +77,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_prf_output_not_all_same() {
+    fn test_shake_to_field_prf_key_not_all_same() {
         use rand::thread_rng;
 
         const K: usize = 10;
@@ -89,17 +89,16 @@ mod tests {
 
         for _ in 0..K {
             let key = PRF::gen(&mut rng);
-            let output = PRF::apply(&key, 0, 0);
 
-            let first = output[0];
-            if output.iter().all(|&x| x == first) {
+            let first = key[0];
+            if key.iter().all(|&x| x == first) {
                 all_same_count += 1;
             }
         }
 
         assert!(
             all_same_count < K,
-            "PRF output had identical elements in all {} trials",
+            "PRF key had identical elements in all {} trials",
             K
         );
     }

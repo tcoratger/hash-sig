@@ -53,7 +53,7 @@ mod tests {
     use rand::thread_rng;
 
     #[test]
-    fn test_sha_prf_output_not_all_same() {
+    fn test_sha_prf_key_not_all_same() {
         const K: usize = 10;
         const OUTPUT_LEN: usize = 16;
         type PRF = ShaPRF<OUTPUT_LEN>;
@@ -63,17 +63,16 @@ mod tests {
 
         for _ in 0..K {
             let key = PRF::gen(&mut rng);
-            let output = PRF::apply(&key, 0, 0);
 
-            let first = output[0];
-            if output.iter().all(|&x| x == first) {
+            let first = key[0];
+            if key.iter().all(|&x| x == first) {
                 all_same_count += 1;
             }
         }
 
         assert!(
             all_same_count < K,
-            "PRF output had identical bytes in all {} trials",
+            "PRF key had identical bytes in all {} trials",
             K
         );
     }
