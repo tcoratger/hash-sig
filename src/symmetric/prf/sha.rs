@@ -51,24 +51,30 @@ impl<const OUTPUT_LENGTH: usize> Pseudorandom for ShaPRF<OUTPUT_LENGTH> {
 mod tests {
     use super::*;
     use rand::thread_rng;
-    use std::collections::HashSet;
 
     #[test]
-    fn test_sha_prf_key_is_not_constant() {
+    fn test_sha_prf_output_not_all_same() {
         const K: usize = 10;
-        type PRF = ShaPRF<16>;
+        const OUTPUT_LEN: usize = 16;
+        type PRF = ShaPRF<OUTPUT_LEN>;
 
         let mut rng = thread_rng();
-        let mut seen = HashSet::new();
-        let mut collisions = 0;
+        let mut all_same_count = 0;
 
         for _ in 0..K {
             let key = PRF::gen(&mut rng);
-            if !seen.insert(key) {
-                collisions += 1;
+            let output = PRF::apply(&key, 0, 0);
+
+            let first = output[0];
+            if output.iter().all(|&x| x == first) {
+                all_same_count += 1;
             }
         }
 
-        assert!(collisions < K, "Too many repeated keys in {} trials", K);
+        assert!(
+            all_same_count < K,
+            "PRF output had identical bytes in all {} trials",
+            K
+        );
     }
 }
