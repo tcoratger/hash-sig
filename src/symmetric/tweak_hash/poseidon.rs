@@ -153,7 +153,7 @@ fn poseidon_safe_domain_separator<const OUT_LEN: usize>(
         F::from(digit)
     });
 
-    // Compress the padded input using Poseidon
+    // Compress the input using Poseidon
     poseidon_compress(instance, &input)
 }
 
