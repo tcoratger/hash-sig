@@ -28,9 +28,7 @@ impl<const OUTPUT_LENGTH_FE: usize> Pseudorandom for ShakePRFtoF<OUTPUT_LENGTH_F
     type Output = [F; OUTPUT_LENGTH_FE];
 
     fn gen<R: rand::Rng>(rng: &mut R) -> Self::Key {
-        let mut key = [0u8; KEY_LENGTH];
-        rng.fill(&mut key);
-        key
+        std::array::from_fn(|_| rng.gen())
     }
 
     fn apply(key: &Self::Key, epoch: u32, index: u64) -> Self::Output {
@@ -58,20 +56,51 @@ impl<const OUTPUT_LENGTH_FE: usize> Pseudorandom for ShakePRFtoF<OUTPUT_LENGTH_F
         // Read the extended output into the buffer
         xof_reader.read(&mut prf_output);
 
-        // Final result
-        let mut result = Vec::new();
-
         // Mapping bytes to field elements
-        for chunk in prf_output.chunks(PRF_BYTES_PER_FE) {
-            let integer_value = BigUint::from_bytes_be(chunk) % BigUint::from(FqConfig::MODULUS);
-            result.push(F::from(integer_value));
-        }
-        let slice = &result[0..OUTPUT_LENGTH_FE];
-        slice.try_into().expect("Length mismatch")
+        std::array::from_fn(|i| {
+            let chunk_start = i * PRF_BYTES_PER_FE;
+            let chunk_end = chunk_start + PRF_BYTES_PER_FE;
+            let integer_value = BigUint::from_bytes_be(&prf_output[chunk_start..chunk_end])
+                % BigUint::from(FqConfig::MODULUS);
+            F::from(integer_value)
+        })
     }
 
     #[cfg(test)]
     fn internal_consistency_check() {
         // No check is needed
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_prf_output_not_all_same() {
+        use rand::thread_rng;
+
+        const K: usize = 10;
+        const OUTPUT_LEN: usize = 4;
+        type PRF = ShakePRFtoF<OUTPUT_LEN>;
+
+        let mut rng = thread_rng();
+        let mut all_same_count = 0;
+
+        for _ in 0..K {
+            let key = PRF::gen(&mut rng);
+            let output = PRF::apply(&key, 0, 0);
+
+            let first = output[0];
+            if output.iter().all(|&x| x == first) {
+                all_same_count += 1;
+            }
+        }
+
+        assert!(
+            all_same_count < K,
+            "PRF output had identical elements in all {} trials",
+            K
+        );
     }
 }
