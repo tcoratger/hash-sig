@@ -410,4 +410,40 @@ mod tests {
         let computed = super::encode_message::<9>(&message);
         assert_eq!(computed, expected);
     }
+
+    #[test]
+    fn test_decode_to_chunks_roundtrip_consistency() {
+        const HASH_LEN_FE: usize = 4;
+        const CHUNK_SIZE: usize = 4; // 4 bits => base 16
+        const NUM_CHUNKS: usize = 32;
+
+        let mut rng = thread_rng();
+        let modulus = BigUint::from(FqConfig::MODULUS);
+
+        // Generate random field elements
+        let input_field_elements: [F; HASH_LEN_FE] =
+            std::array::from_fn(|_| F::from(rng.gen::<u128>()));
+
+        // Reconstruct bigint from field elements using base-p
+        let mut expected_bigint = BigUint::zero();
+        for fe in input_field_elements.iter() {
+            expected_bigint = &expected_bigint * &modulus + BigUint::from(fe.into_bigint());
+        }
+
+        // Decode to chunks
+        let chunks = decode_to_chunks::<NUM_CHUNKS, CHUNK_SIZE, HASH_LEN_FE>(&input_field_elements);
+
+        // Reconstruct bigint from chunks using little-endian base-(2^CHUNK_SIZE)
+        let base = BigUint::from(1u8 << CHUNK_SIZE); // base = 16
+        let mut reconstructed_bigint = BigUint::zero();
+        for (i, &chunk) in chunks.iter().enumerate() {
+            reconstructed_bigint += BigUint::from(chunk) * base.pow(i as u32);
+        }
+
+        // Assert equality
+        assert_eq!(
+            expected_bigint, reconstructed_bigint,
+            "Reconstructed bigint from chunks does not match bigint from field elements"
+        );
+    }
 }
