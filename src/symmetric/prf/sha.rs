@@ -54,7 +54,7 @@ mod tests {
     use std::collections::HashSet;
 
     #[test]
-    fn test_sha_prf_key_is_random() {
+    fn test_sha_prf_key_is_not_constant() {
         const K: usize = 10;
         type PRF = ShaPRF<16>;
 
