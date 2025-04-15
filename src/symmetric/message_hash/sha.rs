@@ -34,9 +34,7 @@ impl<
     const CHUNK_SIZE: usize = CHUNK_SIZE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
-        let mut rand = [0u8; RAND_LEN];
-        rng.fill_bytes(&mut rand);
-        rand
+        std::array::from_fn(|_| rng.gen())
     }
 
     fn apply(
@@ -132,5 +130,26 @@ mod tests {
 
         ShaMessageHash192x3::internal_consistency_check();
         ShaMessageHash192x3::apply(&parameter, epoch, &randomness, &message);
+    }
+
+    #[test]
+    fn test_randomness_is_not_all_same() {
+        const TRIALS: usize = 10;
+        let mut rng = thread_rng();
+
+        let mut identical_count = 0;
+
+        for _ in 0..TRIALS {
+            let r = ShaMessageHash192x3::rand(&mut rng);
+            let first = r[0];
+            if r.iter().all(|&b| b == first) {
+                identical_count += 1;
+            }
+        }
+
+        assert!(
+            identical_count < TRIALS,
+            "All generated randomness arrays had identical bytes"
+        );
     }
 }
