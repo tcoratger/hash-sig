@@ -334,9 +334,9 @@ mod tests {
 
         let result = decode_to_chunks::<8, 8, 3>(&input);
         assert_eq!(result, expected);
-  }
-  
-      #[test]
+    }
+
+    #[test]
     fn test_encode_message_all_zeros() {
         // Message
         let message = [0u8; 32];
