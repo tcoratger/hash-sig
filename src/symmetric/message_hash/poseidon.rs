@@ -20,7 +20,7 @@ fn encode_message<const MSG_LEN_FE: usize>(message: &[u8; MESSAGE_LENGTH]) -> [F
     // Interpret message as a little-endian integer
     let mut acc = BigUint::from_bytes_le(message);
 
-    // Get the BabyBear modulus as BigUint once
+    // Get the modulus as BigUint once
     let p = BigUint::from(FqConfig::MODULUS);
 
     // Perform base-p decomposition
