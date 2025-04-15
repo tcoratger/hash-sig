@@ -31,7 +31,6 @@ fn encode_message<const MSG_LEN_FE: usize>(message: &[u8; MESSAGE_LENGTH]) -> [F
 }
 
 /// Function to encode an epoch (= tweak in the message hash) as an array of field elements.
-#[inline(always)]
 fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
     // Combine epoch and domain separator
     let mut acc = ((epoch as u64) << 8) | (TWEAK_SEPARATOR_FOR_MESSAGE_HASH as u64);
