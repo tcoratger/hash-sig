@@ -283,16 +283,16 @@ mod tests {
 
         // Create field elements
         let input = [F::from(1u64), F::from(2u64)];
-        let hash_uint = BigUint::from(2u64) * &p + BigUint::from(1u64);
+        let input_uint = BigUint::from(2u64) * &p + BigUint::from(1u64);
 
         // CHUNK_SIZE = 4 => max value = 2^4 = 16
-        // Split hash_uint = 2p + 1 into base-16 digits (little endian)
+        // Split input_uint = 2p + 1 into base-16 digits (little endian)
         //
         // Example:
-        //   hash_uint = D_0 + 16*D_1 + 16^2*D_2 + ...
-        //   We compute D_i = hash_uint % 16, then divide by 16
+        //   input_uint = D_0 + 16*D_1 + 16^2*D_2 + ...
+        //   We compute D_i = input_uint % 16, then divide by 16
 
-        let mut acc = hash_uint.clone();
+        let mut acc = input_uint.clone();
         let mut expected = [0; 4];
         for i in 0..4 {
             expected[i] = (&acc % 16u8).try_into().unwrap();
@@ -311,9 +311,9 @@ mod tests {
         // Use all field elements set to p - 1
         let input = [F::from(p.clone() - 1u32); 3];
 
-        // Compute combined hash_uint:
+        // Compute combined input_uint:
         //
-        // hash_uint = (p - 1) + (p - 1) * p + (p - 1) * p^2
+        // input_uint = (p - 1) + (p - 1) * p + (p - 1) * p^2
         //           = (p^2 + p + 1) * (p - 1)
         //
         // We’ll expand it:
@@ -322,10 +322,10 @@ mod tests {
 
         let p2 = &p * &p;
         let p3 = &p * &p2;
-        let hash_uint = &p3 - 1u32;
+        let input_uint = &p3 - 1u32;
 
         // CHUNK_SIZE = 8 → max = 256
-        let mut acc = hash_uint.clone();
+        let mut acc = input_uint.clone();
         let mut expected = [0u8; 8];
         for i in 0..8 {
             expected[i] = (&acc % 256u32).try_into().unwrap();
