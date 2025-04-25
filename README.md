@@ -3,6 +3,9 @@
 This repository contains a *prototypical* Rust implementation of (synchronized) signatures based on tweakable hash functions and incomparable encodings.
 The code has not been audited and is not meant to be used in production. It is a playground to explore and benchmark these signatures. Use it at your own risk.
 
+The code implements the schemes from [this paper](https://eprint.iacr.org/2025/055.pdf).
+The parameters for instantiations have been chosen based on the analysis in the paper and the scripts in [this repository](https://github.com/b-wagn/hashsig-parameters).
+
 ## Tests
 
 Run the tests with
