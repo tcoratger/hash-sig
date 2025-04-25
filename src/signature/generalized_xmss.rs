@@ -88,12 +88,15 @@ where
         // we need a PRF key to generate our list of actual secret keys
         let prf_key = PRF::gen(rng);
 
-        // for each epoch, generate the secret key for the epoch
-        // an epoch secret key is a list of random domain elements
-        // we have one such element per chain, and we have one
+        // for each epoch, generate the secret key for the epoch, where
+        // an epoch secret key is a list of domain elements derived from the
+        // pseudorandom function.
+        // We have one such element per chain, and we have one
         // chain per chunk of the codeword. In the same go, we also generate
         // the respective public key, which is obtained by walking the hash
-        // chain starting at the secret key.
+        // chain starting at the secret key element.
+        // The public key for that epoch is then the hash of all chain ends.
+
         let num_chains = IE::NUM_CHUNKS;
         let chain_length = 1 << IE::CHUNK_SIZE;
 
@@ -147,11 +150,11 @@ where
     ) -> Result<Self::Signature, SigningError> {
         // first component of the signature is the Merkle path that
         // opens the one-time pk for that epoch, where the one-time pk
-        // will be recomputed by the verifier from the hashes
+        // will be recomputed by the verifier from the signature.
         let path = hash_tree_path(&sk.tree, epoch);
 
-        // now, we need to encode our message using the incomparable encoding
-        // we retry until we get a valid codeword, or until we give up
+        // now, we need to encode our message using the incomparable encoding.
+        // we retry until we get a valid codeword, or until we give up.
         let max_tries = IE::MAX_TRIES;
         let mut attempts = 0;
         let mut x = None;
@@ -191,7 +194,7 @@ where
         for (chain_index, xi) in x.iter().enumerate() {
             // get back the start of the chain from the PRF
             let start = PRF::apply(&sk.prf_key, epoch, chain_index as u64).into();
-            // now walk the chain for a number of steps determined by x
+            // now walk the chain for a number of steps determined by the current chunk of x
             let steps = *xi;
             let hash_in_chain = chain::<TH>(
                 &sk.parameter,
@@ -204,7 +207,7 @@ where
             hashes.push(hash_in_chain);
         }
 
-        // assemble the signature
+        // assemble the signature: Merkle path, randomness, chain elements
         Ok(GeneralizedXMSSSignature { path, rho, hashes })
     }
 
@@ -227,8 +230,8 @@ where
         }
         let x = x.unwrap();
 
-        // now, we recompute the epoch one-time public key
-        // from the hashes, but walking hash chains.
+        // now, we recompute the epoch's one-time public key
+        // from the hashes by walking hash chains.
         let chain_length = 1 << IE::CHUNK_SIZE;
         let num_chains = IE::NUM_CHUNKS;
         assert!(

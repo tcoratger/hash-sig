@@ -113,6 +113,10 @@ pub fn hash_tree_path<TH: TweakableHash>(
 
 /// Function to verify an Merkle authentication path
 /// with respect to a root, a position, and a leaf.
+///
+/// Note: this function expects the leaf to be a list of hashes,
+/// whereas `build_tree` expects each leaf to be a single hash,
+/// which should be the hash of this list of hashes.
 pub fn hash_tree_verify<TH: TweakableHash>(
     parameter: &TH::Parameter,
     root: &TH::Domain,
