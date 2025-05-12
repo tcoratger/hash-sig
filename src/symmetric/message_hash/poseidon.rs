@@ -204,6 +204,8 @@ pub type PoseidonMessageHashW1 = PoseidonMessageHash<5, 5, 5, 163, 1, 2, 9>;
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
     use rand::{thread_rng, Rng};
     use zkhash::ark_ff::Field;
@@ -404,6 +406,28 @@ mod tests {
 
         let result = encode_epoch::<4>(epoch);
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_encode_epoch_injective() {
+        // encoding an epoch must be injective
+        // we test that by sampling random epochs and checking that they
+        // do not produce the same encoding, unless they are the same
+
+        let mut map = HashMap::new();
+        let mut rng = thread_rng();
+
+        for _ in 0..10_000 {
+            let epoch: u32 = rng.gen();
+            let encoding = encode_epoch::<4>(epoch);
+            if let Some(prev_epoch) = map.insert(encoding.clone(), epoch) {
+                assert_eq!(
+                    prev_epoch, epoch,
+                    "Collision detected for epochs {} and {} with output {:?}",
+                    prev_epoch, epoch, encoding
+                );
+            }
+        }
     }
 
     #[test]
