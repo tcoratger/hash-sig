@@ -367,8 +367,10 @@ pub type PoseidonTweakW1L5 = PoseidonTweakHash<5, 8, 1, 5, 7, 2, 9, 163>;
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use num_bigint::BigUint;
-    use rand::thread_rng;
+    use rand::{thread_rng, Rng};
 
     use super::*;
 
@@ -626,5 +628,188 @@ mod tests {
                 F::from(584381639)
             ]
         );
+    }
+
+    #[test]
+    fn test_tree_tweak_injective() {
+        let mut rng = thread_rng();
+
+        // basic test to check that tree tweak maps from
+        // parameters to field elements array injectively
+
+        // random inputs
+        let mut map = HashMap::new();
+        for _ in 0..100_000 {
+            let level = rng.gen();
+            let pos_in_level = rng.gen();
+            let tweak_encoding = PoseidonTweak::<0, 0, 0>::TreeTweak {
+                level,
+                pos_in_level,
+            }
+            .to_field_elements::<3>();
+
+            if let Some((prev_level, prev_pos_in_level)) =
+                map.insert(tweak_encoding.clone(), (level, pos_in_level))
+            {
+                assert_eq!(
+                    (prev_level, prev_pos_in_level),
+                    (level, pos_in_level),
+                    "Collision detected for ({},{}) and ({},{}) with output {:?}",
+                    prev_level,
+                    prev_pos_in_level,
+                    level,
+                    pos_in_level,
+                    tweak_encoding
+                );
+            }
+        }
+
+        // inputs with common level
+        let mut map = HashMap::new();
+        let level = rng.gen();
+        for _ in 0..10_000 {
+            let pos_in_level = rng.gen();
+            let tweak_encoding = PoseidonTweak::<0, 0, 0>::TreeTweak {
+                level,
+                pos_in_level,
+            }
+            .to_field_elements::<3>();
+
+            if let Some(prev_pos_in_level) = map.insert(tweak_encoding.clone(), pos_in_level) {
+                assert_eq!(
+                    prev_pos_in_level, pos_in_level,
+                    "Collision detected for ({},{}) and ({},{}) with output {:?}",
+                    level, prev_pos_in_level, level, pos_in_level, tweak_encoding
+                );
+            }
+        }
+
+        // inputs with common pos_in_level
+        let mut map = HashMap::new();
+        let pos_in_level = rng.gen();
+        for _ in 0..10_000 {
+            let level = rng.gen();
+            let tweak_encoding = PoseidonTweak::<0, 0, 0>::TreeTweak {
+                level,
+                pos_in_level,
+            }
+            .to_field_elements::<3>();
+
+            if let Some(prev_level) = map.insert(tweak_encoding.clone(), level) {
+                assert_eq!(
+                    prev_level, level,
+                    "Collision detected for ({},{}) and ({},{}) with output {:?}",
+                    prev_level, pos_in_level, level, pos_in_level, tweak_encoding
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_chain_tweak_injective() {
+        let mut rng = thread_rng();
+
+        // basic test to check that chain tweak maps from
+        // parameters to field element array injectively
+
+        // random inputs
+        let mut map = HashMap::new();
+        for _ in 0..100_000 {
+            let epoch = rng.gen();
+            let chain_index = rng.gen();
+            let pos_in_chain = rng.gen();
+
+            let input = (epoch, chain_index, pos_in_chain);
+
+            let tweak_encoding = PoseidonTweak::<0, 0, 0>::ChainTweak {
+                epoch,
+                chain_index,
+                pos_in_chain,
+            }
+            .to_field_elements::<3>();
+
+            if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
+                assert_eq!(
+                    prev_input, input,
+                    "Collision detected for {:?} and {:?} with output {:?}",
+                    prev_input, input, tweak_encoding
+                );
+            }
+        }
+
+        // inputs with fixed epoch
+        let mut map = HashMap::new();
+        let epoch = rng.gen();
+        for _ in 0..10_000 {
+            let chain_index = rng.gen();
+            let pos_in_chain = rng.gen();
+
+            let input = (chain_index, pos_in_chain);
+
+            let tweak_encoding = PoseidonTweak::<0, 0, 0>::ChainTweak {
+                epoch,
+                chain_index,
+                pos_in_chain,
+            }
+            .to_field_elements::<3>();
+
+            if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
+                assert_eq!(
+                    prev_input, input,
+                    "Collision detected for {:?} and {:?} with output {:?}",
+                    prev_input, input, tweak_encoding
+                );
+            }
+        }
+
+        // inputs with fixed chain_index
+        let mut map = HashMap::new();
+        let chain_index = rng.gen();
+        for _ in 0..10_000 {
+            let epoch = rng.gen();
+            let pos_in_chain = rng.gen();
+
+            let input = (epoch, pos_in_chain);
+
+            let tweak_encoding = PoseidonTweak::<0, 0, 0>::ChainTweak {
+                epoch,
+                chain_index,
+                pos_in_chain,
+            }
+            .to_field_elements::<3>();
+
+            if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
+                assert_eq!(
+                    prev_input, input,
+                    "Collision detected for {:?} and {:?} with output {:?}",
+                    prev_input, input, tweak_encoding
+                );
+            }
+        }
+
+        // inputs with fixed pos_in_chain
+        let mut map = HashMap::new();
+        let pos_in_chain = rng.gen();
+        for _ in 0..10_000 {
+            let epoch = rng.gen();
+            let chain_index = rng.gen();
+
+            let input = (epoch, chain_index);
+
+            let tweak_encoding = PoseidonTweak::<0, 0, 0>::ChainTweak {
+                epoch,
+                chain_index,
+                pos_in_chain,
+            }
+            .to_field_elements::<3>();
+
+            if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
+                assert_eq!(
+                    prev_input, input,
+                    "Collision detected for {:?} and {:?} with output {:?}",
+                    prev_input, input, tweak_encoding
+                );
+            }
+        }
     }
 }
