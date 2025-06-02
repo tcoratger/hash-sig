@@ -68,7 +68,7 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
         // chunk size must be 1, 2, 4, or 8
         assert!(
             MH::CHUNK_SIZE > 0 && MH::CHUNK_SIZE <= 8 && 8 % MH::CHUNK_SIZE == 0,
-            "Winternitz Encoding: Chunk Size must be 1, 2, 4, or 8"
+            "Target Sum Encoding: Chunk Size must be 1, 2, 4, or 8"
         );
         // also check internal consistency of message hash
         MH::internal_consistency_check();

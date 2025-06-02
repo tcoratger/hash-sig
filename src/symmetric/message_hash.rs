@@ -71,7 +71,7 @@ const fn isolate_chunk_from_byte(byte: u8, chunk_index: usize, chunk_size: usize
 /// That is, each byte is split up into chunks containing `chunk_size`
 /// many bits. For example, if `bytes` contains 6 elements, and
 /// `chunk_size` is 2, then the result contains 6 * (8/2) = 24 elements.
-///  It is assumed that `window_size` divides 8 and is between 1 and 8.
+///  It is assumed that `chunk_size` divides 8 and is between 1 and 8.
 pub fn bytes_to_chunks(bytes: &[u8], chunk_size: usize) -> Vec<u8> {
     // Ensure chunk size divides 8 and is between 1 and 8
     assert!(chunk_size > 0 && chunk_size <= 8 && 8 % chunk_size == 0);
