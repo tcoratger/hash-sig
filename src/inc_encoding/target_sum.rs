@@ -11,16 +11,11 @@ use super::IncomparableEncoding;
 /// It is recommended to set it close to the expected sum, which is:
 ///
 /// ```ignore
-///     const MAX_CHUNK_VALUE: usize = (1 << MH::CHUNK_SIZE) - 1
-///     const EXPECTED_SUM: usize = MH::NUM_CHUNKS * Self::MAX_CHUNK_VALUE / 2
+///     const MAX_CHUNK_VALUE: usize = MH::BASE - 1
+///     const EXPECTED_SUM: usize = MH::DIMENSION * MAX_CHUNK_VALUE / 2
 /// ```
 pub struct TargetSumEncoding<MH: MessageHash, const TARGET_SUM: usize> {
     _marker_mh: std::marker::PhantomData<MH>,
-}
-
-impl<MH: MessageHash, const TARGET_SUM: usize> TargetSumEncoding<MH, TARGET_SUM> {
-    const NUM_CHUNKS: usize = MH::NUM_CHUNKS;
-    const TARGET_SUM: usize = TARGET_SUM;
 }
 
 impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
@@ -30,14 +25,14 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
 
     type Randomness = MH::Randomness;
 
-    const NUM_CHUNKS: usize = Self::NUM_CHUNKS;
+    const DIMENSION: usize = MH::DIMENSION;
 
     /// we did one experiment with random message hashes.
     /// In production, this should be estimated via more
     /// extensive experiments with concrete hash functions.
     const MAX_TRIES: usize = 100000;
 
-    const CHUNK_SIZE: usize = MH::CHUNK_SIZE;
+    const BASE: usize = MH::BASE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
         MH::rand(rng)
@@ -51,13 +46,10 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
     ) -> Result<Vec<u16>, super::EncodingError> {
         // apply the message hash first to get chunks
         let chunks = MH::apply(parameter, epoch, randomness, message);
-        let chunks_u16: Vec<u16> = chunks.iter().map(|&x| x as u16).collect();
-        let chunks_u32: Vec<u32> = chunks.iter().map(|&x| x as u32).collect();
-
-        let sum: u32 = chunks_u32.iter().sum();
+        let sum: u32 = chunks.iter().map(|&x| x as u32).sum();
         // only output something if the chunks sum to the target sum
-        if sum as usize == Self::TARGET_SUM {
-            Ok(chunks_u16)
+        if sum as usize == TARGET_SUM {
+            Ok(chunks)
         } else {
             Err(())
         }
@@ -65,11 +57,12 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
 
     #[cfg(test)]
     fn internal_consistency_check() {
-        // chunk size must be 1, 2, 4, or 8
+        // base must not be too large
         assert!(
-            MH::CHUNK_SIZE > 0 && MH::CHUNK_SIZE <= 8 && 8 % MH::CHUNK_SIZE == 0,
-            "Target Sum Encoding: Chunk Size must be 1, 2, 4, or 8"
+            Self::BASE <= 1 << 16,
+            "Target Sum Encoding: Base must be at most 2^16"
         );
+
         // also check internal consistency of message hash
         MH::internal_consistency_check();
     }

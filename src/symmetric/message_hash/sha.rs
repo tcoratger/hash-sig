@@ -29,9 +29,9 @@ impl<
 
     type Randomness = [u8; RAND_LEN];
 
-    const NUM_CHUNKS: usize = NUM_CHUNKS;
+    const DIMENSION: usize = NUM_CHUNKS;
 
-    const CHUNK_SIZE: usize = CHUNK_SIZE;
+    const BASE: usize = 1 << CHUNK_SIZE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
         std::array::from_fn(|_| rng.gen())
@@ -42,7 +42,7 @@ impl<
         epoch: u32,
         randomness: &Self::Randomness,
         message: &[u8; MESSAGE_LENGTH],
-    ) -> Vec<u8> {
+    ) -> Vec<u16> {
         let mut hasher = Sha3_256::new();
 
         // first add randomness
@@ -62,11 +62,15 @@ impl<
         // finalize the hash, and take as many bytes as we need
         let hash = hasher.finalize();
         // turn the bytes in the hash into chunks
-        bytes_to_chunks(&hash[0..NUM_CHUNKS * CHUNK_SIZE / 8], Self::CHUNK_SIZE)
+        bytes_to_chunks(&hash[0..NUM_CHUNKS * CHUNK_SIZE / 8], CHUNK_SIZE)
     }
 
     #[cfg(test)]
     fn internal_consistency_check() {
+        assert!(
+            [1, 2, 4, 8].contains(&CHUNK_SIZE),
+            "SHA Message Hash: Chunk Size must be 1, 2, 4, or 8"
+        );
         assert!(
             PARAMETER_LEN < 256 / 8,
             "SHA Message Hash: Parameter Length must be less than 256 bit"
