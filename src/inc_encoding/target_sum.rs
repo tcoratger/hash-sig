@@ -18,11 +18,6 @@ pub struct TargetSumEncoding<MH: MessageHash, const TARGET_SUM: usize> {
     _marker_mh: std::marker::PhantomData<MH>,
 }
 
-impl<MH: MessageHash, const TARGET_SUM: usize> TargetSumEncoding<MH, TARGET_SUM> {
-    const NUM_CHUNKS: usize = MH::NUM_CHUNKS;
-    const TARGET_SUM: usize = TARGET_SUM;
-}
-
 impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
     for TargetSumEncoding<MH, TARGET_SUM>
 {
@@ -30,7 +25,7 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
 
     type Randomness = MH::Randomness;
 
-    const NUM_CHUNKS: usize = Self::NUM_CHUNKS;
+    const NUM_CHUNKS: usize = MH::NUM_CHUNKS;
 
     /// we did one experiment with random message hashes.
     /// In production, this should be estimated via more
@@ -56,7 +51,7 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
 
         let sum: u32 = chunks_u32.iter().sum();
         // only output something if the chunks sum to the target sum
-        if sum as usize == Self::TARGET_SUM {
+        if sum as usize == TARGET_SUM {
             Ok(chunks_u16)
         } else {
             Err(())
