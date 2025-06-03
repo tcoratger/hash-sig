@@ -29,20 +29,13 @@ pub struct WinternitzEncoding<
 }
 
 impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
-    WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>
-{
-    const NUM_CHUNKS_MESSAGE: usize = MH::DIMENSION;
-    const NUM_CHUNKS: usize = Self::NUM_CHUNKS_MESSAGE + NUM_CHUNKS_CHECKSUM;
-}
-
-impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
     IncomparableEncoding for WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>
 {
     type Parameter = MH::Parameter;
 
     type Randomness = MH::Randomness;
 
-    const DIMENSION: usize = Self::NUM_CHUNKS;
+    const DIMENSION: usize = MH::DIMENSION + NUM_CHUNKS_CHECKSUM;
 
     const MAX_TRIES: usize = 1;
 
