@@ -8,3 +8,4 @@ pub const TWEAK_SEPARATOR_FOR_CHAIN_HASH: u8 = 0x00;
 pub mod inc_encoding;
 pub mod signature;
 pub mod symmetric;
+pub mod hypercube;

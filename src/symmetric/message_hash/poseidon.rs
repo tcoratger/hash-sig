@@ -15,7 +15,7 @@ use crate::TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
 type F = FpBabyBear;
 
 /// Function to encode a message as an array of field elements
-fn encode_message<const MSG_LEN_FE: usize>(message: &[u8; MESSAGE_LENGTH]) -> [F; MSG_LEN_FE] {
+pub(crate) fn encode_message<const MSG_LEN_FE: usize>(message: &[u8; MESSAGE_LENGTH]) -> [F; MSG_LEN_FE] {
     // Interpret message as a little-endian integer
     let mut acc = BigUint::from_bytes_le(message);
 
@@ -31,7 +31,7 @@ fn encode_message<const MSG_LEN_FE: usize>(message: &[u8; MESSAGE_LENGTH]) -> [F
 }
 
 /// Function to encode an epoch (= tweak in the message hash) as an array of field elements.
-fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
+pub(crate) fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
     // Combine epoch and domain separator
     let mut acc = ((epoch as u64) << 8) | (TWEAK_SEPARATOR_FOR_MESSAGE_HASH as u64);
 
@@ -51,7 +51,7 @@ fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
 /// Function to decode a vector of field elements into
 /// a vector of DIMENSION many chunks. One chunk is
 /// between 0 and BASE - 1 (inclusive).
-/// BASE up to 2^8 (inclusive) is supported
+/// BASE and DIMENSION up to 2^8 (inclusive) are supported
 fn decode_to_chunks<const DIMENSION: usize, const BASE: usize, const HASH_LEN_FE: usize>(
     field_elements: &[F; HASH_LEN_FE],
 ) -> [u8; DIMENSION] {

@@ -41,6 +41,7 @@ pub trait MessageHash {
 }
 
 pub mod poseidon;
+pub mod top_level_poseidon;
 pub mod sha;
 
 /// Isolates a chunk of bits from a byte based on the specified chunk index and chunk size.
