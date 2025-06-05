@@ -50,7 +50,7 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
         message: &[u8; MESSAGE_LENGTH],
         randomness: &Self::Randomness,
         epoch: u32,
-    ) -> Result<Vec<u16>, super::EncodingError> {
+    ) -> Result<Vec<u8>, super::EncodingError> {
         // apply the message hash to get chunks
         let chunks_message = MH::apply(parameter, epoch, randomness, message);
 
@@ -71,7 +71,7 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
         Ok(chunks_message
             .iter()
             .chain(chunks_checksum.iter().take(NUM_CHUNKS_CHECKSUM))
-            .map(|&x| x as u16)
+            .map(|&x| x as u8)
             .collect())
     }
 
@@ -83,10 +83,14 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
             "Winternitz Encoding: Chunk Size must be 1, 2, 4, or 8"
         );
 
-        // base must not be too large
+        // base and dimension must not be too large
         assert!(
-            CHUNK_SIZE <= 16,
-            "Winternitz Encoding: Base must be at most 2^16"
+            CHUNK_SIZE <= 8,
+            "Winternitz Encoding: Base must be at most 2^8"
+        );
+        assert!(
+            Self::DIMENSION <= 1 << 8,
+            "Winternitz Encoding: Dimension must be at most 2^8"
         );
 
         // chunk size and base of MH must be consistent

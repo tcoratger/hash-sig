@@ -42,7 +42,7 @@ impl<
         epoch: u32,
         randomness: &Self::Randomness,
         message: &[u8; MESSAGE_LENGTH],
-    ) -> Vec<u16> {
+    ) -> Vec<u8> {
         let mut hasher = Sha3_256::new();
 
         // first add randomness
@@ -84,8 +84,16 @@ impl<
             "SHA Message Hash: Randomness Length must be non-zero"
         );
         assert!(
-            NUM_CHUNKS * CHUNK_SIZE < 256,
-            "SHA Message Hash: Hash Length (= NUM_CHUNKS * CHUNK_SIZE) must be less than 256 bit"
+            NUM_CHUNKS * CHUNK_SIZE <= 256,
+            "SHA Message Hash: Hash Length (= NUM_CHUNKS * CHUNK_SIZE) must be at most 256 bits"
+        );
+        assert!(
+            Self::BASE <= 1 << 8,
+            "SHA Message Hash: Base must be at most 2^8"
+        );
+        assert!(
+            Self::DIMENSION <= 1 << 8,
+            "SHA Message Hash: Dimension must be at most 2^8"
         );
     }
 }
