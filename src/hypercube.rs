@@ -10,7 +10,7 @@ use std::sync::Mutex;
 static FACTORIALS: Lazy<Mutex<Vec<BigUint>>> = Lazy::new(|| Mutex::new(vec![]));
 static BINOMS: Lazy<Mutex<Vec<Vec<BigUint>>>> = Lazy::new(|| Mutex::new(vec![]));
 static LAYER_SIZES: Lazy<Mutex<Vec<BigUint>>> = Lazy::new(|| Mutex::new(vec![]));
-static ALL_LAYER_SIZES_ARRAY: Lazy<Mutex<Vec<Vec<BigUint>>>> = Lazy::new(|| Mutex::new(vec![]));
+static ALL_LAYER_SIZES: Lazy<Mutex<Vec<Vec<BigUint>>>> = Lazy::new(|| Mutex::new(vec![]));
 
 /// Outputs the binomial coefficient binom(n, k) (n choose k)
 ///
@@ -93,7 +93,7 @@ pub fn precompute_global(v_max: usize, w: usize) {
         precompute_local(v, w);
         all_layers.push(LAYER_SIZES.lock().unwrap().clone());
     }
-    *ALL_LAYER_SIZES_ARRAY.lock().unwrap() = all_layers;
+    *ALL_LAYER_SIZES.lock().unwrap() = all_layers;
 }
 
 /// Map an integer x in [0, layer_size(v, d)) to a vertex in layer d
@@ -107,7 +107,7 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
     let mut out = Vec::with_capacity(v);
     let mut d_curr = d;
 
-    let all_layers = ALL_LAYER_SIZES_ARRAY.lock().unwrap();
+    let all_layers = ALL_LAYER_SIZES.lock().unwrap();
     assert!(x_curr < all_layers[v][d]);
 
     for i in 1..v {
@@ -138,7 +138,7 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
 ///
 /// Caller needs to make sure that d is a valid layer: 0 <= d <= v * (w-1)
 pub fn hypercube_part_size(v: usize, d: usize) -> BigUint {
-    let all_layers = ALL_LAYER_SIZES_ARRAY.lock().unwrap();
+    let all_layers = ALL_LAYER_SIZES.lock().unwrap();
     let mut sum = BigUint::zero();
     for l in 0..=d {
         sum += &all_layers[v][l];
@@ -154,11 +154,11 @@ pub fn hypercube_part_size(v: usize, d: usize) -> BigUint {
 ///
 /// Caller needs to make sure that x < w^v
 pub fn hypercube_find_layer(x: BigUint, v: usize) -> (usize, BigUint) {
-    let all_layers = ALL_LAYER_SIZES_ARRAY.lock().unwrap();
+    let all_layers = ALL_LAYER_SIZES.lock().unwrap();
     let mut d = 0;
     let mut val = x;
     while val >= all_layers[v][d] {
-        //this can be replaced with binary search for efficiency
+        // Note: this can be replaced with binary search for efficiency
         val -= &all_layers[v][d];
         d += 1;
     }
@@ -179,7 +179,7 @@ mod tests {
         let mut x_curr = BigUint::from(0u32);
         let mut d_curr = w - a[v - 1] as usize;
 
-        let all_layers = ALL_LAYER_SIZES_ARRAY.lock().unwrap();
+        let all_layers = ALL_LAYER_SIZES.lock().unwrap();
 
         for i in (0..v - 1).rev() {
             let ji = w - a[i] as usize;
