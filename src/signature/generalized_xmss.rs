@@ -294,6 +294,9 @@ where
 pub mod instantiations_poseidon;
 /// Instantiations of the generalized XMSS signature scheme based on SHA
 pub mod instantiations_sha;
+/// Instantiations of the generalized XMSS signature scheme based on the
+/// top level target sum encoding using Poseidon2
+pub mod instantiations_poseidon_top_level;
 
 #[cfg(test)]
 mod tests {
