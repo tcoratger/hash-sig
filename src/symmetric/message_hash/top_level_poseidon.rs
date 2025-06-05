@@ -215,6 +215,7 @@ mod tests {
     use zkhash::ark_ff::One;
     use zkhash::ark_ff::UniformRand;
 
+    use crate::hypercube::precompute_global;
     use crate::symmetric::message_hash::{
         top_level_poseidon::TopLevelPoseidonMessageHash, MessageHash,
     };
@@ -224,6 +225,10 @@ mod tests {
         const BASE: usize = 12;
         const DIMENSION: usize = 40;
         const FINAL_LAYER: usize = 175;
+
+        // pre-computation
+        precompute_global(DIMENSION, BASE);
+
         type MH = TopLevelPoseidonMessageHash<48, DIMENSION, BASE, FINAL_LAYER, 3, 9, 4, 4>;
 
         let mut rng = thread_rng();
