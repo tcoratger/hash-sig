@@ -17,7 +17,7 @@ pub mod lifetime_2_to_the_18 {
     const TARGET_SUM: usize = 269;
 
     const PARAMETER_LEN: usize = 5;
-    const TWEAK_LEN_FE: usize = 3;
+    const TWEAK_LEN_FE: usize = 2;
     const MSG_LEN_FE: usize = 9;
     const RAND_LEN_FE: usize = 6;
     const HASH_LEN_FE: usize = 7;
@@ -87,7 +87,7 @@ pub mod lifetime_2_to_the_26 {
     const TARGET_SUM: usize = 372;
 
     const PARAMETER_LEN: usize = 5;
-    const TWEAK_LEN_FE: usize = 3;
+    const TWEAK_LEN_FE: usize = 2;
     const MSG_LEN_FE: usize = 9;
     const RAND_LEN_FE: usize = 6;
     const HASH_LEN_FE: usize = 7;
