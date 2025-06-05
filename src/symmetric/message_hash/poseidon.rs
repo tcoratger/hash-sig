@@ -49,12 +49,12 @@ fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
 }
 
 /// Function to decode a vector of field elements into
-/// a vector of NUM_CHUNKS many chunks. One chunk is
+/// a vector of DIMENSION many chunks. One chunk is
 /// between 0 and BASE - 1 (inclusive).
 /// BASE up to 2^16 (inclusive) is supported
-fn decode_to_chunks<const NUM_CHUNKS: usize, const BASE: usize, const HASH_LEN_FE: usize>(
+fn decode_to_chunks<const DIMENSION: usize, const BASE: usize, const HASH_LEN_FE: usize>(
     field_elements: &[F; HASH_LEN_FE],
-) -> [u16; NUM_CHUNKS] {
+) -> [u16; DIMENSION] {
     // Combine field elements into one big integer
     let p = BigUint::from(FqConfig::MODULUS);
     let mut acc = BigUint::ZERO;
@@ -81,9 +81,9 @@ fn decode_to_chunks<const NUM_CHUNKS: usize, const BASE: usize, const HASH_LEN_F
 /// BASE must be at most 2^16
 pub struct PoseidonMessageHash<
     const PARAMETER_LEN: usize,
-    const RAND_LEN: usize,
+    const RAND_LEN_FE: usize,
     const HASH_LEN_FE: usize,
-    const NUM_CHUNKS: usize,
+    const DIMENSION: usize,
     const BASE: usize,
     const TWEAK_LEN_FE: usize,
     const MSG_LEN_FE: usize,
@@ -91,18 +91,18 @@ pub struct PoseidonMessageHash<
 
 impl<
         const PARAMETER_LEN: usize,
-        const RAND_LEN: usize,
+        const RAND_LEN_FE: usize,
         const HASH_LEN_FE: usize,
-        const NUM_CHUNKS: usize,
+        const DIMENSION: usize,
         const BASE: usize,
         const TWEAK_LEN_FE: usize,
         const MSG_LEN_FE: usize,
     > MessageHash
     for PoseidonMessageHash<
         PARAMETER_LEN,
-        RAND_LEN,
+        RAND_LEN_FE,
         HASH_LEN_FE,
-        NUM_CHUNKS,
+        DIMENSION,
         BASE,
         TWEAK_LEN_FE,
         MSG_LEN_FE,
@@ -110,9 +110,9 @@ impl<
 {
     type Parameter = [F; PARAMETER_LEN];
 
-    type Randomness = [F; RAND_LEN];
+    type Randomness = [F; RAND_LEN_FE];
 
-    const DIMENSION: usize = NUM_CHUNKS;
+    const DIMENSION: usize = DIMENSION;
 
     const BASE: usize = BASE;
 
@@ -127,10 +127,6 @@ impl<
         message: &[u8; MESSAGE_LENGTH],
     ) -> Vec<u16> {
         // We need a Poseidon instance
-
-        // Note: This block should be changed if we decide to support other Poseidon
-        // instances. Currently we use state of width 24 and pad with 0s.
-        assert!(PARAMETER_LEN + TWEAK_LEN_FE + RAND_LEN + MSG_LEN_FE <= 24);
         let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
 
         // first, encode the message and the epoch as field elements
@@ -148,11 +144,20 @@ impl<
         let hash_fe = poseidon_compress(&instance, &combined_input);
 
         // decode field elements into chunks and return them
-        decode_to_chunks::<NUM_CHUNKS, BASE, HASH_LEN_FE>(&hash_fe).to_vec()
+        decode_to_chunks::<DIMENSION, BASE, HASH_LEN_FE>(&hash_fe).to_vec()
     }
 
     #[cfg(test)]
     fn internal_consistency_check() {
+        // Check that Poseidon of width 24 is enough
+        // Note: This block should be changed if we decide to support other Poseidon
+        // instances. Currently we use state of width 24 and pad with 0s.
+        assert!(
+            PARAMETER_LEN + TWEAK_LEN_FE + RAND_LEN_FE + MSG_LEN_FE <= 24,
+            "Poseidon of width 24 is not enough"
+        );
+        assert!(HASH_LEN_FE <= 24, "Poseidon of width 24 is not enough");
+
         // Modulus check
         assert!(
             BigUint::from(FqConfig::MODULUS) < BigUint::from(u64::MAX),
@@ -174,7 +179,7 @@ impl<
         ) * f64::from(MSG_LEN_FE as u32);
         assert!(
             message_fe_bits >= f64::from((8_u32) * (MESSAGE_LENGTH as u32)),
-            "Poseidon Message hash. Parameter mismatch: not enough field elements to encode the message"
+            "Poseidon Message Hash: Parameter mismatch: not enough field elements to encode the message"
         );
 
         // tweak check
@@ -186,7 +191,7 @@ impl<
         ) * f64::from(TWEAK_LEN_FE as u32);
         assert!(
             tweak_fe_bits >= f64::from(32 + 8_u32),
-            "Poseidon Message hash. Parameter mismatch: not enough field elements to encode the epoch tweak"
+            "Poseidon Message Hash: Parameter mismatch: not enough field elements to encode the epoch tweak"
         );
 
         // decoding check
@@ -198,8 +203,8 @@ impl<
         ) * f64::from(HASH_LEN_FE as u32);
         let chunk_size = f64::ceil(f64::log2(Self::BASE as f64)) as usize;
         assert!(
-            hash_bits <= f64::from((NUM_CHUNKS * chunk_size) as u32),
-            "Poseidon Message hash. Parameter mismatch: not enough bits to decode the hash"
+            hash_bits <= f64::from((DIMENSION * chunk_size) as u32),
+            "Poseidon Message Hash: Parameter mismatch: not enough bits to decode the hash"
         );
     }
 }
@@ -516,7 +521,7 @@ mod tests {
         const HASH_LEN_FE: usize = 4;
         const CHUNK_SIZE: usize = 4;
         const BASE: usize = 1 << CHUNK_SIZE; // 16
-        const NUM_CHUNKS: usize = 32;
+        const DIMENSION: usize = 32;
 
         let mut rng = thread_rng();
         let modulus = BigUint::from(FqConfig::MODULUS);
@@ -532,10 +537,18 @@ mod tests {
         }
 
         // Decode to chunks
-        let chunks = decode_to_chunks::<NUM_CHUNKS, BASE, HASH_LEN_FE>(&input_field_elements);
+        let chunks = decode_to_chunks::<DIMENSION, BASE, HASH_LEN_FE>(&input_field_elements);
+
+        // Assert that each chunk is between 0 and BASE - 1
+        let base = BigUint::from(BASE);
+        for (_, &chunk) in chunks.iter().enumerate() {
+            assert!(
+                BigUint::from(chunk) < base,
+                "One of the chunks was too large."
+            );
+        }
 
         // Reconstruct bigint from chunks using little-endian base-(BASE)
-        let base = BigUint::from(BASE);
         let mut reconstructed_bigint = BigUint::zero();
         for (i, &chunk) in chunks.iter().enumerate() {
             reconstructed_bigint += BigUint::from(chunk) * base.pow(i as u32);
