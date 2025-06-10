@@ -68,6 +68,9 @@ fn map_into_hypercube_part<
 /// into an element of the top layers. This must be a multiple of 8.
 ///
 /// BASE must be at most 2^16
+///
+/// Caller must ensure that prepare_layer_sizes(BASE) is called before
+/// any use of TopLevelPoseidonMessageHash.
 pub struct TopLevelPoseidonMessageHash<
     const POS_OUTPUT_LEN_FE: usize,
     const DIMENSION: usize,
