@@ -10,7 +10,6 @@ use zkhash::poseidon2::poseidon2_instance_babybear::POSEIDON2_BABYBEAR_24_PARAMS
 use super::MessageHash;
 use crate::hypercube::hypercube_find_layer;
 use crate::hypercube::hypercube_part_size;
-use crate::hypercube::load_layer_sizes;
 use crate::hypercube::map_to_vertex;
 use crate::symmetric::message_hash::poseidon::encode_epoch;
 use crate::symmetric::message_hash::poseidon::encode_message;
@@ -218,7 +217,7 @@ mod tests {
     use zkhash::ark_ff::One;
     use zkhash::ark_ff::UniformRand;
 
-    use crate::hypercube::precompute_global;
+    use crate::hypercube::load_layer_sizes;
     use crate::symmetric::message_hash::{
         top_level_poseidon::TopLevelPoseidonMessageHash, MessageHash,
     };

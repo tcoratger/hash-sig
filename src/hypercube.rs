@@ -98,7 +98,6 @@ pub fn load_layer_sizes(w: usize) {
                 let line = line.expect("correct line");
                 let parts: Vec<&str> = line.split(',').collect();
                 let v_value = usize::from_str_radix(parts[3].trim(), 10).unwrap();
-                //parts[3]                    .trim()                    .parse::<usize>()                    .unwrap();
                 let max_distance = (w - 1) * v_value;
                 let d_value = usize::from_str_radix(parts[5].trim(), 10).unwrap();
                 if d_value > max_distance {

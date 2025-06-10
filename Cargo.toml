@@ -19,6 +19,7 @@ criterion = "0.5"
 slow-tests = []
 with-gen-benches-sha = []
 with-gen-benches-poseidon = []
+with-gen-benches-poseidon-top-level = []
 
 [[bench]]
 name = "benchmark"
