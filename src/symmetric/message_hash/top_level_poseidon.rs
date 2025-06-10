@@ -217,7 +217,7 @@ mod tests {
     use zkhash::ark_ff::One;
     use zkhash::ark_ff::UniformRand;
 
-    use crate::hypercube::load_layer_sizes;
+    use crate::hypercube::prepare_layer_sizes;
     use crate::symmetric::message_hash::{
         top_level_poseidon::TopLevelPoseidonMessageHash, MessageHash,
     };
@@ -229,7 +229,7 @@ mod tests {
         const FINAL_LAYER: usize = 175;
 
         // pre-computation
-        load_layer_sizes(BASE);
+        prepare_layer_sizes(BASE);
 
         type MH = TopLevelPoseidonMessageHash<48, DIMENSION, BASE, FINAL_LAYER, 3, 9, 4, 4>;
 

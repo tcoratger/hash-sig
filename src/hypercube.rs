@@ -82,7 +82,7 @@ fn precompute_local(v: usize, w: usize) {
 }
 
 /// load or compute layer sizes up to some v_max=100
-pub fn load_layer_sizes(w: usize) {
+pub fn prepare_layer_sizes(w: usize) {
     let v_max = 100;
     let mut all_layers = vec![vec![]; v_max + 1];
     for v in 1..=v_max {
@@ -117,15 +117,15 @@ pub fn load_layer_sizes(w: usize) {
     *ALL_LAYER_SIZES.lock().unwrap() = all_layers;
 }
 
-/// Precompute all layer sizes for hypercubes [0, w-1]^v for v in 1..=v_max.
-pub fn precompute_global(v_max: usize, w: usize) {
-    let mut all_layers = vec![vec![]];
-    for v in 1..=v_max {
-        precompute_local(v, w);
-        all_layers.push(LAYER_SIZES.lock().unwrap().clone());
-    }
-    *ALL_LAYER_SIZES.lock().unwrap() = all_layers;
-}
+// /// Precompute all layer sizes for hypercubes [0, w-1]^v for v in 1..=v_max.
+// fn precompute_global(v_max: usize, w: usize) {
+//     let mut all_layers = vec![vec![]];
+//     for v in 1..=v_max {
+//         precompute_local(v, w);
+//         all_layers.push(LAYER_SIZES.lock().unwrap().clone());
+//     }
+//     *ALL_LAYER_SIZES.lock().unwrap() = all_layers;
+// }
 
 /// Map an integer x in [0, layer_size(v, d)) to a vertex in layer d
 /// of the hypercube [0, w-1]^v.
@@ -229,7 +229,7 @@ mod tests {
     fn test_layer_sizes() {
         for w in 2..25 {
             let lhs = {
-                load_layer_sizes(w);
+                prepare_layer_sizes(w);
                 ALL_LAYER_SIZES.lock().unwrap().clone()
             };
             let rhs = {
@@ -246,7 +246,7 @@ mod tests {
         let w = 4;
         let v = 8;
         let d = 20;
-        load_layer_sizes(w);
+        prepare_layer_sizes(w);
         let max_x = ALL_LAYER_SIZES.lock().unwrap()[v][d]
             .clone()
             .to_usize()
@@ -268,7 +268,7 @@ mod tests {
         let w = 12;
         let v = 40;
         let d = 174;
-        load_layer_sizes(w);
+        prepare_layer_sizes(w);
         let dec_string = b"21790506781852242898091207809690042074412";
         let x = BigUint::parse_bytes(dec_string, 10).expect("Invalid input");
         let a = map_to_vertex(w, v, d, x.clone());
