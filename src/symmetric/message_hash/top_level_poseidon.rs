@@ -18,9 +18,6 @@ use crate::MESSAGE_LENGTH;
 
 type F = FpBabyBear;
 
-// should have a function prepare: it should call precompute_global for hypercube utils, and it should
-// precompute the domain size.
-
 /// Function to make a list of field elements to a vertex in layers 0, ..., FINAL_LAYER
 /// of the hypercube {0,...,BASE-1}^DIMENSION.
 ///
@@ -40,14 +37,16 @@ fn map_into_hypercube_part<
         acc = &acc * &p + BigUint::from(fe.into_bigint());
     }
 
-    // take this big int modulo the total output domain size
+    // Take this big integer modulo the total output domain size
     let dom_size = hypercube_part_size(BASE, DIMENSION, FINAL_LAYER);
     acc = &acc % dom_size;
 
-    // Figure out in which layer we are
+    // Figure out in which layer we are, and index of the vertex in the layer
     let (layer, offset) = hypercube_find_layer(BASE, DIMENSION, acc);
 
-    // now map this number to a vertex in the output domain
+    // Map this to a vertex in layers 0, ..., FINAL_LAYER
+    // Note: if we move this part to the encoding instead of message hash
+    // then we do not need to call map_to_vertex if the layer is not right
     map_to_vertex(BASE, DIMENSION, layer, offset)
 }
 
@@ -67,10 +66,7 @@ fn map_into_hypercube_part<
 /// before we then take these field elements and decode them
 /// into an element of the top layers. This must be a multiple of 8.
 ///
-/// BASE must be at most 2^16
-///
-/// Caller must ensure that prepare_layer_sizes(BASE) is called before
-/// any use of TopLevelPoseidonMessageHash.
+/// BASE must be at most 2^8
 pub struct TopLevelPoseidonMessageHash<
     const POS_OUTPUT_LEN_FE: usize,
     const DIMENSION: usize,
@@ -158,6 +154,7 @@ impl<
     #[cfg(test)]
     fn internal_consistency_check() {
         // POS_OUTPUT_LEN_FE must be sufficiently large, compared to layer size
+        // TODO
 
         // POS_OUTPUT_LEN_FE must be a multiple of 8
         assert!(

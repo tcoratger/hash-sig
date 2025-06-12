@@ -36,12 +36,13 @@ impl Deref for AllLayerSizes<'_> {
     }
 }
 
-/// Compute layer sizes up to some `v_max = MAX_DIMENSION` by Lemma 8.
+/// Compute layer sizes for hypercubes [0, w-1]^v for all
+/// v up to `v_max = MAX_DIMENSION` by Lemma 8 in eprint 2025/889
 fn prepare_layer_sizes(w: usize) -> Vec<Vec<BigUint>> {
     let v_max = MAX_DIMENSION;
     let mut all_layers = vec![vec![]; v_max + 1];
 
-    // Dimension 1 has layer size 1 for every distance.
+    // Dimension 1 has layer size 1 for every distance
     all_layers[1] = vec![BigUint::one(); w];
 
     for v in 2..=v_max {
@@ -62,8 +63,6 @@ fn prepare_layer_sizes(w: usize) -> Vec<Vec<BigUint>> {
 
 /// Map an integer x in [0, layer_size(v, d)) to a vertex in layer d
 /// of the hypercube [0, w-1]^v.
-///
-/// Caller must make sure that precompute_global has been called before.
 ///
 /// The vector that is returned has length v
 pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
@@ -97,8 +96,7 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
     out
 }
 
-/// Assuming the caller has called precompute_global(v_max, w) before and 1 <= v <= v_max, this function
-/// returns the total size of layers 0 to d (inclusive) in hypercube [0, w-1]^v.
+/// Returns the total size of layers 0 to d (inclusive) in hypercube [0, w-1]^v.
 ///
 /// Caller needs to make sure that d is a valid layer: 0 <= d <= v * (w-1)
 pub fn hypercube_part_size(w: usize, v: usize, d: usize) -> BigUint {
@@ -110,8 +108,7 @@ pub fn hypercube_part_size(w: usize, v: usize, d: usize) -> BigUint {
     sum
 }
 
-/// Assuming the caller has called precompute_global(v_max, w) before and 1 <= v <= v_max, this function
-/// finds maximal d such that the total size L_<d of layers 0 to d-1 (inclusive) in hypercube [0, w-1]^v
+/// Finds maximal d such that the total size L_<d of layers 0 to d-1 (inclusive) in hypercube [0, w-1]^v
 /// is not bigger than x
 ///
 /// Returns d and x-L_<d
@@ -130,8 +127,6 @@ pub fn hypercube_find_layer(w: usize, v: usize, x: BigUint) -> (usize, BigUint) 
 }
 
 /// Map a vertex `a` in layer `d` to its index x in [0, layer_size(v, d)).
-///
-/// Caller must make sure that precompute_global has been called before.
 pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
     assert_eq!(a.len(), v);
     let mut x_curr = BigUint::from(0u32);
