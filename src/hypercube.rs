@@ -24,6 +24,7 @@ struct LayerInfo {
 }
 
 /// A vector of `LayerInfo`, indexed by the dimension `v`.
+/// This is meant to be used for a fixed base `w`.
 type AllLayerInfoForBase = Vec<LayerInfo>;
 
 /// Global cache for layer info (sizes and prefix sums) for each base `w`.
