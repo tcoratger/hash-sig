@@ -117,7 +117,9 @@ fn prepare_layer_info(w: usize) -> AllLayerInfoForBase {
 /// Map an integer x in [0, layer_size(v, d)) to a vertex in layer d
 /// of the hypercube [0, w-1]^v.
 ///
-/// The vector that is returned has length v
+/// The vector that is returned has length v.
+///
+/// **WARNING**: Caller needs to make sure that d is a valid layer: 0 <= d <= v * (w-1)
 pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
     let mut x_curr = x;
     let mut out = Vec::with_capacity(v);
