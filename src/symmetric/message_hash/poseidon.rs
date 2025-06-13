@@ -362,7 +362,7 @@ mod tests {
         for _ in 0..10_000 {
             let epoch: u32 = rng.gen();
             let encoding = encode_epoch::<4>(epoch);
-            if let Some(prev_epoch) = map.insert(encoding.clone(), epoch) {
+            if let Some(prev_epoch) = map.insert(encoding, epoch) {
                 assert_eq!(
                     prev_epoch, epoch,
                     "Collision detected for epochs {} and {} with output {:?}",
@@ -543,7 +543,7 @@ mod tests {
 
         // Assert that each chunk is between 0 and BASE - 1
         let base = BigUint::from(BASE);
-        for (_, &chunk) in chunks.iter().enumerate() {
+        for &chunk in chunks.iter() {
             assert!(
                 BigUint::from(chunk) < base,
                 "One of the chunks was too large."

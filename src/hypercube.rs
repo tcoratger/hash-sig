@@ -3,7 +3,6 @@ use dashmap::DashMap;
 use num_bigint::BigUint;
 use num_traits::One;
 use num_traits::ToPrimitive;
-use num_traits::Zero;
 use once_cell::sync::Lazy;
 use std::cmp::{max, min};
 use std::ops::Deref;
@@ -19,11 +18,9 @@ struct AllLayerSizes<'a>(Ref<'a, usize, Vec<Vec<BigUint>>>);
 
 impl AllLayerSizes<'_> {
     fn new(w: usize) -> Self {
-        if !ALL_LAYER_SIZES_OF_BASE.contains_key(&w) {
-            ALL_LAYER_SIZES_OF_BASE
-                .entry(w)
-                .or_insert_with(|| prepare_layer_sizes(w));
-        }
+        ALL_LAYER_SIZES_OF_BASE
+            .entry(w)
+            .or_insert_with(|| prepare_layer_sizes(w));
         Self(ALL_LAYER_SIZES_OF_BASE.get(&w).unwrap())
     }
 }
@@ -100,12 +97,7 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
 ///
 /// Caller needs to make sure that d is a valid layer: 0 <= d <= v * (w-1)
 pub fn hypercube_part_size(w: usize, v: usize, d: usize) -> BigUint {
-    let all_layers = AllLayerSizes::new(w);
-    let mut sum = BigUint::zero();
-    for l in 0..=d {
-        sum += &all_layers[v][l];
-    }
-    sum
+    AllLayerSizes::new(w)[v][..=d].iter().sum()
 }
 
 /// Finds maximal d such that the total size L_<d of layers 0 to d-1 (inclusive) in hypercube [0, w-1]^v
@@ -123,7 +115,7 @@ pub fn hypercube_find_layer(w: usize, v: usize, x: BigUint) -> (usize, BigUint) 
         val -= &all_layers[v][d];
         d += 1;
     }
-    return (d, val);
+    (d, val)
 }
 
 /// Map a vertex `a` in layer `d` to its index x in [0, layer_size(v, d)).
@@ -150,7 +142,9 @@ pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
 mod tests {
     use super::*;
     use num_bigint::{BigInt, BigUint};
+    use num_traits::FromPrimitive;
     use num_traits::ToPrimitive;
+    use num_traits::Zero;
     use std::sync::Mutex;
 
     // Reference implementation of computing all layer sizes by binomial coefficients.
@@ -259,5 +253,91 @@ mod tests {
         let b = map_to_vertex(w, v, d, y.clone());
         assert_eq!(x, y);
         assert_eq!(a, b);
+    }
+
+    #[test]
+    fn test_hypercube_part_size() {
+        // Case 1: w = 2, v = 1
+        //
+        // All vectors are in [0,1]^1 = { [0], [1] }
+        // Sum of coordinates:
+        //   [1] has sum 1 ⇒ d = 0   (since d = (w-1)*v - sum)
+        //   [0] has sum 0 ⇒ d = 1
+        //
+        // So:
+        //   layer 0 (d = 0): [1] ⇒ size 1
+        //   layer 1 (d = 1): [0] ⇒ size 1
+        //
+        // Total size up to d = 0: only [1]
+        assert_eq!(hypercube_part_size(2, 1, 0), BigUint::from_u32(1).unwrap());
+
+        // Total size up to d = 1: [1], [0]
+        assert_eq!(hypercube_part_size(2, 1, 1), BigUint::from_u32(2).unwrap());
+
+        // Case 2: w = 3, v = 2
+        //
+        // Vectors are in [0,2]^2, i.e. 9 total:
+        //   [0,0]                  sum = 0 ⇒ d = 4
+        //   [0,1], [1,0]           sum = 1 ⇒ d = 3
+        //   [0,2], [1,1], [2,0]    sum = 2 ⇒ d = 2
+        //   [1,2], [2,1]           sum = 3 ⇒ d = 1
+        //   [2,2]                  sum = 4 ⇒ d = 0
+        //
+        // So:
+        //   d = 0: 1 vec
+        //   d = 1: 2 vecs
+        //   d = 2: 3 vecs
+        //   d = 3: 2 vecs
+        //   d = 4: 1 vec
+        //
+        // Cumulative sizes:
+        //   d = 0: 1         
+        //   d = 1: 1+2 = 3   
+        //   d = 2: 3+3 = 6   
+        //   d = 3: 6+2 = 8   
+        //   d = 4: 8+1 = 9   
+        assert_eq!(hypercube_part_size(3, 2, 0), BigUint::from_u32(1).unwrap());
+        assert_eq!(hypercube_part_size(3, 2, 1), BigUint::from_u32(3).unwrap());
+        assert_eq!(hypercube_part_size(3, 2, 2), BigUint::from_u32(6).unwrap());
+        assert_eq!(hypercube_part_size(3, 2, 3), BigUint::from_u32(8).unwrap());
+        assert_eq!(hypercube_part_size(3, 2, 4), BigUint::from_u32(9).unwrap());
+
+        // Case 3: w = 4, v = 1
+        //
+        // [0], [1], [2], [3] → sums = 0..3, so d = 3..0
+        //   d=0: [3]         → size = 1
+        //   d=1: [2]         → size = 1
+        //   d=2: [1]         → size = 1
+        //   d=3: [0]         → size = 1
+        //
+        // Cumulative:
+        //   d=0: 1
+        //   d=1: 2
+        //   d=2: 3
+        //   d=3: 4
+        assert_eq!(hypercube_part_size(4, 1, 0), BigUint::from_u32(1).unwrap());
+        assert_eq!(hypercube_part_size(4, 1, 1), BigUint::from_u32(2).unwrap());
+        assert_eq!(hypercube_part_size(4, 1, 2), BigUint::from_u32(3).unwrap());
+        assert_eq!(hypercube_part_size(4, 1, 3), BigUint::from_u32(4).unwrap());
+
+        // Case 4: w = 2, v = 3
+        //
+        // Vectors in [0,1]^3 = 8 total
+        // Layer d = 3 - sum of entries
+        //
+        //   d = 0: [1,1,1]                          → 1 vector
+        //   d = 1: [0,1,1], [1,0,1], [1,1,0]        → 3 vectors
+        //   d = 2: [0,0,1], [0,1,0], [1,0,0]        → 3 vectors
+        //   d = 3: [0,0,0]                          → 1 vector
+        //
+        // Cumulative:
+        //   d = 0: 1
+        //   d = 1: 1 + 3 = 4
+        //   d = 2: 4 + 3 = 7
+        //   d = 3: 7 + 1 = 8
+        assert_eq!(hypercube_part_size(2, 3, 0), BigUint::from_u32(1).unwrap());
+        assert_eq!(hypercube_part_size(2, 3, 1), BigUint::from_u32(4).unwrap());
+        assert_eq!(hypercube_part_size(2, 3, 2), BigUint::from_u32(7).unwrap());
+        assert_eq!(hypercube_part_size(2, 3, 3), BigUint::from_u32(8).unwrap());
     }
 }

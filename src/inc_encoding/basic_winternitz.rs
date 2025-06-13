@@ -71,7 +71,7 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
         Ok(chunks_message
             .iter()
             .chain(chunks_checksum.iter().take(NUM_CHUNKS_CHECKSUM))
-            .map(|&x| x as u8)
+            .copied()
             .collect())
     }
 
