@@ -291,11 +291,11 @@ mod tests {
         //   d = 4: 1 vec
         //
         // Cumulative sizes:
-        //   d = 0: 1         → [2,2]
-        //   d = 1: 1+2 = 3   → [1,2], [2,1]
-        //   d = 2: 3+3 = 6   → [0,2], [1,1], [2,0]
-        //   d = 3: 6+2 = 8   → [0,1], [1,0]
-        //   d = 4: 8+1 = 9   → [0,0]
+        //   d = 0: 1         
+        //   d = 1: 1+2 = 3   
+        //   d = 2: 3+3 = 6   
+        //   d = 3: 6+2 = 8   
+        //   d = 4: 8+1 = 9   
         assert_eq!(hypercube_part_size(3, 2, 0), BigUint::from_u32(1).unwrap());
         assert_eq!(hypercube_part_size(3, 2, 1), BigUint::from_u32(3).unwrap());
         assert_eq!(hypercube_part_size(3, 2, 2), BigUint::from_u32(6).unwrap());
