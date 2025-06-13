@@ -155,57 +155,37 @@ where
 
         // now, we need to encode our message using the incomparable encoding.
         // we retry until we get a valid codeword, or until we give up.
-        let max_tries = IE::MAX_TRIES;
-        let mut attempts = 0;
-        let mut x = None;
-        let mut rho = None;
-        while attempts < max_tries {
-            // sample a randomness and try to encode the message
-            let curr_rho = IE::rand(rng);
-            let curr_x = IE::encode(&sk.parameter.into(), message, &curr_rho, epoch);
+        //
+        // `find_map` is a compact way to search for the first success.
+        let (rho, x) = (0..IE::MAX_TRIES)
+            .find_map(|_| {
+                // sample a randomness and try to encode the message
+                let rho = IE::rand(rng);
+                IE::encode(&sk.parameter.into(), message, &rho, epoch)
+                    .ok()
+                    .map(|x| (rho, x))
+            })
+            .ok_or(SigningError::UnluckyFailure)?;
 
-            // check if we have found a valid codeword, and if so, stop searching
-            if curr_x.is_ok() {
-                rho = Some(curr_rho);
-                x = curr_x.ok().map(Some).unwrap_or(None);
-                break;
-            }
-
-            attempts += 1;
-        }
-
-        // if we have not found a valid codeword, return an error
-        if x.is_none() {
-            return Err(SigningError::UnluckyFailure);
-        }
-
-        // otherwise, unwrap x and rho
-        let x = x.unwrap();
-        let rho = rho.unwrap();
-
-        // we will include rho in the signature, and
-        // we use x to determine how far the signer walks in the chains
+        // The number of chains must match the number of chunks in the codeword.
         let num_chains = IE::DIMENSION;
-        assert!(
-            x.len() == num_chains,
+        assert_eq!(
+            x.len(),
+            num_chains,
             "Encoding is broken: returned too many or too few chunks."
         );
-        let mut hashes = Vec::with_capacity(num_chains);
-        for (chain_index, xi) in x.iter().enumerate() {
-            // get back the start of the chain from the PRF
-            let start = PRF::apply(&sk.prf_key, epoch, chain_index as u64).into();
-            // now walk the chain for a number of steps determined by the current chunk of x
-            let steps = *xi;
-            let hash_in_chain = chain::<TH>(
-                &sk.parameter,
-                epoch,
-                chain_index as u8,
-                0,
-                steps as usize,
-                &start,
-            );
-            hashes.push(hash_in_chain);
-        }
+
+        // In parallel, compute the hash values for each chain based on the codeword `x`.
+        let hashes = (0..num_chains)
+            .into_par_iter()
+            .map(|chain_index| {
+                // get back the start of the chain from the PRF
+                let start = PRF::apply(&sk.prf_key, epoch, chain_index as u64).into();
+                // now walk the chain for a number of steps determined by the current chunk of x
+                let steps = x[chain_index] as usize;
+                chain::<TH>(&sk.parameter, epoch, chain_index as u8, 0, steps, &start)
+            })
+            .collect();
 
         // assemble the signature: Merkle path, randomness, chain elements
         Ok(GeneralizedXMSSSignature { path, rho, hashes })
