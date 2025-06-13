@@ -6,9 +6,7 @@ use crate::{
     symmetric::{
         prf::Pseudorandom,
         tweak_hash::{chain, TweakableHash},
-        tweak_hash_tree::{
-            build_tree, hash_tree_path, hash_tree_root, hash_tree_verify, HashTree, HashTreeOpening,
-        },
+        tweak_hash_tree::{hash_tree_verify, HashTree, HashTreeOpening},
     },
     MESSAGE_LENGTH,
 };
@@ -128,8 +126,8 @@ where
             .collect::<Vec<_>>();
 
         // now build a Merkle tree on top of the hashes of chain ends / public keys
-        let tree = build_tree(&parameter, chain_ends_hashes);
-        let root = hash_tree_root(&tree);
+        let tree = HashTree::new(&parameter, chain_ends_hashes);
+        let root = tree.root();
 
         // assemble public key and secret key
         let pk = GeneralizedXMSSPublicKey { root, parameter };
@@ -151,7 +149,7 @@ where
         // first component of the signature is the Merkle path that
         // opens the one-time pk for that epoch, where the one-time pk
         // will be recomputed by the verifier from the signature.
-        let path = hash_tree_path(&sk.tree, epoch);
+        let path = sk.tree.path(epoch);
 
         // now, we need to encode our message using the incomparable encoding.
         // we retry until we get a valid codeword, or until we give up.
