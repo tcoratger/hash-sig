@@ -167,11 +167,11 @@ where
             })
             .ok_or(SigningError::UnluckyFailure)?;
 
-        // The number of chains must match the number of chunks in the codeword.
+        // we will include rho in the signature, and
+        // we use x to determine how far the signer walks in the chains
         let num_chains = IE::DIMENSION;
-        assert_eq!(
-            x.len(),
-            num_chains,
+        assert!(
+            x.len() == num_chains,
             "Encoding is broken: returned too many or too few chunks."
         );
 
