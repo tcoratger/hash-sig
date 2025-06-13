@@ -3,59 +3,115 @@ use dashmap::DashMap;
 use num_bigint::BigUint;
 use num_traits::One;
 use num_traits::ToPrimitive;
+use num_traits::Zero;
 use once_cell::sync::Lazy;
 use std::cmp::{max, min};
-use std::ops::Deref;
 
 /// Max dimension precomputed for layer sizes.
 const MAX_DIMENSION: usize = 100;
 
-/// Global caches for layer sizes of base, each has up to dimension `MAX_DIMENSION`.
-static ALL_LAYER_SIZES_OF_BASE: Lazy<DashMap<usize, Vec<Vec<BigUint>>>> = Lazy::new(DashMap::new);
+/// Holds the sizes of each layer and their cumulative sums (prefix sums).
+///
+/// This structure is precomputed and cached to accelerate lookups.
+#[derive(Clone, Default)]
+struct LayerInfo {
+    /// The number of vertices in each layer `d`.
+    sizes: Vec<BigUint>,
+    /// The cumulative number of vertices up to and including layer `d`.
+    ///
+    /// `prefix_sums[d] = sizes[0] + ... + sizes[d]`.
+    prefix_sums: Vec<BigUint>,
+}
 
-/// All layer sizes of base `w` with dimension up to `MAX_DIMENSION`.
-struct AllLayerSizes<'a>(Ref<'a, usize, Vec<Vec<BigUint>>>);
+/// A vector of `LayerInfo`, indexed by the dimension `v`.
+type AllLayerInfoForBase = Vec<LayerInfo>;
 
-impl AllLayerSizes<'_> {
+/// Global cache for layer info (sizes and prefix sums) for each base `w`.
+static ALL_LAYER_INFO_OF_BASE: Lazy<DashMap<usize, AllLayerInfoForBase>> = Lazy::new(DashMap::new);
+
+/// Provides thread-safe, on-demand access to the cached layer data for a given base `w`.
+///
+/// It ensures that the expensive computation to prepare layer info is only run once per `w`.
+struct AllLayerData<'a>(Ref<'a, usize, AllLayerInfoForBase>);
+
+impl AllLayerData<'_> {
     fn new(w: usize) -> Self {
-        ALL_LAYER_SIZES_OF_BASE
+        // Atomically get or compute the layer info for the given base `w`.
+        ALL_LAYER_INFO_OF_BASE
             .entry(w)
-            .or_insert_with(|| prepare_layer_sizes(w));
-        Self(ALL_LAYER_SIZES_OF_BASE.get(&w).unwrap())
+            .or_insert_with(|| prepare_layer_info(w));
+        Self(ALL_LAYER_INFO_OF_BASE.get(&w).unwrap())
+    }
+
+    /// Gets the raw layer sizes for dimension `v`.
+    fn sizes(&self, v: usize) -> &Vec<BigUint> {
+        &self.0[v].sizes
+    }
+
+    /// Gets the precomputed prefix sums for dimension `v`.
+    fn prefix_sums(&self, v: usize) -> &Vec<BigUint> {
+        &self.0[v].prefix_sums
     }
 }
 
-impl Deref for AllLayerSizes<'_> {
-    type Target = Vec<Vec<BigUint>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-/// Compute layer sizes for hypercubes [0, w-1]^v for all
-/// v up to `v_max = MAX_DIMENSION` by Lemma 8 in eprint 2025/889
-fn prepare_layer_sizes(w: usize) -> Vec<Vec<BigUint>> {
+/// Computes layer sizes and prefix sums for hypercubes [0, w-1]^v for all
+/// v up to `MAX_DIMENSION` by Lemma 8 in eprint 2025/889.
+/// This is the main precomputation step.
+fn prepare_layer_info(w: usize) -> AllLayerInfoForBase {
     let v_max = MAX_DIMENSION;
-    let mut all_layers = vec![vec![]; v_max + 1];
+    // Initialize with empty LayerInfo. Index 0 is unused for convenience.
+    let mut all_info = vec![LayerInfo::default(); v_max + 1];
 
-    // Dimension 1 has layer size 1 for every distance
-    all_layers[1] = vec![BigUint::one(); w];
+    // Base case: dimension v = 1
+    let dim1_sizes = vec![BigUint::one(); w];
+    // Compute prefix sums for v=1, which is just [1, 2, 3, ... w].
+    let dim1_prefix_sums = (1..=w).map(BigUint::from).collect();
+    all_info[1] = LayerInfo {
+        sizes: dim1_sizes,
+        prefix_sums: dim1_prefix_sums,
+    };
 
+    // Inductive step: compute for dimensions v = 2 to v_max
     for v in 2..=v_max {
-        let max_distance = (w - 1) * v;
-        // \ell_d^v = \sum_{max(w-d, 1) \le a_1 \le min(w, w+(w-1)(v-1)-d)} \ell_{d-(w-a_1)}^{v-1}
-        all_layers[v] = (0..max_distance + 1)
+        let max_d = (w - 1) * v;
+        let prev_layer_sizes = &all_info[v - 1].sizes;
+
+        // Compute the sizes for the current dimension `v`.
+        let current_sizes: Vec<BigUint> = (0..=max_d)
             .map(|d| {
-                let a_i_range = max(w.saturating_sub(d), 1)..=min(w, w + (w - 1) * (v - 1) - d);
-                all_layers[v - 1][d - (w - a_i_range.start())..=d - (w - a_i_range.end())]
-                    .iter()
-                    .sum()
+                let a_i_start = (w.saturating_sub(d)).max(1);
+                let a_i_end = min(w, w + (w - 1) * (v - 1) - d);
+
+                // If the summation range is invalid, the layer size is zero.
+                if a_i_start > a_i_end {
+                    return BigUint::zero();
+                }
+
+                // Map the range for `a_i` to a range for `d'` in the previous dimension.
+                let d_prime_start = d - (w - a_i_start);
+                let d_prime_end = d - (w - a_i_end);
+
+                // Sum over the relevant slice of the previous dimension's layer sizes.
+                prev_layer_sizes[d_prime_start..=d_prime_end].iter().sum()
             })
             .collect();
+
+        // Compute prefix sums from the newly calculated sizes.
+        let mut current_prefix_sums = Vec::with_capacity(max_d + 1);
+        let mut current_sum = BigUint::zero();
+        for size in &current_sizes {
+            current_sum += size;
+            current_prefix_sums.push(current_sum.clone());
+        }
+
+        // Store both sizes and prefix sums in our final structure.
+        all_info[v] = LayerInfo {
+            sizes: current_sizes,
+            prefix_sums: current_prefix_sums,
+        };
     }
 
-    all_layers
+    all_info
 }
 
 /// Map an integer x in [0, layer_size(v, d)) to a vertex in layer d
@@ -67,15 +123,16 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
     let mut out = Vec::with_capacity(v);
     let mut d_curr = d;
 
-    let all_layers = AllLayerSizes::new(w);
-    assert!(x_curr < all_layers[v][d]);
+    let layer_data = AllLayerData::new(w);
+    assert!(x_curr < layer_data.sizes(v)[d]);
 
     for i in 1..v {
         let mut ji = usize::MAX;
-        for j in max(0, d_curr as isize - (w as isize - 1) * (v - i) as isize) as usize
-            ..=min(w - 1, d_curr)
-        {
-            let count = all_layers[v - i][d_curr - j].clone();
+        let d_curr_isize = d_curr as isize;
+        let range_start = max(0, d_curr_isize - (w as isize - 1) * (v - i) as isize) as usize;
+
+        for j in range_start..=min(w - 1, d_curr) {
+            let count = layer_data.sizes(v - i)[d_curr - j].clone();
             if x_curr >= count {
                 x_curr -= count;
             } else {
@@ -95,9 +152,10 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
 
 /// Returns the total size of layers 0 to d (inclusive) in hypercube [0, w-1]^v.
 ///
-/// Caller needs to make sure that d is a valid layer: 0 <= d <= v * (w-1)
+/// **WARNING**: Caller needs to make sure that d is a valid layer: 0 <= d <= v * (w-1)
 pub fn hypercube_part_size(w: usize, v: usize, d: usize) -> BigUint {
-    AllLayerSizes::new(w)[v][..=d].iter().sum()
+    // With precomputed prefix sums, this is an efficient O(1) lookup.
+    AllLayerData::new(w).prefix_sums(v)[d].clone()
 }
 
 /// Finds maximal d such that the total size L_<d of layers 0 to d-1 (inclusive) in hypercube [0, w-1]^v
@@ -105,32 +163,43 @@ pub fn hypercube_part_size(w: usize, v: usize, d: usize) -> BigUint {
 ///
 /// Returns d and x-L_<d
 ///
-/// Caller needs to make sure that x < w^v
+/// **WARNING**: Caller needs to make sure that x < w^v
 pub fn hypercube_find_layer(w: usize, v: usize, x: BigUint) -> (usize, BigUint) {
-    let all_layers = AllLayerSizes::new(w);
-    let mut d = 0;
-    let mut val = x;
-    while val >= all_layers[v][d] {
-        // Note: this can be replaced with binary search for efficiency
-        val -= &all_layers[v][d];
-        d += 1;
+    let layer_data = AllLayerData::new(w);
+    let prefix_sums = layer_data.prefix_sums(v);
+
+    // `partition_point` efficiently finds the index of the first element `p` for which `p > x`.
+    //
+    // This index is the layer `d` where our value `x` resides.
+    let d = prefix_sums.partition_point(|p| p <= &x);
+
+    if d == 0 {
+        // `x` is in the very first layer (d=0). The remainder is `x` itself,
+        // as the cumulative size of preceding layers is zero.
+        (0, x)
+    } else {
+        // The cumulative size of all layers up to `d-1` is at `prefix_sums[d - 1]`.
+        // The remainder is `x` minus this cumulative size.
+        let remainder = x - &prefix_sums[d - 1];
+        (d, remainder)
     }
-    (d, val)
 }
 
 /// Map a vertex `a` in layer `d` to its index x in [0, layer_size(v, d)).
 pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
     assert_eq!(a.len(), v);
-    let mut x_curr = BigUint::from(0u32);
+    let mut x_curr = BigUint::zero();
     let mut d_curr = w - 1 - a[v - 1] as usize;
 
-    let all_layers = AllLayerSizes::new(w);
+    let layer_data = AllLayerData::new(w);
 
     for i in (0..v - 1).rev() {
         let ji = w - 1 - a[i] as usize;
         d_curr += ji;
-        for j in max(0, d_curr as isize - (w as isize - 1) * (v - i - 1) as isize) as usize..ji {
-            let count = all_layers[v - i - 1][d_curr - j].clone();
+        let d_curr_isize = d_curr as isize;
+        let range_start = max(0, d_curr_isize - (w as isize - 1) * (v - i - 1) as isize) as usize;
+        for j in range_start..ji {
+            let count = layer_data.sizes(v - i - 1)[d_curr - j].clone();
             x_curr += count;
         }
     }
@@ -147,7 +216,7 @@ mod tests {
     use num_traits::Zero;
     use std::sync::Mutex;
 
-    // Reference implementation of computing all layer sizes by binomial coefficients.
+    // Reference implementation for testing purposes
     fn prepare_layer_sizes_by_binom(w: usize) -> Vec<Vec<BigUint>> {
         /// Caches for binomial coefficients.
         static BINOMS: Lazy<Mutex<Vec<Vec<BigUint>>>> = Lazy::new(|| Mutex::new(vec![]));
@@ -170,7 +239,7 @@ mod tests {
         /// Outputs the binomial coefficient binom(n, k) (n choose k)
         fn binom(n: usize, k: usize) -> BigUint {
             if k > n {
-                return BigUint::from(0u32);
+                return BigUint::zero();
             }
             let binoms = BINOMS.lock().unwrap();
             if binoms.len() < n + 1 {
@@ -205,7 +274,7 @@ mod tests {
         let mut all_layers = vec![vec![]; v_max + 1];
         for v in 1..=v_max {
             let max_distance = (w - 1) * v;
-            all_layers[v] = vec![BigUint::from(0_u16); max_distance + 1];
+            all_layers[v] = vec![BigUint::zero(); max_distance + 1];
             for d in 0..=max_distance {
                 all_layers[v][d] = nb(d, w - 1, v);
             }
@@ -216,7 +285,13 @@ mod tests {
     #[test]
     fn test_prepare_layer_sizes() {
         for w in 2..13 {
-            assert_eq!(prepare_layer_sizes_by_binom(w), prepare_layer_sizes(w));
+            let expected_sizes = prepare_layer_sizes_by_binom(w);
+            // Get the actual info from our new implementation.
+            let actual_info = prepare_layer_info(w);
+            // Compare just the `sizes` field against the reference implementation.
+            for v in 1..=MAX_DIMENSION {
+                assert_eq!(expected_sizes[v], actual_info[v].sizes);
+            }
         }
     }
 
@@ -225,7 +300,7 @@ mod tests {
         let w = 4;
         let v = 8;
         let d = 20;
-        let max_x = AllLayerSizes::new(w)[v][d]
+        let max_x = AllLayerData::new(w).sizes(v)[d]
             .clone()
             .to_usize()
             .expect("Conversion failed in test_maps");
@@ -291,11 +366,11 @@ mod tests {
         //   d = 4: 1 vec
         //
         // Cumulative sizes:
-        //   d = 0: 1         
-        //   d = 1: 1+2 = 3   
-        //   d = 2: 3+3 = 6   
-        //   d = 3: 6+2 = 8   
-        //   d = 4: 8+1 = 9   
+        //   d = 0: 1
+        //   d = 1: 1+2 = 3
+        //   d = 2: 3+3 = 6
+        //   d = 3: 6+2 = 8
+        //   d = 4: 8+1 = 9
         assert_eq!(hypercube_part_size(3, 2, 0), BigUint::from_u32(1).unwrap());
         assert_eq!(hypercube_part_size(3, 2, 1), BigUint::from_u32(3).unwrap());
         assert_eq!(hypercube_part_size(3, 2, 2), BigUint::from_u32(6).unwrap());
@@ -339,5 +414,46 @@ mod tests {
         assert_eq!(hypercube_part_size(2, 3, 1), BigUint::from_u32(4).unwrap());
         assert_eq!(hypercube_part_size(2, 3, 2), BigUint::from_u32(7).unwrap());
         assert_eq!(hypercube_part_size(2, 3, 3), BigUint::from_u32(8).unwrap());
+    }
+
+    #[test]
+    fn test_find_layer_boundaries_small_fast() {
+        let w = 3;
+        let v = 2;
+
+        // Case: x = 0 → should be in layer 0
+        let (d0, rem0) = hypercube_find_layer(w, v, BigUint::zero());
+        assert_eq!(d0, 0);
+        assert_eq!(rem0, BigUint::zero());
+
+        // Case: x = 1 → second vector overall, first in layer 1
+        let (d1, rem1) = hypercube_find_layer(w, v, BigUint::from(1u32));
+        assert_eq!(d1, 1);
+        assert_eq!(rem1, BigUint::zero());
+
+        // Case: x = 2 → second in layer 1
+        let (d1b, rem1b) = hypercube_find_layer(w, v, BigUint::from(2u32));
+        assert_eq!(d1b, 1);
+        assert_eq!(rem1b, BigUint::from(1u32));
+
+        // Case: x = 3 → first in layer 2
+        let (d2, rem2) = hypercube_find_layer(w, v, BigUint::from(3u32));
+        assert_eq!(d2, 2);
+        assert_eq!(rem2, BigUint::zero());
+
+        // Case: x = 5 → third (last) in layer 2
+        let (d2b, rem2b) = hypercube_find_layer(w, v, BigUint::from(5u32));
+        assert_eq!(d2b, 2);
+        assert_eq!(rem2b, BigUint::from(2u32));
+
+        // Case: x = 6 → first in layer 3
+        let (d3, rem3) = hypercube_find_layer(w, v, BigUint::from(6u32));
+        assert_eq!(d3, 3);
+        assert_eq!(rem3, BigUint::zero());
+
+        // Case: x = 8 → final vector (layer 4 has 1 element)
+        let (d4, rem4) = hypercube_find_layer(w, v, BigUint::from(8u32));
+        assert_eq!(d4, 4);
+        assert_eq!(rem4, BigUint::zero());
     }
 }
