@@ -189,6 +189,8 @@ pub fn hypercube_find_layer(w: usize, v: usize, x: BigUint) -> (usize, BigUint) 
 }
 
 /// Map a vertex `a` in layer `d` to its index x in [0, layer_size(v, d)).
+///
+/// **WARNING**: Caller needs to make sure that d is a valid layer: 0 <= d <= v * (w-1)
 pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
     assert_eq!(a.len(), v);
     let mut x_curr = BigUint::zero();
