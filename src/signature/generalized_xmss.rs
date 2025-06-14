@@ -188,22 +188,18 @@ where
             x.len() == num_chains,
             "Encoding is broken: returned too many or too few chunks."
         );
-        let mut hashes = Vec::with_capacity(num_chains);
-        for (chain_index, xi) in x.iter().enumerate() {
-            // get back the start of the chain from the PRF
-            let start = PRF::apply(&sk.prf_key, epoch, chain_index as u64).into();
-            // now walk the chain for a number of steps determined by the current chunk of x
-            let steps = *xi;
-            let hash_in_chain = chain::<TH>(
-                &sk.parameter,
-                epoch,
-                chain_index as u8,
-                0,
-                steps as usize,
-                &start,
-            );
-            hashes.push(hash_in_chain);
-        }
+
+        // In parallel, compute the hash values for each chain based on the codeword `x`.
+        let hashes = (0..num_chains)
+            .into_par_iter()
+            .map(|chain_index| {
+                // get back the start of the chain from the PRF
+                let start = PRF::apply(&sk.prf_key, epoch, chain_index as u64).into();
+                // now walk the chain for a number of steps determined by the current chunk of x
+                let steps = x[chain_index] as usize;
+                chain::<TH>(&sk.parameter, epoch, chain_index as u8, 0, steps, &start)
+            })
+            .collect();
 
         // assemble the signature: Merkle path, randomness, chain elements
         Ok(GeneralizedXMSSSignature { path, rho, hashes })
