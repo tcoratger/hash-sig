@@ -9,6 +9,8 @@ sha3 = "0.10.8"
 zkhash = { git = "https://github.com/HorizenLabs/poseidon2", branch = "main", package = "zkhash" }
 num-bigint = "0.4.6"
 rayon = "1.10.0"
+num-traits = "0.2.19"
+dashmap = "6.1.0"
 
 [dev-dependencies]
 criterion = "0.5"
@@ -17,6 +19,7 @@ criterion = "0.5"
 slow-tests = []
 with-gen-benches-sha = []
 with-gen-benches-poseidon = []
+with-gen-benches-poseidon-top-level = []
 
 [[bench]]
 name = "benchmark"
