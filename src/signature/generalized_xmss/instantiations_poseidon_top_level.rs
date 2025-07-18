@@ -40,11 +40,11 @@ pub mod lifetime_2_to_the_18 {
         RAND_LEN_FE,
     >;
     type TH = PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, DIMENSION>;
-    type Prf = ShakePRFtoF<HASH_LEN_FE>;
+    type PRF = ShakePRFtoF<HASH_LEN_FE>;
     type IE = TargetSumEncoding<MH, TARGET_SUM>;
 
     pub type SIGTopLevelTargetSumLifetime18Dim40Base12 =
-        GeneralizedXMSSSignatureScheme<Prf, IE, TH, LOG_LIFETIME>;
+        GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
     #[cfg(test)]
     mod test {
@@ -120,11 +120,11 @@ pub mod lifetime_2_to_the_26 {
         RAND_LEN_FE,
     >;
     type TH = PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, DIMENSION>;
-    type Prf = ShakePRFtoF<HASH_LEN_FE>;
+    type PRF = ShakePRFtoF<HASH_LEN_FE>;
     type IE = TargetSumEncoding<MH, TARGET_SUM>;
 
     pub type SIGTopLevelTargetSumLifetime26Dim64Base8 =
-        GeneralizedXMSSSignatureScheme<Prf, IE, TH, LOG_LIFETIME>;
+        GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
     #[cfg(test)]
     mod test {

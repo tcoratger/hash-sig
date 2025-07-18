@@ -26,6 +26,7 @@ suboptimal_flops = "allow"
 cast_sign_loss = "allow"
 cast_lossless = "allow"
 uninlined_format_args = "allow"
+upper_case_acronyms = "allow"
 
 [dependencies]
 rand = "0.8.5"
