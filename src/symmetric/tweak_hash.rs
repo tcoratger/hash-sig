@@ -80,6 +80,7 @@ mod tests {
     use sha::ShaTweak128192;
 
     use super::*;
+    use proptest::prelude::*;
     use rand::thread_rng;
 
     type TestTH = ShaTweak128192;
@@ -153,6 +154,54 @@ mod tests {
 
             // should be the same
             assert_eq!(end_direct, end_indirect);
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn proptest_chain_associative(
+            // Random epoch for domain separation (small range to keep tests fast)
+            epoch in 0u32..100,
+
+            // Random chain index to simulate different chains (small range to keep tests fast)
+            chain_index in 0u8..10,
+
+            // Total number of steps to walk along the chain (bounded to keep tests fast)
+            total_steps in 0usize..16,
+        ) {
+            // Random number generator for generating parameters and start point
+            let mut rng = thread_rng();
+
+            // Generate a random public parameter for the tweakable hash function
+            let parameter = TestTH::rand_parameter(&mut rng);
+
+            // Generate a random starting domain element (initial hash state)
+            let start = TestTH::rand_domain(&mut rng);
+
+            // Compute the result of walking the entire chain in one go
+            let end_direct = chain::<TestTH>(&parameter, epoch, chain_index, 0, total_steps, &start);
+
+            // For every way of splitting the walk into two segments...
+            for split in 0..=total_steps {
+                let steps_a = split;                  // First segment length
+                let steps_b = total_steps - split;    // Second segment length
+
+                // First walk: from start, walk `steps_a` steps
+                let intermediate = chain::<TestTH>(&parameter, epoch, chain_index, 0, steps_a, &start);
+
+                // Second walk: continue from intermediate point for `steps_b` steps
+                let end_indirect = chain::<TestTH>(
+                    &parameter,
+                    epoch,
+                    chain_index,
+                    steps_a as u8,   // Start position for second segment
+                    steps_b,
+                    &intermediate,
+                );
+
+                // Check that walking in one go or in two segments gives the same result
+                prop_assert_eq!(end_direct, end_indirect);
+            }
         }
     }
 }
