@@ -14,7 +14,7 @@ use hashsig::{
 
 /// A template for benchmarking signature schemes (key gen, signing, verification)
 pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, description: &str) {
-    let mut group = c.benchmark_group(format!("Poseidon - Scheme: {}", description));
+    let mut group = c.benchmark_group(format!("Poseidon - Scheme: {description}"));
 
     // key gen takes long, so don't do that many repetitions
     group.sampling_mode(SamplingMode::Flat);
@@ -26,7 +26,7 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
     // commented out for now. You can enable it here.
 
     #[cfg(feature = "with-gen-benches-poseidon-top-level")]
-    group.bench_function(format!("- gen"), |b| {
+    group.bench_function("- gen", |b| {
         b.iter(|| {
             // Benchmark key generation
             let _ = S::gen(black_box(&mut rng), 0, S::LIFETIME as usize);
@@ -37,7 +37,7 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
 
     let (pk, sk) = S::gen(&mut rng, 0, S::LIFETIME as usize);
 
-    group.bench_function(format!("- sign"), |b| {
+    group.bench_function("- sign", |b| {
         b.iter(|| {
             // Sample random test message
             let mut message = [0u8; MESSAGE_LENGTH];
@@ -69,7 +69,7 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
         .collect();
 
     // Verification benchmark
-    group.bench_function(format!("- verify"), |b| {
+    group.bench_function("- verify", |b| {
         b.iter(|| {
             // Randomly pick a precomputed signature to verify
             let (epoch, message, signature) =

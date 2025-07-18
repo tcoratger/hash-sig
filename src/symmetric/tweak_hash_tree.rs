@@ -58,7 +58,7 @@ fn get_padded_layer<R: Rng, TH: TweakableHash>(
     nodes_with_padding.extend(nodes);
 
     // add padding if end_index is not odd
-    if end_index % 2 == 0 {
+    if end_index.is_multiple_of(2) {
         nodes_with_padding.push(TH::rand_domain(rng));
     }
 
@@ -133,11 +133,12 @@ where
             let start_index = layers[level].start_index / 2;
             layers.push(get_padded_layer(rng, parents, start_index));
         }
-        HashTree { depth, layers }
+        Self { depth, layers }
     }
 
     /// Function to get a root from a tree. The tree must have at least one layer.
     /// A root is just an output of the tweakable hash.
+    #[must_use]
     pub fn root(&self) -> TH::Domain {
         self.layers
             .last()
@@ -150,6 +151,7 @@ where
     /// that the tree is well-formed, i.e., each layer is half
     /// the size of the previous layer, and the final layer has
     /// size 1.
+    #[must_use]
     pub fn path(&self, position: u32) -> HashTreeOpening<TH> {
         assert!(
             !self.layers.is_empty(),
@@ -222,7 +224,7 @@ pub fn hash_tree_verify<TH: TweakableHash>(
     for l in 0..depth {
         // Need to distinguish two cases, depending on
         // if current is a left child or a right child
-        let children = if current_position % 2 == 0 {
+        let children = if current_position.is_multiple_of(2) {
             // left child, so co-path contains the right sibling
             [current_node, opening.co_path[l]]
         } else {
@@ -295,13 +297,12 @@ mod tests {
         let root = tree.root();
 
         // now check that opening and verification works as expected
-        for offset in 0..num_leafs {
+        for (offset, leaf) in leafs.iter().enumerate().take(num_leafs) {
             // calculate the position
             let position = start_index as u32 + offset as u32;
             // first get the opening
             let path = tree.path(position);
             // now assert that it verifies
-            let leaf = leafs[offset].as_slice();
             assert!(hash_tree_verify(&parameter, &root, position, leaf, &path));
         }
     }

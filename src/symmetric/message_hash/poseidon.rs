@@ -60,7 +60,7 @@ fn decode_to_chunks<const DIMENSION: usize, const BASE: usize, const HASH_LEN_FE
     // Combine field elements into one big integer
     let p = BigUint::from(FqConfig::MODULUS);
     let mut acc = BigUint::ZERO;
-    for fe in field_elements.iter() {
+    for fe in field_elements {
         acc = &acc * &p + BigUint::from(fe.into_bigint());
     }
 
@@ -266,9 +266,9 @@ mod tests {
 
     #[test]
     fn test_rand_not_all_same() {
-        let mut rng = thread_rng();
         // Setup a number of trials
         const K: usize = 10;
+        let mut rng = thread_rng();
         let mut all_same_count = 0;
 
         for _ in 0..K {
@@ -419,7 +419,7 @@ mod tests {
         // Alternating 0x00 and 0xFF
         let mut message = [0u8; 32];
         for (i, byte) in message.iter_mut().enumerate() {
-            *byte = if i % 2 == 0 { 0x00 } else { 0xFF };
+            *byte = if i.is_multiple_of(2) { 0x00 } else { 0xFF };
         }
 
         // Convert to bigint
@@ -474,10 +474,10 @@ mod tests {
         //   input_uint = D_0 + 16*D_1 + 16^2*D_2 + ...
         //   We compute D_i = input_uint % 16, then divide by 16
 
-        let mut acc = input_uint.clone();
+        let mut acc = input_uint;
         let mut expected = [0; 4];
-        for i in 0..4 {
-            expected[i] = (&acc % 16u8).try_into().unwrap();
+        for e in &mut expected {
+            *e = (&acc % 16u8).try_into().unwrap();
             acc /= 16u8;
         }
 
@@ -507,10 +507,10 @@ mod tests {
         let input_uint = &p3 - 1u32;
 
         // CHUNK_SIZE = 8 / BASE = 256
-        let mut acc = input_uint.clone();
+        let mut acc = input_uint;
         let mut expected = [0u8; 8];
-        for i in 0..8 {
-            expected[i] = (&acc % 256u32).try_into().unwrap();
+        for e in &mut expected {
+            *e = (&acc % 256u32).try_into().unwrap();
             acc /= 256u32;
         }
 
@@ -534,7 +534,7 @@ mod tests {
 
         // Reconstruct bigint from field elements using base-p
         let mut expected_bigint = BigUint::zero();
-        for fe in input_field_elements.iter() {
+        for fe in &input_field_elements {
             expected_bigint = &expected_bigint * &modulus + BigUint::from(fe.into_bigint());
         }
 
@@ -543,7 +543,7 @@ mod tests {
 
         // Assert that each chunk is between 0 and BASE - 1
         let base = BigUint::from(BASE);
-        for &chunk in chunks.iter() {
+        for &chunk in &chunks {
             assert!(
                 BigUint::from(chunk) < base,
                 "One of the chunks was too large."

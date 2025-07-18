@@ -144,6 +144,7 @@ fn prepare_layer_info(w: usize) -> AllLayerInfoForBase {
 ///
 /// Panics if `d` is not a valid layer. Valid layer means `0 <= d <= v * (w-1)`
 /// Panics if `x` is larger than hypercube's size: `x >= w^v`.
+#[must_use]
 pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
     let mut x_curr = x;
     let mut out = Vec::with_capacity(v);
@@ -157,8 +158,8 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
         let range_start = d_curr.saturating_sub((w - 1) * (v - i));
 
         for j in range_start..=min(w - 1, d_curr) {
-            let count = layer_data.sizes(v - i)[d_curr - j].clone();
-            if x_curr >= count {
+            let count = &layer_data.sizes(v - i)[d_curr - j];
+            if x_curr >= *count {
                 x_curr -= count;
             } else {
                 ji = j;
@@ -171,6 +172,9 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
         d_curr -= w - 1 - ai;
     }
 
+    // layer_data no longer used beyond this point
+    drop(layer_data);
+
     let x_curr = x_curr.to_usize().unwrap();
     assert!(x_curr + d_curr < w);
     out.push((w - 1 - x_curr - d_curr) as u8);
@@ -182,6 +186,7 @@ pub fn map_to_vertex(w: usize, v: usize, d: usize, x: BigUint) -> Vec<u8> {
 /// # Panics
 ///
 /// Panics if `d` is not a valid layer. Valid layer means `0 <= d <= v * (w-1)`.
+#[must_use]
 pub fn hypercube_part_size(w: usize, v: usize, d: usize) -> BigUint {
     // With precomputed prefix sums, this is an efficient O(1) lookup.
     AllLayerData::new(w).prefix_sums(v)[d].clone()
@@ -195,16 +200,21 @@ pub fn hypercube_part_size(w: usize, v: usize, d: usize) -> BigUint {
 /// # Panics
 ///
 /// Panics if `x` is larger than hypercube's size: `x >= w^v`.
+#[must_use]
 pub fn hypercube_find_layer(w: usize, v: usize, x: BigUint) -> (usize, BigUint) {
-    assert!(&x < AllLayerData::new(w).prefix_sums(v).last().unwrap());
-
+    // Construct layer data once to avoid duplicate locking.
     let layer_data = AllLayerData::new(w);
-    let prefix_sums = layer_data.prefix_sums(v);
+
+    // Use it for both the assertion and the prefix sums access.
+    let prefix_sums = layer_data.prefix_sums(v).clone();
+    assert!(&x < prefix_sums.last().unwrap());
 
     // `partition_point` efficiently finds the index of the first element `p` for which `p > x`.
-    //
     // This index is the layer `d` where our value `x` resides.
     let d = prefix_sums.partition_point(|p| p <= &x);
+
+    // Drop layer_data early to release lock, since it's no longer needed
+    drop(layer_data);
 
     if d == 0 {
         // `x` is in the very first layer (d=0). The remainder is `x` itself,
@@ -224,21 +234,26 @@ pub fn hypercube_find_layer(w: usize, v: usize, x: BigUint) -> (usize, BigUint) 
 ///
 /// Panics if `d` is not a valid layer. Valid layer means`0 <= d <= v * (w-1)`,
 /// Panics if `a` is not on layer `d`.
+#[must_use]
 pub fn map_to_integer(w: usize, v: usize, d: usize, a: &[u8]) -> BigUint {
     assert_eq!(a.len(), v);
     let mut x_curr = BigUint::zero();
     let mut d_curr = w - 1 - a[v - 1] as usize;
 
-    let layer_data = AllLayerData::new(w);
+    // Use only once and drop immediately after loop
+    {
+        let layer_data = AllLayerData::new(w);
 
-    for i in (0..v - 1).rev() {
-        let ji = w - 1 - a[i] as usize;
-        d_curr += ji;
-        let j_start = d_curr.saturating_sub((w - 1) * (v - i - 1));
-        x_curr += layer_data
-            .layer_info_for_dimension(v - i - 1)
-            .sizes_sum_in_range(d_curr - ji + 1..=d_curr - j_start);
+        for i in (0..v - 1).rev() {
+            let ji = w - 1 - a[i] as usize;
+            d_curr += ji;
+            let j_start = d_curr.saturating_sub((w - 1) * (v - i - 1));
+            x_curr += layer_data
+                .layer_info_for_dimension(v - i - 1)
+                .sizes_sum_in_range(d_curr - ji + 1..=d_curr - j_start);
+        }
     }
+
     assert_eq!(d_curr, d);
     x_curr
 }
@@ -279,9 +294,10 @@ mod tests {
                 return BigUint::zero();
             }
             let binoms = BINOMS.lock().unwrap();
-            if binoms.len() < n + 1 {
-                panic!("BINOMS cache is empty. Call precompute_local before calling binom.");
-            }
+            assert!(
+                binoms.len() > n,
+                "BINOMS cache is empty. Call precompute_local before calling binom."
+            );
             binoms[n][k].clone()
         }
 
@@ -295,7 +311,7 @@ mod tests {
             for s in 0..=k / (m + 1) {
                 let part = binom(n, s) * binom(k - s * (m + 1) + n - 1, n - 1);
                 let part = BigInt::from(part);
-                if s % 2 == 0 {
+                if s.is_multiple_of(2) {
                     sum += part;
                 } else {
                     sum -= part;
@@ -309,6 +325,7 @@ mod tests {
         precompute_binoms(v_max, w);
 
         let mut all_layers = vec![vec![]; v_max + 1];
+        #[allow(clippy::needless_range_loop)]
         for v in 1..=v_max {
             let max_distance = (w - 1) * v;
             all_layers[v] = vec![BigUint::zero(); max_distance + 1];
@@ -512,7 +529,7 @@ mod tests {
 
             // Given a global index x, determine which layer it belongs to
             // and its offset within that layer.
-            let (d, rem) = hypercube_find_layer(w, v, x_big.clone());
+            let (d, rem) = hypercube_find_layer(w, v, x_big);
 
             // Convert the offset `rem` in layer `d` to an actual vertex in [0, w-1]^v.
             let a = map_to_vertex(w, v, d, rem.clone());

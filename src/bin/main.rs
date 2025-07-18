@@ -27,7 +27,7 @@ fn measure_time<T: SignatureScheme, R: Rng>(description: &str, rng: &mut R) {
     let start = Instant::now();
     let (_pk, _sk) = T::gen(rng, 0, T::LIFETIME as usize);
     let duration = start.elapsed();
-    println!("{} - Gen: {:?}", description, duration);
+    println!("{description} - Gen: {duration:?}");
 }
 
 // Main function to run the program

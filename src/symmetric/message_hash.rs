@@ -51,7 +51,7 @@ pub mod top_level_poseidon;
 /// by `chunk_size`. It is assumed that `window_size` divides 8 and is between 1 and 8.
 const fn isolate_chunk_from_byte(byte: u8, chunk_index: usize, chunk_size: usize) -> u8 {
     // Ensure chunk size divides 8 and is between 1 and 8
-    assert!(chunk_size > 0 && chunk_size <= 8 && 8 % chunk_size == 0);
+    assert!(chunk_size > 0 && chunk_size <= 8 && 8usize.is_multiple_of(chunk_size));
 
     // Ensure the chunk index is within bounds
     assert!(chunk_index < 8 / chunk_size);
@@ -93,6 +93,7 @@ const fn isolate_chunk_from_byte(byte: u8, chunk_index: usize, chunk_size: usize
 /// let chunks = bytes_to_chunks(&[0b01101100], 2);
 /// assert_eq!(chunks, vec![0b00, 0b11, 0b10, 0b01]);
 /// ```
+#[must_use]
 pub fn bytes_to_chunks(bytes: &[u8], chunk_size: usize) -> Vec<u8> {
     // Only the chunk sizes 1, 2, 4, or 8 are valid.
     //
@@ -128,7 +129,7 @@ mod tests {
     fn test_isolate_chunk_from_byte() {
         // In this test, we check that `isolate_chunk_from_byte` works as expected
 
-        let byte: u8 = 0b01101100;
+        let byte: u8 = 0b0110_1100;
 
         assert_eq!(isolate_chunk_from_byte(byte, 0, 2), 0b00);
         assert_eq!(isolate_chunk_from_byte(byte, 1, 2), 0b11);
@@ -143,8 +144,8 @@ mod tests {
     fn test_bytes_to_chunks() {
         // In this test, we check that `bytes_to_chunks` works as expected
 
-        let byte_a: u8 = 0b01101100;
-        let byte_b: u8 = 0b10100110;
+        let byte_a: u8 = 0b0110_1100;
+        let byte_b: u8 = 0b1010_0110;
 
         let bytes = [byte_a, byte_b];
         let expected_chunks = [0b00, 0b11, 0b10, 0b01, 0b10, 0b01, 0b10, 0b10];

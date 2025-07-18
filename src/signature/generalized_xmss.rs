@@ -15,6 +15,7 @@ use super::{SignatureScheme, SigningError};
 
 /// Implementation of the generalized XMSS signature scheme
 /// from any incomparable encoding scheme and any tweakable hash
+///
 /// It also uses a PRF for key generation, and one has to specify
 /// the (base 2 log of the) key lifetime.
 ///
@@ -25,9 +26,9 @@ pub struct GeneralizedXMSSSignatureScheme<
     TH: TweakableHash,
     const LOG_LIFETIME: usize,
 > {
-    _marker_prf: std::marker::PhantomData<PRF>,
-    _marker_ie: std::marker::PhantomData<IE>,
-    _marker_th: std::marker::PhantomData<TH>,
+    _prf: std::marker::PhantomData<PRF>,
+    _ie: std::marker::PhantomData<IE>,
+    _th: std::marker::PhantomData<TH>,
 }
 
 /// Signature for GeneralizedXMSSSignatureScheme
@@ -193,7 +194,7 @@ where
             // check if we have found a valid codeword, and if so, stop searching
             if curr_x.is_ok() {
                 rho = Some(curr_rho);
-                x = curr_x.ok().map(Some).unwrap_or(None);
+                x = curr_x.ok();
                 break;
             }
 
@@ -324,7 +325,7 @@ pub mod instantiations_sha;
 mod tests {
     use crate::{
         inc_encoding::{basic_winternitz::WinternitzEncoding, target_sum::TargetSumEncoding},
-        signature::test_templates::_test_signature_scheme_correctness,
+        signature::test_templates::test_signature_scheme_correctness,
         symmetric::{
             message_hash::{
                 poseidon::PoseidonMessageHashW1,
@@ -348,15 +349,15 @@ mod tests {
         const NUM_CHUNKS_CHECKSUM: usize = 3;
         type IE = WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>;
         const LOG_LIFETIME: usize = 9;
-        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+        type Sig = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
-        SIG::internal_consistency_check();
+        Sig::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(289, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(2, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(19, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(0, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(11, 0, SIG::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(289, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(2, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(19, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(0, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(11, 0, Sig::LIFETIME as usize);
     }
 
     #[test]
@@ -370,19 +371,19 @@ mod tests {
         const NUM_CHUNKS_CHECKSUM: usize = 8;
         type IE = WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>;
         const LOG_LIFETIME: usize = 5;
-        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+        type Sig = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
-        SIG::internal_consistency_check();
+        Sig::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(2, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(19, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(0, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(11, 0, SIG::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(2, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(19, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(0, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(11, 0, Sig::LIFETIME as usize);
 
-        _test_signature_scheme_correctness::<SIG>(12, 10, (1 << 5) - 10);
-        _test_signature_scheme_correctness::<SIG>(19, 4, 20);
-        _test_signature_scheme_correctness::<SIG>(16, 16, 4);
-        _test_signature_scheme_correctness::<SIG>(11, 1, 29);
+        test_signature_scheme_correctness::<Sig>(12, 10, (1 << 5) - 10);
+        test_signature_scheme_correctness::<Sig>(19, 4, 20);
+        test_signature_scheme_correctness::<Sig>(16, 16, 4);
+        test_signature_scheme_correctness::<Sig>(11, 1, 29);
     }
 
     #[test]
@@ -397,15 +398,15 @@ mod tests {
         const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
         type IE = TargetSumEncoding<MH, EXPECTED_SUM>;
         const LOG_LIFETIME: usize = 8;
-        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+        type Sig = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
-        SIG::internal_consistency_check();
+        Sig::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(13, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(9, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(21, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(0, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(31, 0, SIG::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(13, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(9, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(21, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(0, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(31, 0, Sig::LIFETIME as usize);
     }
 
     #[test]
@@ -420,14 +421,14 @@ mod tests {
         const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
         type IE = TargetSumEncoding<MH, EXPECTED_SUM>;
         const LOG_LIFETIME: usize = 5;
-        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+        type Sig = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
-        SIG::internal_consistency_check();
+        Sig::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(2, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(19, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(0, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(11, 0, SIG::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(2, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(19, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(0, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(11, 0, Sig::LIFETIME as usize);
     }
 
     #[test]
@@ -441,12 +442,12 @@ mod tests {
         const TARGET_SUM: usize = 1 << 12;
         type IE = TargetSumEncoding<MH, TARGET_SUM>;
         const LOG_LIFETIME: usize = 9;
-        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+        type Sig = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
-        SIG::internal_consistency_check();
+        Sig::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(0, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(11, 0, SIG::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(0, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(11, 0, Sig::LIFETIME as usize);
     }
 
     #[test]
@@ -460,11 +461,11 @@ mod tests {
         const TARGET_SUM: usize = 128;
         type IE = TargetSumEncoding<MH, TARGET_SUM>;
         const LOG_LIFETIME: usize = 9;
-        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+        type Sig = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
-        SIG::internal_consistency_check();
+        Sig::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(2, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(19, 0, SIG::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(2, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(19, 0, Sig::LIFETIME as usize);
     }
 }
