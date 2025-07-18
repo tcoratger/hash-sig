@@ -237,6 +237,7 @@ impl<
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
     use rand::{thread_rng, Rng};
     use zkhash::ark_ff::UniformRand;
 
@@ -277,5 +278,42 @@ mod tests {
             sum >= lower_bound,
             "Output was not in the correct part of the lower bound"
         );
+    }
+
+    proptest! {
+        #[test]
+        fn proptest_apply(
+            epoch in 0u32..1000,
+            message in any::<[u8; MESSAGE_LENGTH]>(),
+        ) {
+            const BASE: usize = 12;
+            const DIMENSION: usize = 40;
+            const FINAL_LAYER: usize = 175;
+
+            type MH = TopLevelPoseidonMessageHash<8, 6, 48, DIMENSION, BASE, FINAL_LAYER, 3, 9, 4, 4>;
+
+            let mut rng = rand::thread_rng();
+
+            let parameter = std::array::from_fn(|_| F::rand(&mut rng));
+            let randomness = MH::rand(&mut rng);
+
+            let hash = MH::apply(&parameter, epoch, &randomness, &message);
+
+            // Length must match dimension
+            prop_assert_eq!(hash.len(), DIMENSION);
+
+            // Values are in range 0..BASE
+            for &val in &hash {
+                prop_assert!((val as usize) < BASE);
+            }
+
+            // Output is in correct hypercube part (layer range)
+            let sum: usize = hash.iter().map(|&x| x as usize).sum();
+            let lower_bound = (BASE - 1) * DIMENSION - FINAL_LAYER;
+            prop_assert!(
+                sum >= lower_bound,
+                "Output hash lies outside allowed hypercube layer"
+            );
+        }
     }
 }
