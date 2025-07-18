@@ -257,7 +257,8 @@ mod tests {
             if let Some(prev_pos_in_level) = map.insert(tweak_encoding.clone(), pos_in_level) {
                 assert_eq!(
                     prev_pos_in_level, pos_in_level,
-                    "Collision detected for ({level},{prev_pos_in_level}) and ({level},{pos_in_level}) with output {tweak_encoding:?}"
+                    "Collision detected for ({},{}) and ({},{}) with output {:?}",
+                    level, prev_pos_in_level, level, pos_in_level, tweak_encoding
                 );
             }
         }
