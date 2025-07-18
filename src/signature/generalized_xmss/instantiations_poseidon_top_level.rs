@@ -40,16 +40,16 @@ pub mod lifetime_2_to_the_18 {
         RAND_LEN_FE,
     >;
     type TH = PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, DIMENSION>;
-    type PRF = ShakePRFtoF<HASH_LEN_FE>;
+    type Prf = ShakePRFtoF<HASH_LEN_FE>;
     type IE = TargetSumEncoding<MH, TARGET_SUM>;
 
     pub type SIGTopLevelTargetSumLifetime18Dim40Base12 =
-        GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+        GeneralizedXMSSSignatureScheme<Prf, IE, TH, LOG_LIFETIME>;
 
     #[cfg(test)]
     mod test {
         #[cfg(feature = "slow-tests")]
-        use crate::signature::test_templates::_test_signature_scheme_correctness;
+        use crate::signature::test_templates::test_signature_scheme_correctness;
         use crate::signature::{
             generalized_xmss::instantiations_poseidon_top_level::lifetime_2_to_the_18::SIGTopLevelTargetSumLifetime18Dim40Base12,
             SignatureScheme,
@@ -63,8 +63,16 @@ pub mod lifetime_2_to_the_18 {
         #[test]
         #[cfg(feature = "slow-tests")]
         pub fn test_correctness() {
-            _test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime18Dim40Base12>(213);
-            _test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime18Dim40Base12>(4);
+            test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime18Dim40Base12>(
+                213,
+                0,
+                SIGTopLevelTargetSumLifetime18Dim40Base12::LIFETIME as usize,
+            );
+            test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime18Dim40Base12>(
+                4,
+                0,
+                SIGTopLevelTargetSumLifetime18Dim40Base12::LIFETIME as usize,
+            );
         }
     }
 }
@@ -112,16 +120,16 @@ pub mod lifetime_2_to_the_26 {
         RAND_LEN_FE,
     >;
     type TH = PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, DIMENSION>;
-    type PRF = ShakePRFtoF<HASH_LEN_FE>;
+    type Prf = ShakePRFtoF<HASH_LEN_FE>;
     type IE = TargetSumEncoding<MH, TARGET_SUM>;
 
     pub type SIGTopLevelTargetSumLifetime26Dim64Base8 =
-        GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+        GeneralizedXMSSSignatureScheme<Prf, IE, TH, LOG_LIFETIME>;
 
     #[cfg(test)]
     mod test {
         #[cfg(feature = "slow-tests")]
-        use crate::signature::test_templates::_test_signature_scheme_correctness;
+        use crate::signature::test_templates::test_signature_scheme_correctness;
         use crate::signature::{
             generalized_xmss::instantiations_poseidon_top_level::lifetime_2_to_the_26::SIGTopLevelTargetSumLifetime26Dim64Base8,
             SignatureScheme,
@@ -135,8 +143,16 @@ pub mod lifetime_2_to_the_26 {
         #[test]
         #[cfg(feature = "slow-tests")]
         pub fn test_correctness() {
-            _test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime26Dim64Base8>(213);
-            _test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime26Dim64Base8>(4);
+            test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime26Dim64Base8>(
+                213,
+                0,
+                SIGTopLevelTargetSumLifetime26Dim64Base8::LIFETIME as usize,
+            );
+            test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime26Dim64Base8>(
+                4,
+                0,
+                SIGTopLevelTargetSumLifetime26Dim64Base8::LIFETIME as usize,
+            );
         }
     }
 }

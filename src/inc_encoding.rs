@@ -39,6 +39,7 @@ pub trait IncomparableEncoding {
     /// It could happen that this fails. Otherwise,
     /// implementations must guarantee that the
     /// result is indeed a valid codeword.
+    #[allow(clippy::result_unit_err)]
     fn encode(
         parameter: &Self::Parameter,
         message: &[u8; MESSAGE_LENGTH],

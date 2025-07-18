@@ -15,19 +15,20 @@ use super::{SignatureScheme, SigningError};
 
 /// Implementation of the generalized XMSS signature scheme
 /// from any incomparable encoding scheme and any tweakable hash
-/// It also uses a PRF for key generation, and one has to specify
+///
+/// It also uses a Prf for key generation, and one has to specify
 /// the (base 2 log of the) key lifetime.
 ///
 /// Note: lifetimes beyond 2^32 are not supported.
 pub struct GeneralizedXMSSSignatureScheme<
-    PRF: Pseudorandom,
+    Prf: Pseudorandom,
     IE: IncomparableEncoding,
     TH: TweakableHash,
     const LOG_LIFETIME: usize,
 > {
-    _marker_prf: std::marker::PhantomData<PRF>,
-    _marker_ie: std::marker::PhantomData<IE>,
-    _marker_th: std::marker::PhantomData<TH>,
+    _prf: std::marker::PhantomData<Prf>,
+    _ie: std::marker::PhantomData<IE>,
+    _th: std::marker::PhantomData<TH>,
 }
 
 /// Signature for GeneralizedXMSSSignatureScheme
@@ -46,27 +47,27 @@ pub struct GeneralizedXMSSPublicKey<TH: TweakableHash> {
 }
 
 /// Secret key for GeneralizedXMSSSignatureScheme
-/// It contains a PRF key and a Merkle tree.
+/// It contains a Prf key and a Merkle tree.
 ///
 /// Note: one may choose to regenerate the tree on the fly, but this
 /// would be costly for signatures.
-pub struct GeneralizedXMSSSecretKey<PRF: Pseudorandom, TH: TweakableHash> {
-    prf_key: PRF::Key,
+pub struct GeneralizedXMSSSecretKey<Prf: Pseudorandom, TH: TweakableHash> {
+    prf_key: Prf::Key,
     tree: HashTree<TH>,
     parameter: TH::Parameter,
     activation_epoch: usize,
     num_active_epochs: usize,
 }
 
-impl<PRF: Pseudorandom, IE: IncomparableEncoding, TH: TweakableHash, const LOG_LIFETIME: usize>
-    SignatureScheme for GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>
+impl<Prf: Pseudorandom, IE: IncomparableEncoding, TH: TweakableHash, const LOG_LIFETIME: usize>
+    SignatureScheme for GeneralizedXMSSSignatureScheme<Prf, IE, TH, LOG_LIFETIME>
 where
-    PRF::Output: Into<TH::Domain>,
+    Prf::Output: Into<TH::Domain>,
     TH::Parameter: Into<IE::Parameter>,
 {
     type PublicKey = GeneralizedXMSSPublicKey<TH>;
 
-    type SecretKey = GeneralizedXMSSSecretKey<PRF, TH>;
+    type SecretKey = GeneralizedXMSSSecretKey<Prf, TH>;
 
     type Signature = GeneralizedXMSSSignature<IE, TH>;
 
@@ -95,8 +96,8 @@ where
         // we need a random parameter to be used for the tweakable hash
         let parameter = TH::rand_parameter(rng);
 
-        // we need a PRF key to generate our list of actual secret keys
-        let prf_key = PRF::gen(rng);
+        // we need a Prf key to generate our list of actual secret keys
+        let prf_key = Prf::gen(rng);
 
         // for each epoch, generate the secret key for the epoch, where
         // an epoch secret key is a list of domain elements derived from the
@@ -120,8 +121,8 @@ where
                 let chain_ends = (0..num_chains)
                     .into_par_iter()
                     .map(|chain_index| {
-                        // each chain start is just a PRF evaluation
-                        let start = PRF::apply(&prf_key, epoch as u32, chain_index as u64).into();
+                        // each chain start is just a Prf evaluation
+                        let start = Prf::apply(&prf_key, epoch as u32, chain_index as u64).into();
                         // walk the chain to get the public chain end
                         chain::<TH>(
                             &parameter,
@@ -193,7 +194,7 @@ where
             // check if we have found a valid codeword, and if so, stop searching
             if curr_x.is_ok() {
                 rho = Some(curr_rho);
-                x = curr_x.ok().map(Some).unwrap_or(None);
+                x = curr_x.ok();
                 break;
             }
 
@@ -221,8 +222,8 @@ where
         let hashes = (0..num_chains)
             .into_par_iter()
             .map(|chain_index| {
-                // get back to the start of the chain from the PRF
-                let start = PRF::apply(&sk.prf_key, epoch, chain_index as u64).into();
+                // get back to the start of the chain from the Prf
+                let start = Prf::apply(&sk.prf_key, epoch, chain_index as u64).into();
                 // now walk the chain for a number of steps determined by the current chunk of x
                 let steps = x[chain_index] as usize;
                 chain::<TH>(&sk.parameter, epoch, chain_index as u8, 0, steps, &start)
@@ -293,8 +294,8 @@ where
     #[cfg(test)]
     fn internal_consistency_check() {
         // we check consistency of all internally used components
-        // namely, PRF, incomparable encoding, and tweak hash
-        PRF::internal_consistency_check();
+        // namely, Prf, incomparable encoding, and tweak hash
+        Prf::internal_consistency_check();
         IE::internal_consistency_check();
         TH::internal_consistency_check();
 
@@ -324,7 +325,7 @@ pub mod instantiations_sha;
 mod tests {
     use crate::{
         inc_encoding::{basic_winternitz::WinternitzEncoding, target_sum::TargetSumEncoding},
-        signature::test_templates::_test_signature_scheme_correctness,
+        signature::test_templates::test_signature_scheme_correctness,
         symmetric::{
             message_hash::{
                 poseidon::PoseidonMessageHashW1,
@@ -341,28 +342,28 @@ mod tests {
     #[test]
     pub fn test_winternitz() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShaPRF<24>;
+        type Prf = ShaPRF<24>;
         type TH = ShaTweak192192;
         type MH = ShaMessageHash192x3;
         const CHUNK_SIZE: usize = 4;
         const NUM_CHUNKS_CHECKSUM: usize = 3;
         type IE = WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>;
         const LOG_LIFETIME: usize = 9;
-        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+        type Sig = GeneralizedXMSSSignatureScheme<Prf, IE, TH, LOG_LIFETIME>;
 
-        SIG::internal_consistency_check();
+        Sig::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(289, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(2, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(19, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(0, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(11, 0, SIG::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(289, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(2, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(19, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(0, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(11, 0, Sig::LIFETIME as usize);
     }
 
     #[test]
     pub fn test_winternitz_poseidon() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShakePRFtoF<7>;
+        type Prf = ShakePRFtoF<7>;
         type TH = PoseidonTweakW1L5;
         type MH = PoseidonMessageHashW1;
         const CHUNK_SIZE: usize = 1;
@@ -370,25 +371,25 @@ mod tests {
         const NUM_CHUNKS_CHECKSUM: usize = 8;
         type IE = WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>;
         const LOG_LIFETIME: usize = 5;
-        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+        type Sig = GeneralizedXMSSSignatureScheme<Prf, IE, TH, LOG_LIFETIME>;
 
-        SIG::internal_consistency_check();
+        Sig::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(2, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(19, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(0, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(11, 0, SIG::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(2, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(19, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(0, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(11, 0, Sig::LIFETIME as usize);
 
-        _test_signature_scheme_correctness::<SIG>(12, 10, (1 << 5) - 10);
-        _test_signature_scheme_correctness::<SIG>(19, 4, 20);
-        _test_signature_scheme_correctness::<SIG>(16, 16, 4);
-        _test_signature_scheme_correctness::<SIG>(11, 1, 29);
+        test_signature_scheme_correctness::<Sig>(12, 10, (1 << 5) - 10);
+        test_signature_scheme_correctness::<Sig>(19, 4, 20);
+        test_signature_scheme_correctness::<Sig>(16, 16, 4);
+        test_signature_scheme_correctness::<Sig>(11, 1, 29);
     }
 
     #[test]
     pub fn test_target_sum() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShaPRF<24>;
+        type Prf = ShaPRF<24>;
         type TH = ShaTweak192192;
         type MH = ShaMessageHash192x3;
         const BASE: usize = MH::BASE;
@@ -397,21 +398,21 @@ mod tests {
         const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
         type IE = TargetSumEncoding<MH, EXPECTED_SUM>;
         const LOG_LIFETIME: usize = 8;
-        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+        type Sig = GeneralizedXMSSSignatureScheme<Prf, IE, TH, LOG_LIFETIME>;
 
-        SIG::internal_consistency_check();
+        Sig::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(13, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(9, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(21, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(0, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(31, 0, SIG::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(13, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(9, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(21, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(0, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(31, 0, Sig::LIFETIME as usize);
     }
 
     #[test]
     pub fn test_target_sum_poseidon() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShakePRFtoF<7>;
+        type Prf = ShakePRFtoF<7>;
         type TH = PoseidonTweakW1L5;
         type MH = PoseidonMessageHashW1;
         const BASE: usize = MH::BASE;
@@ -420,20 +421,20 @@ mod tests {
         const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
         type IE = TargetSumEncoding<MH, EXPECTED_SUM>;
         const LOG_LIFETIME: usize = 5;
-        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+        type Sig = GeneralizedXMSSSignatureScheme<Prf, IE, TH, LOG_LIFETIME>;
 
-        SIG::internal_consistency_check();
+        Sig::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(2, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(19, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(0, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(11, 0, SIG::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(2, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(19, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(0, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(11, 0, Sig::LIFETIME as usize);
     }
 
     #[test]
     pub fn test_large_base_sha() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShaPRF<24>;
+        type Prf = ShaPRF<24>;
         type TH = ShaTweak192192;
 
         // use chunk size 8
@@ -441,18 +442,18 @@ mod tests {
         const TARGET_SUM: usize = 1 << 12;
         type IE = TargetSumEncoding<MH, TARGET_SUM>;
         const LOG_LIFETIME: usize = 9;
-        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+        type Sig = GeneralizedXMSSSignatureScheme<Prf, IE, TH, LOG_LIFETIME>;
 
-        SIG::internal_consistency_check();
+        Sig::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(0, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(11, 0, SIG::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(0, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(11, 0, Sig::LIFETIME as usize);
     }
 
     #[test]
     pub fn test_large_dimension_sha() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShaPRF<24>;
+        type Prf = ShaPRF<24>;
         type TH = ShaTweak192192;
 
         // use 256 chunks
@@ -460,11 +461,11 @@ mod tests {
         const TARGET_SUM: usize = 128;
         type IE = TargetSumEncoding<MH, TARGET_SUM>;
         const LOG_LIFETIME: usize = 9;
-        type SIG = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+        type Sig = GeneralizedXMSSSignatureScheme<Prf, IE, TH, LOG_LIFETIME>;
 
-        SIG::internal_consistency_check();
+        Sig::internal_consistency_check();
 
-        _test_signature_scheme_correctness::<SIG>(2, 0, SIG::LIFETIME as usize);
-        _test_signature_scheme_correctness::<SIG>(19, 0, SIG::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(2, 0, Sig::LIFETIME as usize);
+        test_signature_scheme_correctness::<Sig>(19, 0, Sig::LIFETIME as usize);
     }
 }

@@ -6,7 +6,7 @@ const PRF_DOMAIN_SEP: [u8; 16] = [
     0x00, 0x01, 0x12, 0xff, 0x00, 0x01, 0xfa, 0xff, 0x00, 0xaf, 0x12, 0xff, 0x01, 0xfa, 0xff, 0x00,
 ];
 
-// Implement a SHA3-based PRF
+// Implement a SHA3-based Prf
 // Output Length must be at most 32 bytes
 pub struct ShaPRF<const OUTPUT_LENGTH: usize>;
 
@@ -42,7 +42,7 @@ impl<const OUTPUT_LENGTH: usize> Pseudorandom for ShaPRF<OUTPUT_LENGTH> {
     fn internal_consistency_check() {
         assert!(
             OUTPUT_LENGTH < 256 / 8,
-            "SHA PRF: Output length must be less than 256 bit"
+            "SHA Prf: Output length must be less than 256 bit"
         );
     }
 }
@@ -56,13 +56,13 @@ mod tests {
     fn test_sha_prf_key_not_all_same() {
         const K: usize = 10;
         const OUTPUT_LEN: usize = 16;
-        type PRF = ShaPRF<OUTPUT_LEN>;
+        type Prf = ShaPRF<OUTPUT_LEN>;
 
         let mut rng = thread_rng();
         let mut all_same_count = 0;
 
         for _ in 0..K {
-            let key = PRF::gen(&mut rng);
+            let key = Prf::gen(&mut rng);
 
             let first = key[0];
             if key.iter().all(|&x| x == first) {
@@ -72,7 +72,7 @@ mod tests {
 
         assert!(
             all_same_count < K,
-            "PRF key had identical bytes in all {} trials",
+            "Prf key had identical bytes in all {} trials",
             K
         );
     }

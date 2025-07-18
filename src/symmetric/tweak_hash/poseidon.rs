@@ -91,6 +91,7 @@ fn poseidon_padded_permute(instance: &Poseidon2<F>, input: &[F]) -> Vec<F> {
 
 /// Poseidon Compression Function, using the Poseidon Permutation.
 /// It works as PoseidonCompress(x) = Truncate(PoseidonPermute(x) + x)
+#[must_use]
 pub fn poseidon_compress<const OUT_LEN: usize>(
     instance: &Poseidon2<F>,
     input: &[F],
@@ -407,9 +408,9 @@ mod tests {
 
     #[test]
     fn test_rand_parameter_not_all_same() {
-        let mut rng = thread_rng();
         // Setup a umber of trials
         const K: usize = 10;
+        let mut rng = thread_rng();
         let mut all_same_count = 0;
 
         for _ in 0..K {
@@ -425,16 +426,15 @@ mod tests {
         // If all K trials resulted in identical values, fail the test
         assert!(
             all_same_count < K,
-            "rand_parameter generated identical elements in all {} trials",
-            K
+            "rand_parameter generated identical elements in all {K} trials"
         );
     }
 
     #[test]
     fn test_rand_domain_not_all_same() {
-        let mut rng = thread_rng();
         // Setup a umber of trials
         const K: usize = 10;
+        let mut rng = thread_rng();
         let mut all_same_count = 0;
 
         for _ in 0..K {
@@ -579,10 +579,10 @@ mod tests {
         assert_eq!(
             actual,
             [
-                F::from(1518816068),
-                F::from(1903366844),
-                F::from(704597956),
-                F::from(30279094)
+                F::from(1_518_816_068),
+                F::from(1_903_366_844),
+                F::from(704_597_956),
+                F::from(30_279_094)
             ]
         );
     }
@@ -601,10 +601,10 @@ mod tests {
         assert_eq!(
             actual,
             [
-                F::from(1938593574),
-                F::from(935512994),
-                F::from(910478564),
-                F::from(584381639)
+                F::from(1_938_593_574),
+                F::from(935_512_994),
+                F::from(910_478_564),
+                F::from(584_381_639)
             ]
         );
     }
@@ -657,8 +657,7 @@ mod tests {
             if let Some(prev_pos_in_level) = map.insert(tweak_encoding, pos_in_level) {
                 assert_eq!(
                     prev_pos_in_level, pos_in_level,
-                    "Collision detected for ({},{}) and ({},{}) with output {:?}",
-                    level, prev_pos_in_level, level, pos_in_level, tweak_encoding
+                    "Collision detected for ({level},{prev_pos_in_level}) and ({level},{pos_in_level}) with output {tweak_encoding:?}"
                 );
             }
         }
@@ -710,8 +709,7 @@ mod tests {
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
                     prev_input, input,
-                    "Collision detected for {:?} and {:?} with output {:?}",
-                    prev_input, input, tweak_encoding
+                    "Collision detected for {prev_input:?} and {input:?} with output {tweak_encoding:?}"
                 );
             }
         }
@@ -735,8 +733,7 @@ mod tests {
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
                     prev_input, input,
-                    "Collision detected for {:?} and {:?} with output {:?}",
-                    prev_input, input, tweak_encoding
+                    "Collision detected for {prev_input:?} and {input:?} with output {tweak_encoding:?}"
                 );
             }
         }
@@ -760,8 +757,7 @@ mod tests {
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
                     prev_input, input,
-                    "Collision detected for {:?} and {:?} with output {:?}",
-                    prev_input, input, tweak_encoding
+                    "Collision detected for {prev_input:?} and {input:?} with output {tweak_encoding:?}"
                 );
             }
         }
@@ -785,8 +781,7 @@ mod tests {
             if let Some(prev_input) = map.insert(tweak_encoding, input) {
                 assert_eq!(
                     prev_input, input,
-                    "Collision detected for {:?} and {:?} with output {:?}",
-                    prev_input, input, tweak_encoding
+                    "Collision detected for {prev_input:?} and {input:?} with output {tweak_encoding:?}"
                 );
             }
         }

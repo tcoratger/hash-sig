@@ -34,7 +34,7 @@ fn map_into_hypercube_part<
     // Combine field elements into one big integer
     let p = BigUint::from(FqConfig::MODULUS);
     let mut acc = BigUint::ZERO;
-    for fe in field_elements.iter() {
+    for fe in field_elements {
         acc = &acc * &p + BigUint::from(fe.into_bigint());
     }
 

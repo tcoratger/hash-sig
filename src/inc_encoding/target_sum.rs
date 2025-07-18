@@ -4,6 +4,7 @@ use super::IncomparableEncoding;
 
 /// Incomparable Encoding Scheme based on Target Sums,
 /// implemented from a given message hash.
+///
 /// CHUNK_SIZE has to be 1,2,4, or 8.
 /// TARGET_SUM determines how we set the target sum,
 /// and has direct impact on the signer's running time,
@@ -30,7 +31,7 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
     /// we did one experiment with random message hashes.
     /// In production, this should be estimated via more
     /// extensive experiments with concrete hash functions.
-    const MAX_TRIES: usize = 100000;
+    const MAX_TRIES: usize = 100_000;
 
     const BASE: usize = MH::BASE;
 

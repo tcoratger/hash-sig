@@ -82,13 +82,13 @@ mod tests {
 
         const K: usize = 10;
         const OUTPUT_LEN: usize = 4;
-        type PRF = ShakePRFtoF<OUTPUT_LEN>;
+        type Prf = ShakePRFtoF<OUTPUT_LEN>;
 
         let mut rng = thread_rng();
         let mut all_same_count = 0;
 
         for _ in 0..K {
-            let key = PRF::gen(&mut rng);
+            let key = Prf::gen(&mut rng);
 
             let first = key[0];
             if key.iter().all(|&x| x == first) {
@@ -98,7 +98,7 @@ mod tests {
 
         assert!(
             all_same_count < K,
-            "PRF key had identical elements in all {} trials",
+            "Prf key had identical elements in all {} trials",
             K
         );
     }

@@ -257,8 +257,7 @@ mod tests {
             if let Some(prev_pos_in_level) = map.insert(tweak_encoding.clone(), pos_in_level) {
                 assert_eq!(
                     prev_pos_in_level, pos_in_level,
-                    "Collision detected for ({},{}) and ({},{}) with output {:?}",
-                    level, prev_pos_in_level, level, pos_in_level, tweak_encoding
+                    "Collision detected for ({level},{prev_pos_in_level}) and ({level},{pos_in_level}) with output {tweak_encoding:?}"
                 );
             }
         }
@@ -310,8 +309,7 @@ mod tests {
             if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
                 assert_eq!(
                     prev_input, input,
-                    "Collision detected for {:?} and {:?} with output {:?}",
-                    prev_input, input, tweak_encoding
+                    "Collision detected for {prev_input:?} and {input:?} with output {tweak_encoding:?}"
                 );
             }
         }
@@ -335,8 +333,7 @@ mod tests {
             if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
                 assert_eq!(
                     prev_input, input,
-                    "Collision detected for {:?} and {:?} with output {:?}",
-                    prev_input, input, tweak_encoding
+                    "Collision detected for {prev_input:?} and {input:?} with output {tweak_encoding:?}"
                 );
             }
         }
@@ -360,8 +357,7 @@ mod tests {
             if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
                 assert_eq!(
                     prev_input, input,
-                    "Collision detected for {:?} and {:?} with output {:?}",
-                    prev_input, input, tweak_encoding
+                    "Collision detected for {prev_input:?} and {input:?} with output {tweak_encoding:?}"
                 );
             }
         }
@@ -385,8 +381,7 @@ mod tests {
             if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
                 assert_eq!(
                     prev_input, input,
-                    "Collision detected for {:?} and {:?} with output {:?}",
-                    prev_input, input, tweak_encoding
+                    "Collision detected for {prev_input:?} and {input:?} with output {tweak_encoding:?}"
                 );
             }
         }
