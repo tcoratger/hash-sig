@@ -245,6 +245,7 @@ pub fn hash_tree_verify<TH: TweakableHash>(
 #[cfg(test)]
 mod tests {
 
+    use proptest::prelude::*;
     use rand::thread_rng;
 
     use crate::symmetric::tweak_hash::sha::ShaTweak128192;
@@ -354,5 +355,27 @@ mod tests {
         let leaf_len = 3;
 
         test_commit_open_helper(num_leafs, depth, start_index, leaf_len);
+    }
+
+    proptest! {
+        #[test]
+        fn proptest_commit_open_verify_helper(
+            // Test with up to 32 leaf nodes (fast but nontrivial)
+            num_leafs in 1usize..32,
+
+            // Tree depth capped at 6 → supports up to 64 leaves
+            depth in 3usize..7,
+
+            // Start index limited to 0–64 (sparse trees, padded trees)
+            start_index in 0usize..64,
+
+            // Leaves with up to 5 elements (non-scalar values)
+            leaf_len in 1usize..5,
+        ) {
+            // Make sure the leaves actually fit in the tree
+            prop_assume!(start_index + num_leafs <= 1 << depth);
+
+            test_commit_open_helper(num_leafs, depth, start_index, leaf_len);
+        }
     }
 }
