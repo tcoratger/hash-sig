@@ -359,7 +359,7 @@ mod tests {
 
     proptest! {
         #[test]
-        fn proptest_commit_open_verify_helper(
+        fn proptest_commit_open_verify(
             // Test with up to 32 leaf nodes (fast but nontrivial)
             num_leafs in 1usize..32,
 
