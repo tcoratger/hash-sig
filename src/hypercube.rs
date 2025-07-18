@@ -325,10 +325,11 @@ mod tests {
         precompute_binoms(v_max, w);
 
         let mut all_layers = vec![vec![]; v_max + 1];
-        for (v, layer) in all_layers.iter_mut().enumerate().take(v_max + 1).skip(1) {
+        #[allow(clippy::needless_range_loop)]
+        for v in 1..=v_max {
             let max_distance = (w - 1) * v;
-            *layer = vec![BigUint::zero(); max_distance + 1];
-            for (d, l) in layer.iter_mut().enumerate().take(max_distance + 1) {
+            all_layers[v] = vec![BigUint::zero(); max_distance + 1];
+            for (d, l) in all_layers[v].iter_mut().enumerate().take(max_distance + 1) {
                 *l = nb(d, w - 1, v);
             }
         }
