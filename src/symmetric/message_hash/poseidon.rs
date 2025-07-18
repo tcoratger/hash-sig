@@ -419,7 +419,7 @@ mod tests {
         // Alternating 0x00 and 0xFF
         let mut message = [0u8; 32];
         for (i, byte) in message.iter_mut().enumerate() {
-            *byte = if i.is_multiple_of(2) { 0x00 } else { 0xFF };
+            *byte = if i % 2 == 0 { 0x00 } else { 0xFF };
         }
 
         // Convert to bigint

@@ -58,7 +58,7 @@ fn get_padded_layer<R: Rng, TH: TweakableHash>(
     nodes_with_padding.extend(nodes);
 
     // add padding if end_index is not odd
-    if end_index.is_multiple_of(2) {
+    if end_index % 2 == 0 {
         nodes_with_padding.push(TH::rand_domain(rng));
     }
 
@@ -224,7 +224,7 @@ pub fn hash_tree_verify<TH: TweakableHash>(
     for l in 0..depth {
         // Need to distinguish two cases, depending on
         // if current is a left child or a right child
-        let children = if current_position.is_multiple_of(2) {
+        let children = if current_position % 2 == 0 {
             // left child, so co-path contains the right sibling
             [current_node, opening.co_path[l]]
         } else {

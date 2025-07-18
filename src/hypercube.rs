@@ -311,7 +311,7 @@ mod tests {
             for s in 0..=k / (m + 1) {
                 let part = binom(n, s) * binom(k - s * (m + 1) + n - 1, n - 1);
                 let part = BigInt::from(part);
-                if s.is_multiple_of(2) {
+                if s % 2 == 0 {
                     sum += part;
                 } else {
                     sum -= part;

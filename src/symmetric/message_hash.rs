@@ -51,7 +51,7 @@ pub mod top_level_poseidon;
 /// by `chunk_size`. It is assumed that `window_size` divides 8 and is between 1 and 8.
 const fn isolate_chunk_from_byte(byte: u8, chunk_index: usize, chunk_size: usize) -> u8 {
     // Ensure chunk size divides 8 and is between 1 and 8
-    assert!(chunk_size > 0 && chunk_size <= 8 && 8usize.is_multiple_of(chunk_size));
+    assert!(chunk_size > 0 && chunk_size <= 8 && 8 % chunk_size == 0);
 
     // Ensure the chunk index is within bounds
     assert!(chunk_index < 8 / chunk_size);
