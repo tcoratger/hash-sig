@@ -247,8 +247,7 @@ mod tests {
 
         let parameter = rng.random();
 
-        let mut message = [0u8; MESSAGE_LENGTH];
-        rng.fill(&mut message);
+        let message = rng.random();
 
         let epoch = 313;
         let randomness = MH::rand(&mut rng);

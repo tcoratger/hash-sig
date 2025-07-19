@@ -120,11 +120,11 @@ impl<
         // Get the default, pre-configured Poseidon2 instance from Plonky3.
         let perm = default_babybear_poseidon2_24();
 
-        // Encode the message and the epoch as field elements.
+        // first, encode the message and the epoch as field elements
         let message_fe = encode_message::<MSG_LEN_FE>(message);
         let epoch_fe = encode_epoch::<TWEAK_LEN_FE>(epoch);
 
-        // Assemble all inputs into a single vector.
+        // now, we hash randomness, parameters, epoch, message using PoseidonCompress
         let combined_input_vec: Vec<F> = randomness
             .iter()
             .chain(parameter.iter())
@@ -135,7 +135,7 @@ impl<
 
         let hash_fe = poseidon_compress::<_, 24, HASH_LEN_FE>(&perm, &combined_input_vec);
 
-        // Decode field elements into chunks and return them.
+        // decode field elements into chunks and return them
         decode_to_chunks::<DIMENSION, BASE, HASH_LEN_FE>(&hash_fe).to_vec()
     }
 
@@ -205,13 +205,9 @@ mod tests {
     fn test_apply() {
         let mut rng = rand::rng();
 
-        let mut parameter = [F::ONE; 4];
-        for p in &mut parameter {
-            *p = rng.random();
-        }
+        let parameter = rng.random();
 
-        let mut message = [0u8; MESSAGE_LENGTH];
-        rng.fill(&mut message);
+        let message = rng.random();
 
         let epoch = 13;
         let randomness = PoseidonMessageHash445::rand(&mut rng);
@@ -224,13 +220,9 @@ mod tests {
     fn test_apply_w1() {
         let mut rng = rand::rng();
 
-        let mut parameter = [F::ONE; 5];
-        for p in &mut parameter {
-            *p = rng.random();
-        }
+        let parameter = rng.random();
 
-        let mut message = [0u8; MESSAGE_LENGTH];
-        rng.fill(&mut message);
+        let message = rng.random();
 
         let epoch = 13;
         let randomness = PoseidonMessageHashW1::rand(&mut rng);

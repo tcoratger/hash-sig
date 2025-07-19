@@ -77,8 +77,7 @@ mod test_templates {
         let (pk, sk) = T::gen(&mut rng, activation_epoch, num_active_epochs);
 
         // Sample random test message
-        let mut message = [0u8; MESSAGE_LENGTH];
-        rng.fill(&mut message);
+        let message = rng.random();
 
         // Sign the message
         let signature = T::sign(&mut rng, &sk, epoch, &message);
