@@ -265,8 +265,8 @@ impl<
         let tweak_fe = tweak.to_field_elements::<TWEAK_LEN>();
 
         match message {
-            // Case 1: Hashing one block (chaining), using width-16 compression.
             [single] => {
+                // we compress parameter, tweak, message
                 let perm = default_babybear_poseidon2_16();
                 let combined_input: Vec<F> = parameter
                     .iter()
@@ -277,8 +277,8 @@ impl<
                 poseidon_compress::<_, 16, HASH_LEN>(&perm, &combined_input)
             }
 
-            // Case 2: Hashing two blocks (tree node), using width-24 compression.
             [left, right] => {
+                // we compress parameter, tweak, message (now containing two parts)
                 let perm = default_babybear_poseidon2_24();
                 let combined_input: Vec<F> = parameter
                     .iter()
@@ -290,8 +290,8 @@ impl<
                 poseidon_compress::<_, 24, HASH_LEN>(&perm, &combined_input)
             }
 
-            // Case 3: Hashing many blocks, using the idiomatic sponge construction.
             _ if message.len() > 2 => {
+                // Hashing many blocks
                 let perm = default_babybear_poseidon2_24();
                 let combined_input: Vec<F> = parameter
                     .iter()
