@@ -180,13 +180,18 @@ where
         "Capacity must be smaller than the state size."
     );
 
+    let extra_elements = (rate - (input.len() % rate)) % rate;
+    let mut input_vector = input.to_vec();
+    // padding with 0s
+    input_vector.resize(input.len() + extra_elements, F::ZERO);
+
     // initialize
     let mut state = [F::ZERO; WIDTH];
     state[rate..].copy_from_slice(capacity_value);
 
     // absorb
-    for chunk in input.chunks(rate) {
-        for i in 0..rate {
+    for chunk in input_vector.chunks(rate) {
+        for i in 0..chunk.len() {
             state[i] += chunk[i];
         }
         perm.permute_mut(&mut state);
