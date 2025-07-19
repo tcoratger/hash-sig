@@ -3,8 +3,6 @@ use p3_baby_bear::default_babybear_poseidon2_24;
 use p3_baby_bear::BabyBear;
 use p3_field::PrimeCharacteristicRing;
 use p3_field::PrimeField64;
-use p3_symmetric::CryptographicHasher;
-use p3_symmetric::PaddingFreeSponge;
 use p3_symmetric::Permutation;
 
 use crate::TWEAK_SEPARATOR_FOR_CHAIN_HASH;
@@ -60,6 +58,148 @@ impl PoseidonTweak {
             F::from_u128(digit)
         })
     }
+}
+
+/// Poseidon Compression Function.
+///
+/// Computes:
+///     PoseidonCompress(x) = Truncate(PoseidonPermute(x) + x)
+///
+/// This function takes an input slice `x`, applies the Poseidon permutation,
+/// adds the original input back (as a feed-forward), and returns the first `OUT_LEN` elements.
+///
+/// - `WIDTH`: total state width (input length to permutation).
+/// - `OUT_LEN`: number of output elements to return.
+/// - `perm`: a Poseidon permutation over `[F; WIDTH]`.
+/// - `input`: slice of input values, must be `≤ WIDTH` and `≥ OUT_LEN`.
+///
+/// Returns: the first `OUT_LEN` elements of the permuted and compressed state.
+///
+/// Panics:
+/// - If `input.len() < OUT_LEN`
+/// - If `OUT_LEN > WIDTH`
+#[must_use]
+pub fn poseidon_compress<P, const WIDTH: usize, const OUT_LEN: usize>(
+    perm: &P,
+    input: &[F],
+) -> [F; OUT_LEN]
+where
+    P: Permutation<[F; WIDTH]>,
+{
+    assert!(
+        input.len() >= OUT_LEN,
+        "Poseidon Compression: Input length must be at least output length."
+    );
+
+    // Copy the input into a fixed-width buffer, zero-padding unused elements if any.
+    let mut padded_input = [F::ZERO; WIDTH];
+    padded_input[..input.len()].copy_from_slice(input);
+
+    // Start with the input as the initial state.
+    let mut state = padded_input;
+
+    // Apply the Poseidon permutation in-place.
+    perm.permute_mut(&mut state);
+
+    // Feed-forward: Add the input back into the state element-wise.
+    for i in 0..WIDTH {
+        state[i] += padded_input[i];
+    }
+
+    // Truncate and return the first `OUT_LEN` elements of the state.
+    state[..OUT_LEN]
+        .try_into()
+        .expect("OUT_LEN is larger than permutation width")
+}
+
+/// Poseidon Sponge Hash Function.
+///
+/// Absorbs an arbitrary-length input using the Poseidon sponge construction
+/// and outputs `OUT_LEN` field elements. Domain separation is achieved by
+/// injecting a `capacity_value` into the state.
+///
+/// - `WIDTH`: sponge state width.
+/// - `OUT_LEN`: number of output elements.
+/// - `perm`: Poseidon permutation over `[F; WIDTH]`.
+/// - `capacity_value`: values to occupy the capacity part of the state (must be ≤ `WIDTH`).
+/// - `input`: message to hash (any length).
+///
+/// This follows the classic sponge structure:
+/// - Absorption: inputs are added chunk-by-chunk into the first `rate` elements of the state.
+/// - Squeezing: outputs are read from the first `rate` elements of the state, permuted as needed.
+///
+/// Panics:
+/// - If `capacity_value.len() >= WIDTH`
+pub fn poseidon_sponge<P, const WIDTH: usize, const OUT_LEN: usize>(
+    perm: &P,
+    capacity_value: &[F],
+    input: &[F],
+) -> [F; OUT_LEN]
+where
+    P: Permutation<[F; WIDTH]>,
+{
+    let rate = WIDTH - capacity_value.len();
+    assert!(
+        rate < WIDTH,
+        "Capacity must be smaller than the state size."
+    );
+
+    // initialize
+    let mut state = [F::ZERO; WIDTH];
+    state[rate..].copy_from_slice(capacity_value);
+
+    // absorb
+    for chunk in input.chunks(rate) {
+        for i in 0..rate {
+            state[i] += chunk[i];
+        }
+        perm.permute_mut(&mut state);
+    }
+
+    // squeeze
+    let mut out = vec![];
+    while out.len() < OUT_LEN {
+        out.extend_from_slice(&state[..rate]);
+        perm.permute_mut(&mut state);
+    }
+    let slice = &out[0..OUT_LEN];
+    slice.try_into().expect("Length mismatch")
+}
+
+/// Computes a Poseidon-based domain separator by compressing an array of `usize`
+/// values (interpreted as 32-bit words) using a fixed Poseidon instance.
+///
+/// ### Usage constraints
+/// - This function is private because it's tailored to one very specific case:
+///   the Poseidon2 instance with arity 24 and a fixed 4-word input.
+/// - If generalization is ever needed, a more generic and slower version should be used.
+fn poseidon_safe_domain_separator<P, const WIDTH: usize, const OUT_LEN: usize>(
+    perm: &P,
+    params: &[u32; DOMAIN_PARAMETERS_LENGTH],
+) -> [F; OUT_LEN]
+where
+    P: Permutation<[F; WIDTH]>,
+{
+    // Combine params into a single number in base 2^32
+    //
+    // WARNING: We can use a u128 instead of a BigUint only because `params`
+    // has 4 elements in base 2^32.
+    let mut acc: u128 = 0;
+    for &param in params {
+        acc = (acc << 32) | (param as u128);
+    }
+
+    // Compute base-p decomposition
+    //
+    // We can use 24 as hardcoded because the only time we use this function
+    // is for the corresponding Poseidon instance.
+    let input = std::array::from_fn::<_, 24, _>(|_| {
+        let digit = acc % F::ORDER_U64 as u128;
+        acc /= F::ORDER_U64 as u128;
+        F::from_u64(digit.try_into().unwrap())
+    });
+
+    poseidon_compress::<_, WIDTH, OUT_LEN>(perm, &input)
 }
 
 /// A tweakable hash function implemented using Poseidon2
@@ -128,82 +268,49 @@ impl<
             // Case 1: Hashing one block (chaining), using width-16 compression.
             [single] => {
                 let perm = default_babybear_poseidon2_16();
-
-                let mut combined_input = [F::ZERO; 16];
-                let mut offset = 0;
-                combined_input[offset..offset + PARAMETER_LEN].copy_from_slice(parameter);
-                offset += PARAMETER_LEN;
-                combined_input[offset..offset + TWEAK_LEN].copy_from_slice(&tweak_fe);
-                offset += TWEAK_LEN;
-                combined_input[offset..offset + HASH_LEN].copy_from_slice(single);
-
-                let mut state = combined_input;
-                perm.permute_mut(&mut state);
-                for i in 0..16 {
-                    state[i] += combined_input[i];
-                }
-
-                state[0..HASH_LEN]
-                    .try_into()
-                    .expect("Slice with incorrect length")
+                let combined_input: Vec<F> = parameter
+                    .iter()
+                    .chain(tweak_fe.iter())
+                    .chain(single.iter())
+                    .copied()
+                    .collect();
+                poseidon_compress::<_, 16, HASH_LEN>(&perm, &combined_input)
             }
 
             // Case 2: Hashing two blocks (tree node), using width-24 compression.
             [left, right] => {
                 let perm = default_babybear_poseidon2_24();
-
-                let mut combined_input = [F::ZERO; 24];
-                let mut offset = 0;
-                combined_input[offset..offset + PARAMETER_LEN].copy_from_slice(parameter);
-                offset += PARAMETER_LEN;
-                combined_input[offset..offset + TWEAK_LEN].copy_from_slice(&tweak_fe);
-                offset += TWEAK_LEN;
-                combined_input[offset..offset + HASH_LEN].copy_from_slice(left);
-                offset += HASH_LEN;
-                combined_input[offset..offset + HASH_LEN].copy_from_slice(right);
-
-                let mut state = combined_input;
-                perm.permute_mut(&mut state);
-                for i in 0..24 {
-                    state[i] += combined_input[i];
-                }
-
-                state[..HASH_LEN]
-                    .try_into()
-                    .expect("Slice with incorrect length")
+                let combined_input: Vec<F> = parameter
+                    .iter()
+                    .chain(tweak_fe.iter())
+                    .chain(left.iter())
+                    .chain(right.iter())
+                    .copied()
+                    .collect();
+                poseidon_compress::<_, 24, HASH_LEN>(&perm, &combined_input)
             }
 
             // Case 3: Hashing many blocks, using the idiomatic sponge construction.
-            _ => {
-                // Instantiate the correct sponge hasher struct: `PaddingFreeSponge`.
-                // We use a RATE of 16, a standard choice for a width-24 sponge.
-                // The output size `OUT` is the `HASH_LEN` of our TweakableHash.
-                const RATE: usize = 16;
-
-                // Get the default Poseidon2 permutation with a width of 24.
-                let permutation = default_babybear_poseidon2_24();
-
-                let hasher = PaddingFreeSponge::<_, 24, RATE, HASH_LEN>::new(permutation);
-
-                // Prepare the domain separation prefix.
-                let lengths: [F; DOMAIN_PARAMETERS_LENGTH] = [
-                    F::from_u32(PARAMETER_LEN as u32),
-                    F::from_u32(TWEAK_LEN as u32),
-                    F::from_u32(NUM_CHUNKS as u32),
-                    F::from_u32(HASH_LEN as u32),
-                ];
-
-                // Create an iterator that chains all data to be hashed.
-                let elements_to_hash = lengths
+            _ if message.len() > 2 => {
+                let perm = default_babybear_poseidon2_24();
+                let combined_input: Vec<F> = parameter
                     .iter()
-                    .chain(parameter.iter())
                     .chain(tweak_fe.iter())
                     .chain(message.iter().flatten())
-                    .copied();
+                    .copied()
+                    .collect();
 
-                // Call the hasher.
-                hasher.hash_iter(elements_to_hash)
+                let lengths: [u32; DOMAIN_PARAMETERS_LENGTH] = [
+                    PARAMETER_LEN as u32,
+                    TWEAK_LEN as u32,
+                    NUM_CHUNKS as u32,
+                    HASH_LEN as u32,
+                ];
+                let capacity_value =
+                    poseidon_safe_domain_separator::<_, 24, CAPACITY>(&perm, &lengths);
+                poseidon_sponge::<_, 24, HASH_LEN>(&perm, &capacity_value, &combined_input)
             }
+            _ => [F::ONE; HASH_LEN], // Unreachable case, added for safety
         }
     }
 

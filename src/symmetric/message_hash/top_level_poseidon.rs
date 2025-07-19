@@ -4,7 +4,6 @@ use p3_baby_bear::BabyBear;
 use p3_field::PrimeCharacteristicRing;
 use p3_field::PrimeField;
 use p3_field::PrimeField64;
-use p3_symmetric::Permutation;
 
 use super::poseidon::encode_epoch;
 use super::poseidon::encode_message;
@@ -12,6 +11,7 @@ use super::MessageHash;
 use crate::hypercube::hypercube_find_layer;
 use crate::hypercube::hypercube_part_size;
 use crate::hypercube::map_to_vertex;
+use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
 use crate::MESSAGE_LENGTH;
 
 type F = BabyBear;
@@ -157,24 +157,11 @@ impl<
                 .copied()
                 .collect();
 
-            // Pad the input to the permutation width (24).
-            let mut combined_input_padded = [F::ZERO; 24];
-            combined_input_padded[..combined_input.len()].copy_from_slice(&combined_input);
-
-            // Compression logic.
-            let mut state = combined_input_padded;
-            perm.permute_mut(&mut state);
-            for j in 0..24 {
-                state[j] += combined_input_padded[j];
-            }
-
-            // Copy the result chunk into the final output array.
-            let output_chunk: [F; POS_OUTPUT_LEN_PER_INV_FE] = state[..POS_OUTPUT_LEN_PER_INV_FE]
-                .try_into()
-                .expect("Output slice has incorrect length");
+            let iteration_pos_output =
+                poseidon_compress::<_, 24, POS_OUTPUT_LEN_PER_INV_FE>(&perm, &combined_input);
 
             pos_outputs[i * POS_OUTPUT_LEN_PER_INV_FE..(i + 1) * POS_OUTPUT_LEN_PER_INV_FE]
-                .copy_from_slice(&output_chunk);
+                .copy_from_slice(&iteration_pos_output);
         }
 
         // turn the field elements into an element in the part

@@ -4,9 +4,9 @@ use p3_baby_bear::BabyBear;
 use p3_field::PrimeCharacteristicRing;
 use p3_field::PrimeField;
 use p3_field::PrimeField64;
-use p3_symmetric::Permutation;
 
 use super::MessageHash;
+use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
 use crate::MESSAGE_LENGTH;
 use crate::TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
 
@@ -137,21 +137,7 @@ impl<
             .copied()
             .collect();
 
-        // Pad the input to the permutation's width (24).
-        let mut combined_input_padded = [F::ZERO; 24];
-        combined_input_padded[..combined_input_vec.len()].copy_from_slice(&combined_input_vec);
-
-        // Compression logic.
-        let mut state = combined_input_padded;
-        perm.permute_mut(&mut state);
-        for i in 0..24 {
-            state[i] += combined_input_padded[i];
-        }
-
-        // Truncate the state to get the final hash output in field elements.
-        let hash_fe: [F; HASH_LEN_FE] = state[..HASH_LEN_FE]
-            .try_into()
-            .expect("HASH_LEN_FE is larger than the permutation width");
+        let hash_fe = poseidon_compress::<_, 24, HASH_LEN_FE>(&perm, &combined_input_vec);
 
         // Decode field elements into chunks and return them.
         decode_to_chunks::<DIMENSION, BASE, HASH_LEN_FE>(&hash_fe).to_vec()
