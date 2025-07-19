@@ -161,7 +161,7 @@ impl<
             let mut combined_input_padded = [F::ZERO; 24];
             combined_input_padded[..combined_input.len()].copy_from_slice(&combined_input);
 
-            // Replicate the original `Perm(x) + x` compression logic.
+            // Compression logic.
             let mut state = combined_input_padded;
             perm.permute_mut(&mut state);
             for j in 0..24 {
