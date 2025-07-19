@@ -236,9 +236,7 @@ impl<
             "Poseidon Tweak Tree Hash: Input lengths too large for Poseidon instance"
         );
 
-        let bits_per_fe = f64::floor(f64::log2(
-            BigUint::from(F::ORDER_U64).to_string().parse().unwrap(),
-        ));
+        let bits_per_fe = f64::floor(f64::log2(F::ORDER_U64 as f64));
         let state_bits = bits_per_fe * f64::from(24_u32);
         assert!(
             state_bits >= f64::from((DOMAIN_PARAMETERS_LENGTH * 32) as u32),

@@ -220,9 +220,7 @@ impl<
         );
 
         // How many bits can be represented by one field element
-        let bits_per_fe = f64::floor(f64::log2(
-            BigUint::from(F::ORDER_U64).to_string().parse().unwrap(),
-        ));
+        let bits_per_fe = f64::floor(f64::log2(F::ORDER_U64 as f64));
 
         // Check that we have enough bits to encode message
         let message_fe_bits = bits_per_fe * f64::from(MSG_LEN_FE as u32);
