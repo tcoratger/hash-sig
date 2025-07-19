@@ -196,7 +196,7 @@ where
     let input = std::array::from_fn::<_, 24, _>(|_| {
         let digit = acc % F::ORDER_U64 as u128;
         acc /= F::ORDER_U64 as u128;
-        F::from_u64(digit.try_into().unwrap())
+        F::from_u128(digit)
     });
 
     poseidon_compress::<_, WIDTH, OUT_LEN>(perm, &input)
