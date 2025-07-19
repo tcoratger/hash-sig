@@ -19,13 +19,10 @@ pub(crate) fn encode_message<const MSG_LEN_FE: usize>(
     // Interpret message as a little-endian integer
     let mut acc = BigUint::from_bytes_le(message);
 
-    // Get the modulus as BigUint once
-    let p = BigUint::from(F::ORDER_U64);
-
     // Perform base-p decomposition
     std::array::from_fn(|_| {
-        let digit = &acc % &p;
-        acc /= &p;
+        let digit = &acc % F::ORDER_U64;
+        acc /= F::ORDER_U64;
         F::from_u64(digit.try_into().unwrap())
     })
 }
@@ -51,10 +48,9 @@ fn decode_to_chunks<const DIMENSION: usize, const BASE: usize, const HASH_LEN_FE
     field_elements: &[F; HASH_LEN_FE],
 ) -> [u8; DIMENSION] {
     // Combine field elements into one big integer
-    let p = BigUint::from(F::ORDER_U64);
     let mut acc = BigUint::ZERO;
     for fe in field_elements {
-        acc = &acc * &p + fe.as_canonical_biguint();
+        acc = &acc * F::ORDER_U64 + fe.as_canonical_biguint();
     }
 
     // Convert to base-BASE

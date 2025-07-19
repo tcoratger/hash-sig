@@ -316,12 +316,6 @@ impl<
 
     #[cfg(test)]
     fn internal_consistency_check() {
-        use num_bigint::BigUint;
-
-        assert!(
-            BigUint::from(F::ORDER_U64) < BigUint::from(u64::MAX),
-            "The prime field used is too large"
-        );
         assert!(
             CAPACITY < 24,
             "Poseidon Tweak Chain Hash: Capacity must be less than 24"

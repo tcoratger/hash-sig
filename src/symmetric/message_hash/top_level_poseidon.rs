@@ -29,10 +29,9 @@ fn map_into_hypercube_part<
     field_elements: &[F; INPUT_LEN],
 ) -> Vec<u8> {
     // Combine field elements into one big integer
-    let p = BigUint::from(F::ORDER_U64);
     let mut acc = BigUint::ZERO;
     for fe in field_elements {
-        acc = &acc * &p + fe.as_canonical_biguint();
+        acc = &acc * F::ORDER_U64 + fe.as_canonical_biguint();
     }
 
     // Take this big integer modulo the total output domain size
