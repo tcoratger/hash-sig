@@ -112,6 +112,42 @@ where
         .expect("OUT_LEN is larger than permutation width")
 }
 
+/// Computes a Poseidon-based domain separator by compressing an array of `usize`
+/// values (interpreted as 32-bit words) using a fixed Poseidon instance.
+///
+/// ### Usage constraints
+/// - This function is private because it's tailored to one very specific case:
+///   the Poseidon2 instance with arity 24 and a fixed 4-word input.
+/// - If generalization is ever needed, a more generic and slower version should be used.
+fn poseidon_safe_domain_separator<P, const WIDTH: usize, const OUT_LEN: usize>(
+    perm: &P,
+    params: &[u32; DOMAIN_PARAMETERS_LENGTH],
+) -> [F; OUT_LEN]
+where
+    P: Permutation<[F; WIDTH]>,
+{
+    // Combine params into a single number in base 2^32
+    //
+    // WARNING: We can use a u128 instead of a BigUint only because `params`
+    // has 4 elements in base 2^32.
+    let mut acc: u128 = 0;
+    for &param in params {
+        acc = (acc << 32) | (param as u128);
+    }
+
+    // Compute base-p decomposition
+    //
+    // We can use 24 as hardcoded because the only time we use this function
+    // is for the corresponding Poseidon instance.
+    let input = std::array::from_fn::<_, 24, _>(|_| {
+        let digit = acc % F::ORDER_U64 as u128;
+        acc /= F::ORDER_U64 as u128;
+        F::from_u128(digit)
+    });
+
+    poseidon_compress::<_, WIDTH, OUT_LEN>(perm, &input)
+}
+
 /// Poseidon Sponge Hash Function.
 ///
 /// Absorbs an arbitrary-length input using the Poseidon sponge construction
@@ -164,42 +200,6 @@ where
     }
     let slice = &out[0..OUT_LEN];
     slice.try_into().expect("Length mismatch")
-}
-
-/// Computes a Poseidon-based domain separator by compressing an array of `usize`
-/// values (interpreted as 32-bit words) using a fixed Poseidon instance.
-///
-/// ### Usage constraints
-/// - This function is private because it's tailored to one very specific case:
-///   the Poseidon2 instance with arity 24 and a fixed 4-word input.
-/// - If generalization is ever needed, a more generic and slower version should be used.
-fn poseidon_safe_domain_separator<P, const WIDTH: usize, const OUT_LEN: usize>(
-    perm: &P,
-    params: &[u32; DOMAIN_PARAMETERS_LENGTH],
-) -> [F; OUT_LEN]
-where
-    P: Permutation<[F; WIDTH]>,
-{
-    // Combine params into a single number in base 2^32
-    //
-    // WARNING: We can use a u128 instead of a BigUint only because `params`
-    // has 4 elements in base 2^32.
-    let mut acc: u128 = 0;
-    for &param in params {
-        acc = (acc << 32) | (param as u128);
-    }
-
-    // Compute base-p decomposition
-    //
-    // We can use 24 as hardcoded because the only time we use this function
-    // is for the corresponding Poseidon instance.
-    let input = std::array::from_fn::<_, 24, _>(|_| {
-        let digit = acc % F::ORDER_U64 as u128;
-        acc /= F::ORDER_U64 as u128;
-        F::from_u128(digit)
-    });
-
-    poseidon_compress::<_, WIDTH, OUT_LEN>(perm, &input)
 }
 
 /// A tweakable hash function implemented using Poseidon2
