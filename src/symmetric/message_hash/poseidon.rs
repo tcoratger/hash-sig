@@ -169,12 +169,6 @@ impl<
         );
         assert!(HASH_LEN_FE <= 24, "Poseidon of width 24 is not enough");
 
-        // Modulus check
-        assert!(
-            BigUint::from(F::ORDER_U64) < BigUint::from(u64::MAX),
-            "The prime field used is too large"
-        );
-
         // Base and dimension check
         assert!(
             Self::BASE <= 1 << 8,

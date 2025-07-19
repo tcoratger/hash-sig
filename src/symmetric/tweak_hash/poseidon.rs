@@ -14,11 +14,6 @@ use super::TweakableHash;
 
 type F = BabyBear;
 
-/// Modulus of the field as u128
-///
-/// Note: It's fine to take only the first limb as we are using prime fields with <= 64 bits
-const MODULUS_128: u128 = F::ORDER_U64 as u128;
-
 const DOMAIN_PARAMETERS_LENGTH: usize = 4;
 
 /// Enum to implement tweaks.
@@ -58,13 +53,10 @@ impl PoseidonTweak {
             }
         };
 
-        // Get the modulus
-        let p = MODULUS_128;
-
         // Now we interpret this integer in base-p to get field elements
         std::array::from_fn(|_| {
-            let digit = acc % p;
-            acc /= p;
+            let digit = acc % F::ORDER_U64 as u128;
+            acc /= F::ORDER_U64 as u128;
             F::from_u128(digit)
         })
     }
