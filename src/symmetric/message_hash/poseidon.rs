@@ -35,15 +35,10 @@ pub(crate) fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_L
     // Combine epoch and domain separator
     let mut acc = ((epoch as u64) << 8) | (TWEAK_SEPARATOR_FOR_MESSAGE_HASH as u64);
 
-    // Get the modulus
-    //
-    // This is fine to take only the first limb as we are using prime fields with <= 64 bits
-    let p = F::ORDER_U64;
-
     // Convert into field elements in base-p
     std::array::from_fn(|_| {
-        let digit = acc % p;
-        acc /= p;
+        let digit = acc % F::ORDER_U64;
+        acc /= F::ORDER_U64;
         F::from_u64(digit)
     })
 }
