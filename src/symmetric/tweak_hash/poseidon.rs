@@ -1,26 +1,23 @@
-use zkhash::ark_ff::MontConfig;
-use zkhash::ark_ff::One;
-use zkhash::ark_ff::UniformRand;
-use zkhash::ark_ff::Zero;
-use zkhash::poseidon2::poseidon2_instance_babybear::{
-    POSEIDON2_BABYBEAR_16_PARAMS, POSEIDON2_BABYBEAR_24_PARAMS,
-};
-use zkhash::{
-    fields::babybear::{FpBabyBear, FqConfig},
-    poseidon2::poseidon2::Poseidon2,
-};
+use p3_baby_bear::default_babybear_poseidon2_16;
+use p3_baby_bear::default_babybear_poseidon2_24;
+use p3_baby_bear::BabyBear;
+use p3_field::PrimeCharacteristicRing;
+use p3_field::PrimeField64;
+use p3_symmetric::CryptographicHasher;
+use p3_symmetric::PaddingFreeSponge;
+use p3_symmetric::Permutation;
 
 use crate::TWEAK_SEPARATOR_FOR_CHAIN_HASH;
 use crate::TWEAK_SEPARATOR_FOR_TREE_HASH;
 
 use super::TweakableHash;
 
-type F = FpBabyBear;
+type F = BabyBear;
 
 /// Modulus of the field as u128
 ///
-// Note: It's fine to take only the first limb as we are using prime fields with <= 64 bits
-const MODULUS_128: u128 = FqConfig::MODULUS.0[0] as u128;
+/// Note: It's fine to take only the first limb as we are using prime fields with <= 64 bits
+const MODULUS_128: u128 = F::ORDER_U64 as u128;
 
 const DOMAIN_PARAMETERS_LENGTH: usize = 4;
 
@@ -68,126 +65,9 @@ impl PoseidonTweak {
         std::array::from_fn(|_| {
             let digit = acc % p;
             acc /= p;
-            F::from(digit)
+            F::from_u128(digit)
         })
     }
-}
-
-/// Function to first pad input to appropriate length and
-/// then apply the Poseidon permutation.
-fn poseidon_padded_permute(instance: &Poseidon2<F>, input: &[F]) -> Vec<F> {
-    assert!(
-        input.len() <= instance.get_t(),
-        "Poseidon Compression: Input length too large for Poseidon parameters."
-    );
-
-    // pad input with zeroes to have exactly length instance.get_t()
-    let mut padded_input = input.to_vec();
-    padded_input.resize_with(instance.get_t(), F::zero);
-
-    // apply permutation and return
-    instance.permutation(&padded_input)
-}
-
-/// Poseidon Compression Function, using the Poseidon Permutation.
-/// It works as PoseidonCompress(x) = Truncate(PoseidonPermute(x) + x)
-#[must_use]
-pub fn poseidon_compress<const OUT_LEN: usize>(
-    instance: &Poseidon2<F>,
-    input: &[F],
-) -> [F; OUT_LEN] {
-    assert!(
-        input.len() >= OUT_LEN,
-        "Poseidon Compression: Input length must be at least output length."
-    );
-
-    // first permute input
-    let permuted_input = poseidon_padded_permute(instance, input);
-    // now, add them, but only for the positions we actually output.
-    std::array::from_fn(|i| permuted_input[i] + input[i])
-}
-
-/// Computes a Poseidon-based domain separator by compressing an array of `usize`
-/// values (interpreted as 32-bit words) using a fixed Poseidon instance.
-///
-/// ### Usage constraints
-/// - This function is private because it's tailored to one very specific case:
-///   the Poseidon2 instance with arity 24 and a fixed 4-word input.
-/// - If generalization is ever needed, a more generic and slower version should be used.
-fn poseidon_safe_domain_separator<const OUT_LEN: usize>(
-    instance: &Poseidon2<F>,
-    params: &[u32; DOMAIN_PARAMETERS_LENGTH],
-) -> [F; OUT_LEN] {
-    // Combine params into a single number in base 2^32
-    //
-    // WARNING: We can use a u128 instead of a BigUint only because `params`
-    // has 4 elements in base 2^32.
-    let mut acc: u128 = 0;
-    for &param in params {
-        acc = (acc << 32) | (param as u128);
-    }
-
-    // Get the modulus
-    let p = MODULUS_128;
-
-    // Compute base-p decomposition
-    //
-    // We can use 24 as hardcoded because the only time we use this function
-    // is for the corresponding Poseidon instance.
-    let input = std::array::from_fn::<_, 24, _>(|_| {
-        let digit = acc % p;
-        acc /= p;
-        F::from(digit)
-    });
-
-    // Compress the input using Poseidon
-    poseidon_compress(instance, &input)
-}
-
-/// Poseidon Sponge hash
-/// Takes an input of arbitrary length
-/// Capacity must hold an appropriate domain separator, e.g., hash of the lengths
-pub fn poseidon_sponge<const OUT_LEN: usize>(
-    instance: &Poseidon2<F>,
-    capacity_value: &[F],
-    input: &[F],
-) -> [F; OUT_LEN] {
-    // capacity must be shorter than the width
-    assert!(
-        capacity_value.len() < instance.get_t(),
-        "Poseidon Sponge: Capacity must be smaller than the state size."
-    );
-
-    let rate = instance.get_t() - capacity_value.len();
-
-    let extra_elements = (rate - (input.len() % rate)) % rate;
-    let mut input_vector = input.to_vec();
-
-    // padding with 0s
-    input_vector.resize_with(input.len() + extra_elements, F::zero);
-
-    // sponge mode has three phases: initialize, absorb, squeeze
-
-    // initialize
-    let mut state = vec![F::zero(); rate];
-    state.extend_from_slice(capacity_value);
-
-    // absorb
-    for chunk in input_vector.chunks(rate) {
-        for i in 0..chunk.len() {
-            state[i] += chunk[i];
-        }
-        state = instance.permutation(&state);
-    }
-
-    // squeeze
-    let mut out = vec![];
-    while out.len() < OUT_LEN {
-        out.extend_from_slice(&state[..rate]);
-        state = instance.permutation(&state);
-    }
-    let slice = &out[0..OUT_LEN];
-    slice.try_into().expect("Length mismatch")
 }
 
 /// A tweakable hash function implemented using Poseidon2
@@ -218,11 +98,11 @@ impl<
     type Domain = [F; HASH_LEN];
 
     fn rand_parameter<R: rand::Rng>(rng: &mut R) -> Self::Parameter {
-        std::array::from_fn(|_| F::rand(rng))
+        rng.random()
     }
 
     fn rand_domain<R: rand::Rng>(rng: &mut R) -> Self::Domain {
-        std::array::from_fn(|_| F::rand(rng))
+        rng.random()
     }
 
     fn tree_tweak(level: u8, pos_in_level: u32) -> Self::Tweak {
@@ -250,49 +130,88 @@ impl<
         // (2) hashing two siblings in the tree. We use compression mode.
         // (3) hashing a long vector of chain ends. We use sponge mode.
 
-        let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
-        let instance_short = Poseidon2::new(&POSEIDON2_BABYBEAR_16_PARAMS);
-        let tweak_fe = PoseidonTweak::to_field_elements::<TWEAK_LEN>(tweak);
+        let tweak_fe = tweak.to_field_elements::<TWEAK_LEN>();
 
         match message {
+            // Case 1: Hashing one block (chaining), using width-16 compression.
             [single] => {
-                // we compress parameter, tweak, message
-                let combined_input: Vec<F> = parameter
-                    .iter()
-                    .chain(tweak_fe.iter())
-                    .chain(single.iter())
-                    .copied()
-                    .collect();
-                poseidon_compress(&instance_short, &combined_input)
+                let perm = default_babybear_poseidon2_16();
+
+                let mut combined_input = [F::ZERO; 16];
+                let mut offset = 0;
+                combined_input[offset..offset + PARAMETER_LEN].copy_from_slice(parameter);
+                offset += PARAMETER_LEN;
+                combined_input[offset..offset + TWEAK_LEN].copy_from_slice(&tweak_fe);
+                offset += TWEAK_LEN;
+                combined_input[offset..offset + HASH_LEN].copy_from_slice(single);
+
+                let mut state = combined_input;
+                perm.permute_mut(&mut state);
+                for i in 0..16 {
+                    state[i] += combined_input[i];
+                }
+
+                state[0..HASH_LEN]
+                    .try_into()
+                    .expect("Slice with incorrect length")
             }
+
+            // Case 2: Hashing two blocks (tree node), using width-24 compression.
             [left, right] => {
-                // we compress parameter, tweak, message (now containing two parts)
-                let combined_input: Vec<F> = parameter
-                    .iter()
-                    .chain(tweak_fe.iter())
-                    .chain(left.iter())
-                    .chain(right.iter())
-                    .copied()
-                    .collect();
-                poseidon_compress(&instance, &combined_input)
+                let perm = default_babybear_poseidon2_24();
+
+                let mut combined_input = [F::ZERO; 24];
+                let mut offset = 0;
+                combined_input[offset..offset + PARAMETER_LEN].copy_from_slice(parameter);
+                offset += PARAMETER_LEN;
+                combined_input[offset..offset + TWEAK_LEN].copy_from_slice(&tweak_fe);
+                offset += TWEAK_LEN;
+                combined_input[offset..offset + HASH_LEN].copy_from_slice(left);
+                offset += HASH_LEN;
+                combined_input[offset..offset + HASH_LEN].copy_from_slice(right);
+
+                let mut state = combined_input;
+                perm.permute_mut(&mut state);
+                for i in 0..24 {
+                    state[i] += combined_input[i];
+                }
+
+                state[..HASH_LEN]
+                    .try_into()
+                    .expect("Slice with incorrect length")
             }
-            _ if message.len() > 2 => {
-                let combined_input: Vec<F> = parameter
+
+            // Case 3: Hashing many blocks, using the idiomatic sponge construction.
+            _ => {
+                // Instantiate the correct sponge hasher struct: `PaddingFreeSponge`.
+                // We use a RATE of 16, a standard choice for a width-24 sponge.
+                // The output size `OUT` is the `HASH_LEN` of our TweakableHash.
+                const RATE: usize = 16;
+
+                // Get the default Poseidon2 permutation with a width of 24.
+                let permutation = default_babybear_poseidon2_24();
+
+                let hasher = PaddingFreeSponge::<_, 24, RATE, HASH_LEN>::new(permutation);
+
+                // Prepare the domain separation prefix.
+                let lengths: [F; DOMAIN_PARAMETERS_LENGTH] = [
+                    F::from_u32(PARAMETER_LEN as u32),
+                    F::from_u32(TWEAK_LEN as u32),
+                    F::from_u32(NUM_CHUNKS as u32),
+                    F::from_u32(HASH_LEN as u32),
+                ];
+
+                // Create an iterator that chains all data to be hashed.
+                let elements_to_hash = lengths
                     .iter()
+                    .chain(parameter.iter())
                     .chain(tweak_fe.iter())
                     .chain(message.iter().flatten())
-                    .copied()
-                    .collect();
-                let lengths: [_; DOMAIN_PARAMETERS_LENGTH] = [
-                    PARAMETER_LEN as u32,
-                    TWEAK_LEN as u32,
-                    NUM_CHUNKS as u32,
-                    HASH_LEN as u32,
-                ];
-                let safe_input = poseidon_safe_domain_separator::<CAPACITY>(&instance, &lengths);
-                poseidon_sponge(&instance, &safe_input, &combined_input)
+                    .copied();
+
+                // Call the hasher.
+                hasher.hash_iter(elements_to_hash)
             }
-            _ => [F::one(); HASH_LEN], // Unreachable case, added for safety
         }
     }
 
@@ -301,7 +220,7 @@ impl<
         use num_bigint::BigUint;
 
         assert!(
-            BigUint::from(FqConfig::MODULUS) < BigUint::from(u64::MAX),
+            BigUint::from(F::ORDER_U64) < BigUint::from(u64::MAX),
             "The prime field used is too large"
         );
         assert!(
@@ -318,10 +237,7 @@ impl<
         );
 
         let bits_per_fe = f64::floor(f64::log2(
-            BigUint::from(FqConfig::MODULUS)
-                .to_string()
-                .parse()
-                .unwrap(),
+            BigUint::from(F::ORDER_U64).to_string().parse().unwrap(),
         ));
         let state_bits = bits_per_fe * f64::from(24_u32);
         assert!(
@@ -354,13 +270,13 @@ mod tests {
     use std::collections::HashMap;
 
     use num_bigint::BigUint;
-    use rand::{thread_rng, Rng};
+    use rand::Rng;
 
     use super::*;
 
     #[test]
     fn test_apply_44() {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         // make sure parameters make sense
         PoseidonTweak44::internal_consistency_check();
@@ -387,7 +303,7 @@ mod tests {
 
     #[test]
     fn test_apply_37() {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         // make sure parameters make sense
         PoseidonTweak37::internal_consistency_check();
@@ -410,7 +326,7 @@ mod tests {
     fn test_rand_parameter_not_all_same() {
         // Setup a umber of trials
         const K: usize = 10;
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         let mut all_same_count = 0;
 
         for _ in 0..K {
@@ -434,7 +350,7 @@ mod tests {
     fn test_rand_domain_not_all_same() {
         // Setup a umber of trials
         const K: usize = 10;
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         let mut all_same_count = 0;
 
         for _ in 0..K {
@@ -463,15 +379,16 @@ mod tests {
         let sep = TWEAK_SEPARATOR_FOR_TREE_HASH as u64;
 
         // Compute tweak_bigint
-        let tweak_bigint = (BigUint::from(level) << 40) + (BigUint::from(pos_in_level) << 8) + sep;
+        let tweak_bigint: BigUint =
+            (BigUint::from(level) << 40) + (BigUint::from(pos_in_level) << 8) + sep;
 
         // Use the field modulus
-        let p = BigUint::from(FqConfig::MODULUS);
+        let p = BigUint::from(F::ORDER_U64);
 
         // Extract field elements in base-p
         let expected = [
-            F::from(&tweak_bigint % &p),
-            F::from((&tweak_bigint / &p) % &p),
+            F::from_u128((&tweak_bigint % &p).try_into().unwrap()),
+            F::from_u128(((&tweak_bigint / &p) % &p).try_into().unwrap()),
         ];
 
         // Check actual output
@@ -492,18 +409,18 @@ mod tests {
         let sep = TWEAK_SEPARATOR_FOR_CHAIN_HASH as u64;
 
         // Compute tweak_bigint = (epoch << 24) + (chain_index << 16) + (pos_in_chain << 8) + sep
-        let tweak_bigint = (BigUint::from(epoch) << 24)
+        let tweak_bigint: BigUint = (BigUint::from(epoch) << 24)
             + (BigUint::from(chain_index) << 16)
             + (BigUint::from(pos_in_chain) << 8)
             + sep;
 
         // Use the field modulus
-        let p = BigUint::from(FqConfig::MODULUS);
+        let p = BigUint::from(F::ORDER_U64);
 
         // Extract field elements in base-p
         let expected = [
-            F::from(&tweak_bigint % &p),
-            F::from((&tweak_bigint / &p) % &p),
+            F::from_u128((&tweak_bigint % &p).try_into().unwrap()),
+            F::from_u128(((&tweak_bigint / &p) % &p).try_into().unwrap()),
         ];
 
         // Check actual output
@@ -522,12 +439,13 @@ mod tests {
         let pos_in_level = u32::MAX;
         let sep = TWEAK_SEPARATOR_FOR_TREE_HASH as u64;
 
-        let tweak_bigint = (BigUint::from(level) << 40) + (BigUint::from(pos_in_level) << 8) + sep;
+        let tweak_bigint: BigUint =
+            (BigUint::from(level) << 40) + (BigUint::from(pos_in_level) << 8) + sep;
 
-        let p = BigUint::from(FqConfig::MODULUS);
+        let p = BigUint::from(F::ORDER_U64);
         let expected = [
-            F::from(&tweak_bigint % &p),
-            F::from((&tweak_bigint / &p) % &p),
+            F::from_u128((&tweak_bigint % &p).try_into().unwrap()),
+            F::from_u128(((&tweak_bigint / &p) % &p).try_into().unwrap()),
         ];
 
         let tweak = PoseidonTweak::TreeTweak {
@@ -545,15 +463,15 @@ mod tests {
         let pos_in_chain = u8::MAX;
         let sep = TWEAK_SEPARATOR_FOR_CHAIN_HASH as u64;
 
-        let tweak_bigint = (BigUint::from(epoch) << 24)
+        let tweak_bigint: BigUint = (BigUint::from(epoch) << 24)
             + (BigUint::from(chain_index) << 16)
             + (BigUint::from(pos_in_chain) << 8)
             + sep;
 
-        let p = BigUint::from(FqConfig::MODULUS);
+        let p = BigUint::from(F::ORDER_U64);
         let expected = [
-            F::from(&tweak_bigint % &p),
-            F::from((&tweak_bigint / &p) % &p),
+            F::from_u128((&tweak_bigint % &p).try_into().unwrap()),
+            F::from_u128(((&tweak_bigint / &p) % &p).try_into().unwrap()),
         ];
 
         let tweak = PoseidonTweak::ChainTweak {
@@ -566,52 +484,8 @@ mod tests {
     }
 
     #[test]
-    fn test_poseidon_safe_domain_separator_small() {
-        let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
-
-        // Some small parameters
-        let params: [u32; 4] = [1, 2, 3, 4];
-
-        // Compute with the optimized function
-        let actual = poseidon_safe_domain_separator::<4>(&instance, &params);
-
-        // Ensure decomposed inputs match the manual base-p values
-        assert_eq!(
-            actual,
-            [
-                F::from(1_518_816_068),
-                F::from(1_903_366_844),
-                F::from(704_597_956),
-                F::from(30_279_094)
-            ]
-        );
-    }
-
-    #[test]
-    fn test_poseidon_safe_domain_separator_large() {
-        let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
-
-        // Example parameters: treat them as 32-bit words to be concatenated
-        let params = [u32::MAX; 4];
-
-        // Compute with the optimized function
-        let actual = poseidon_safe_domain_separator::<4>(&instance, &params);
-
-        // Ensure decomposed inputs match the manual base-p values
-        assert_eq!(
-            actual,
-            [
-                F::from(1_938_593_574),
-                F::from(935_512_994),
-                F::from(910_478_564),
-                F::from(584_381_639)
-            ]
-        );
-    }
-
-    #[test]
     fn test_tree_tweak_injective() {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         // basic test to check that tree tweak maps from
         // parameters to field elements array injectively
@@ -619,8 +493,8 @@ mod tests {
         // random inputs
         let mut map = HashMap::new();
         for _ in 0..100_000 {
-            let level = rng.gen();
-            let pos_in_level = rng.gen();
+            let level = rng.random();
+            let pos_in_level = rng.random();
             let tweak_encoding = PoseidonTweak::TreeTweak {
                 level,
                 pos_in_level,
@@ -645,9 +519,9 @@ mod tests {
 
         // inputs with common level
         let mut map = HashMap::new();
-        let level = rng.gen();
+        let level = rng.random();
         for _ in 0..10_000 {
-            let pos_in_level = rng.gen();
+            let pos_in_level = rng.random();
             let tweak_encoding = PoseidonTweak::TreeTweak {
                 level,
                 pos_in_level,
@@ -665,9 +539,9 @@ mod tests {
 
         // inputs with common pos_in_level
         let mut map = HashMap::new();
-        let pos_in_level = rng.gen();
+        let pos_in_level = rng.random();
         for _ in 0..10_000 {
-            let level = rng.gen();
+            let level = rng.random();
             let tweak_encoding = PoseidonTweak::TreeTweak {
                 level,
                 pos_in_level,
@@ -686,7 +560,7 @@ mod tests {
 
     #[test]
     fn test_chain_tweak_injective() {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         // basic test to check that chain tweak maps from
         // parameters to field element array injectively
@@ -694,9 +568,9 @@ mod tests {
         // random inputs
         let mut map = HashMap::new();
         for _ in 0..100_000 {
-            let epoch = rng.gen();
-            let chain_index = rng.gen();
-            let pos_in_chain = rng.gen();
+            let epoch = rng.random();
+            let chain_index = rng.random();
+            let pos_in_chain = rng.random();
 
             let input = (epoch, chain_index, pos_in_chain);
 
@@ -717,10 +591,10 @@ mod tests {
 
         // inputs with fixed epoch
         let mut map = HashMap::new();
-        let epoch = rng.gen();
+        let epoch = rng.random();
         for _ in 0..10_000 {
-            let chain_index = rng.gen();
-            let pos_in_chain = rng.gen();
+            let chain_index = rng.random();
+            let pos_in_chain = rng.random();
 
             let input = (chain_index, pos_in_chain);
 
@@ -741,10 +615,10 @@ mod tests {
 
         // inputs with fixed chain_index
         let mut map = HashMap::new();
-        let chain_index = rng.gen();
+        let chain_index = rng.random();
         for _ in 0..10_000 {
-            let epoch = rng.gen();
-            let pos_in_chain = rng.gen();
+            let epoch = rng.random();
+            let pos_in_chain = rng.random();
 
             let input = (epoch, pos_in_chain);
 
@@ -765,10 +639,10 @@ mod tests {
 
         // inputs with fixed pos_in_chain
         let mut map = HashMap::new();
-        let pos_in_chain = rng.gen();
+        let pos_in_chain = rng.random();
         for _ in 0..10_000 {
-            let epoch = rng.gen();
-            let chain_index = rng.gen();
+            let epoch = rng.random();
+            let chain_index = rng.random();
 
             let input = (epoch, chain_index);
 

@@ -1,5 +1,5 @@
 use criterion::{black_box, Criterion, SamplingMode};
-use rand::{thread_rng, Rng};
+use rand::Rng;
 
 use hashsig::{
     signature::{
@@ -20,7 +20,7 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
     group.sampling_mode(SamplingMode::Flat);
     group.sample_size(10);
 
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
 
     // Note: benchmarking key generation takes long, so it is
     // commented out for now. You can enable it here.
@@ -44,7 +44,7 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
             rng.fill(&mut message);
 
             // Sample random epoch
-            let epoch = rng.gen_range(0..S::LIFETIME) as u32;
+            let epoch = rng.random_range(0..S::LIFETIME) as u32;
 
             // Benchmark signing
             let _ = S::sign(
@@ -61,7 +61,7 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
         .map(|_| {
             let mut message = [0u8; MESSAGE_LENGTH];
             rng.fill(&mut message);
-            let epoch = rng.gen_range(0..S::LIFETIME) as u32;
+            let epoch = rng.random_range(0..S::LIFETIME) as u32;
             let signature =
                 S::sign(&mut rng, &sk, epoch, &message).expect("Signing should succeed");
             (epoch, message, signature)
@@ -73,7 +73,7 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
         b.iter(|| {
             // Randomly pick a precomputed signature to verify
             let (epoch, message, signature) =
-                black_box(&precomputed[rng.gen_range(0..precomputed.len())]);
+                black_box(&precomputed[rng.random_range(0..precomputed.len())]);
             let _ = S::verify(
                 black_box(&pk),
                 *epoch,

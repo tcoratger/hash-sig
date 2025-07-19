@@ -1,23 +1,20 @@
 use num_bigint::BigUint;
-use num_traits::Zero;
-use zkhash::ark_ff::MontConfig;
-use zkhash::ark_ff::PrimeField;
-use zkhash::ark_ff::UniformRand;
-use zkhash::fields::babybear::FpBabyBear;
-use zkhash::fields::babybear::FqConfig;
-use zkhash::poseidon2::poseidon2::Poseidon2;
-use zkhash::poseidon2::poseidon2_instance_babybear::POSEIDON2_BABYBEAR_24_PARAMS;
+use p3_baby_bear::default_babybear_poseidon2_24;
+use p3_baby_bear::BabyBear;
+use p3_field::PrimeCharacteristicRing;
+use p3_field::PrimeField;
+use p3_field::PrimeField64;
+use p3_symmetric::Permutation;
 
+use super::poseidon::encode_epoch;
+use super::poseidon::encode_message;
 use super::MessageHash;
 use crate::hypercube::hypercube_find_layer;
 use crate::hypercube::hypercube_part_size;
 use crate::hypercube::map_to_vertex;
-use crate::symmetric::message_hash::poseidon::encode_epoch;
-use crate::symmetric::message_hash::poseidon::encode_message;
-use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
 use crate::MESSAGE_LENGTH;
 
-type F = FpBabyBear;
+type F = BabyBear;
 
 /// Function to make a list of field elements to a vertex in layers 0, ..., FINAL_LAYER
 /// of the hypercube {0,...,BASE-1}^DIMENSION.
@@ -32,10 +29,10 @@ fn map_into_hypercube_part<
     field_elements: &[F; INPUT_LEN],
 ) -> Vec<u8> {
     // Combine field elements into one big integer
-    let p = BigUint::from(FqConfig::MODULUS);
+    let p = BigUint::from(F::ORDER_U64);
     let mut acc = BigUint::ZERO;
     for fe in field_elements {
-        acc = &acc * &p + BigUint::from(fe.into_bigint());
+        acc = &acc * &p + fe.as_canonical_biguint();
     }
 
     // Take this big integer modulo the total output domain size
@@ -129,7 +126,7 @@ impl<
     const BASE: usize = BASE;
 
     fn rand<R: rand::Rng>(rng: &mut R) -> Self::Randomness {
-        std::array::from_fn(|_| F::rand(rng))
+        rng.random()
     }
 
     fn apply(
@@ -138,18 +135,17 @@ impl<
         randomness: &Self::Randomness,
         message: &[u8; MESSAGE_LENGTH],
     ) -> Vec<u8> {
-        // we need a Poseidon instance
-        let instance = Poseidon2::new(&POSEIDON2_BABYBEAR_24_PARAMS);
+        let perm = default_babybear_poseidon2_24();
 
         // first, encode the message and the epoch as field elements
         let message_fe = encode_message::<MSG_LEN_FE>(message);
         let epoch_fe = encode_epoch::<TWEAK_LEN_FE>(epoch);
 
         // now, invoke Poseidon a few times, to get field elements
-        let mut pos_outputs = [F::zero(); POS_OUTPUT_LEN_FE];
+        let mut pos_outputs = [F::ZERO; POS_OUTPUT_LEN_FE];
         for i in 0..POS_INVOCATIONS {
             // iteration domain separator
-            let iteration_index = [F::from(i as u8)];
+            let iteration_index = [F::from_u8(i as u8)];
 
             // assemble input for this iteration
             let combined_input: Vec<F> = randomness
@@ -161,10 +157,24 @@ impl<
                 .copied()
                 .collect();
 
-            let iteration_pos_output: [F; POS_OUTPUT_LEN_PER_INV_FE] =
-                poseidon_compress(&instance, &combined_input);
+            // Pad the input to the permutation width (24).
+            let mut combined_input_padded = [F::ZERO; 24];
+            combined_input_padded[..combined_input.len()].copy_from_slice(&combined_input);
+
+            // Replicate the original `Perm(x) + x` compression logic.
+            let mut state = combined_input_padded;
+            perm.permute_mut(&mut state);
+            for j in 0..24 {
+                state[j] += combined_input_padded[j];
+            }
+
+            // Copy the result chunk into the final output array.
+            let output_chunk: [F; POS_OUTPUT_LEN_PER_INV_FE] = state[..POS_OUTPUT_LEN_PER_INV_FE]
+                .try_into()
+                .expect("Output slice has incorrect length");
+
             pos_outputs[i * POS_OUTPUT_LEN_PER_INV_FE..(i + 1) * POS_OUTPUT_LEN_PER_INV_FE]
-                .copy_from_slice(&iteration_pos_output);
+                .copy_from_slice(&output_chunk);
         }
 
         // turn the field elements into an element in the part
@@ -211,10 +221,7 @@ impl<
 
         // How many bits can be represented by one field element
         let bits_per_fe = f64::floor(f64::log2(
-            BigUint::from(FqConfig::MODULUS)
-                .to_string()
-                .parse()
-                .unwrap(),
+            BigUint::from(F::ORDER_U64).to_string().parse().unwrap(),
         ));
 
         // Check that we have enough bits to encode message
@@ -238,8 +245,7 @@ impl<
 mod tests {
     use super::*;
     use proptest::prelude::*;
-    use rand::{thread_rng, Rng};
-    use zkhash::ark_ff::UniformRand;
+    use rand::Rng;
 
     use crate::symmetric::message_hash::{
         top_level_poseidon::TopLevelPoseidonMessageHash, MessageHash,
@@ -253,9 +259,9 @@ mod tests {
 
         type MH = TopLevelPoseidonMessageHash<8, 6, 48, DIMENSION, BASE, FINAL_LAYER, 3, 9, 4, 4>;
 
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
-        let parameter = std::array::from_fn(|_| F::rand(&mut rng));
+        let parameter = rng.random();
 
         let mut message = [0u8; MESSAGE_LENGTH];
         rng.fill(&mut message);
@@ -292,9 +298,9 @@ mod tests {
 
             type MH = TopLevelPoseidonMessageHash<8, 6, 48, DIMENSION, BASE, FINAL_LAYER, 3, 9, 4, 4>;
 
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
 
-            let parameter = std::array::from_fn(|_| F::rand(&mut rng));
+            let parameter = rng.random();
             let randomness = MH::rand(&mut rng);
 
             let hash = MH::apply(&parameter, epoch, &randomness, &message);
