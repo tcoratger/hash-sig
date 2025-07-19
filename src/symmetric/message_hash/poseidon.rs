@@ -552,8 +552,7 @@ mod tests {
         let modulus = BigUint::from(F::ORDER_U64);
 
         // Generate random field elements
-        let input_field_elements: [F; HASH_LEN_FE] =
-            std::array::from_fn(|_| F::from_u128(rng.random()));
+        let input_field_elements: [F; HASH_LEN_FE] = rng.random();
 
         // Reconstruct bigint from field elements using base-p
         let mut expected_bigint = BigUint::zero();
