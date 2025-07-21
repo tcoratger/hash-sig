@@ -65,8 +65,16 @@ pub mod lifetime_2_to_the_18 {
         #[test]
         #[cfg(feature = "slow-tests")]
         pub fn test_correctness() {
-            test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime18Dim64Base8>(213);
-            test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime18Dim64Base8>(4);
+            test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime18Dim64Base8>(
+                213,
+                0,
+                SIGTopLevelTargetSumLifetime18Dim64Base8::LIFETIME as usize,
+            );
+            test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime18Dim64Base8>(
+                4,
+                0,
+                SIGTopLevelTargetSumLifetime18Dim64Base8::LIFETIME as usize,
+            );
         }
     }
 }
@@ -140,8 +148,16 @@ pub mod lifetime_2_to_the_32 {
             #[test]
             #[cfg(feature = "slow-tests")]
             pub fn test_correctness() {
-                test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime32Dim64Base8>(213);
-                test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime32Dim64Base8>(4);
+                test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime32Dim64Base8>(
+                    213,
+                    0,
+                    SIGTopLevelTargetSumLifetime32Dim64Base8::LIFETIME as usize,
+                );
+                test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime32Dim64Base8>(
+                    4,
+                    0,
+                    SIGTopLevelTargetSumLifetime32Dim64Base8::LIFETIME as usize,
+                );
             }
         }
     }
@@ -213,8 +229,16 @@ pub mod lifetime_2_to_the_32 {
             #[test]
             #[cfg(feature = "slow-tests")]
             pub fn test_correctness() {
-                test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime32Dim48Base10>(213);
-                test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime32Dim48Base10>(4);
+                test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime32Dim48Base10>(
+                    213,
+                    0,
+                    SIGTopLevelTargetSumLifetime32Dim48Base10::LIFETIME as usize,
+                );
+                test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime32Dim48Base10>(
+                    4,
+                    0,
+                    SIGTopLevelTargetSumLifetime32Dim48Base10::LIFETIME as usize,
+                );
             }
         }
     }
@@ -285,8 +309,16 @@ pub mod lifetime_2_to_the_32 {
             #[test]
             #[cfg(feature = "slow-tests")]
             pub fn test_correctness() {
-                test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime32Dim32Base26>(213);
-                test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime32Dim32Base26>(4);
+                test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime32Dim32Base26>(
+                    213,
+                    0,
+                    SIGTopLevelTargetSumLifetime32Dim32Base26::LIFETIME as usize,
+                );
+                test_signature_scheme_correctness::<SIGTopLevelTargetSumLifetime32Dim32Base26>(
+                    4,
+                    0,
+                    SIGTopLevelTargetSumLifetime32Dim32Base26::LIFETIME as usize,
+                );
             }
         }
     }
