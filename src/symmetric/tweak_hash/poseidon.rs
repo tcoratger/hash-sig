@@ -13,6 +13,10 @@ use super::TweakableHash;
 type F = BabyBear;
 
 const DOMAIN_PARAMETERS_LENGTH: usize = 4;
+/// The state width for compressing a single hash in a chain.
+const CHAIN_COMPRESSION_WIDTH: usize = 16;
+/// The state width for merging two hashes in a tree or for the sponge construction.
+const MERGE_COMPRESSION_WIDTH: usize = 24;
 
 /// Enum to implement tweaks.
 pub enum PoseidonTweak {
@@ -73,6 +77,13 @@ impl PoseidonTweak {
 /// - `perm`: a Poseidon permutation over `[F; WIDTH]`.
 /// - `input`: slice of input values, must be `≤ WIDTH` and `≥ OUT_LEN`.
 ///
+/// ### Warning: Input Padding
+/// The `input` slice is **always silently padded with zeros** to match the permutation's `WIDTH`.
+/// This means that inputs that are distinct but become identical after zero-padding
+/// (e.g., `[A, B]` and `[A, B, 0]`) will produce the same hash. If your use case
+/// requires distinguishing between such inputs, you must handle it externally, for example,
+/// by encoding the input's length as part of the message.
+///
 /// Returns: the first `OUT_LEN` elements of the permuted and compressed state.
 ///
 /// Panics:
@@ -112,12 +123,14 @@ where
         .expect("OUT_LEN is larger than permutation width")
 }
 
-/// Computes a Poseidon-based domain separator by compressing an array of `usize`
-/// values (interpreted as 32-bit words) using a fixed Poseidon instance.
+/// Computes a Poseidon-based domain separator by compressing an array of `u32`
+/// values using a fixed Poseidon instance.
 ///
 /// ### Usage constraints
-/// - This function is private because it's tailored to one very specific case:
+/// - This function is private because it's tailored to a very specific case:
 ///   the Poseidon2 instance with arity 24 and a fixed 4-word input.
+/// - As this function operates on constants, its output can be **precomputed**
+///   for significant performance gains, especially within a circuit.
 /// - If generalization is ever needed, a more generic and slower version should be used.
 fn poseidon_safe_domain_separator<P, const WIDTH: usize, const OUT_LEN: usize>(
     perm: &P,
@@ -174,15 +187,20 @@ pub fn poseidon_sponge<P, const WIDTH: usize, const OUT_LEN: usize>(
 where
     P: Permutation<[F; WIDTH]>,
 {
-    let rate = WIDTH - capacity_value.len();
+    // The capacity length must be strictly smaller than the width to have a non-zero rate.
+    // This check prevents a panic from subtraction underflow when calculating the rate.
     assert!(
-        rate < WIDTH,
-        "Capacity must be smaller than the state size."
+        capacity_value.len() < WIDTH,
+        "Capacity length must be smaller than the state width."
     );
+    let rate = WIDTH - capacity_value.len();
 
     let extra_elements = (rate - (input.len() % rate)) % rate;
     let mut input_vector = input.to_vec();
-    // padding with 0s
+    // We pad the input with zeros to make its length a multiple of the rate.
+    //
+    // This is safe because the input's original length is effectively encoded
+    // in the `capacity_value`, which serves as a domain separator.
     input_vector.resize(input.len() + extra_elements, F::ZERO);
 
     // initialize
@@ -279,7 +297,7 @@ impl<
                     .chain(single.iter())
                     .copied()
                     .collect();
-                poseidon_compress::<_, 16, HASH_LEN>(&perm, &combined_input)
+                poseidon_compress::<_, CHAIN_COMPRESSION_WIDTH, HASH_LEN>(&perm, &combined_input)
             }
 
             [left, right] => {
@@ -292,7 +310,7 @@ impl<
                     .chain(right.iter())
                     .copied()
                     .collect();
-                poseidon_compress::<_, 24, HASH_LEN>(&perm, &combined_input)
+                poseidon_compress::<_, MERGE_COMPRESSION_WIDTH, HASH_LEN>(&perm, &combined_input)
             }
 
             _ if message.len() > 2 => {
@@ -312,8 +330,14 @@ impl<
                     HASH_LEN as u32,
                 ];
                 let capacity_value =
-                    poseidon_safe_domain_separator::<_, 24, CAPACITY>(&perm, &lengths);
-                poseidon_sponge::<_, 24, HASH_LEN>(&perm, &capacity_value, &combined_input)
+                    poseidon_safe_domain_separator::<_, MERGE_COMPRESSION_WIDTH, CAPACITY>(
+                        &perm, &lengths,
+                    );
+                poseidon_sponge::<_, MERGE_COMPRESSION_WIDTH, HASH_LEN>(
+                    &perm,
+                    &capacity_value,
+                    &combined_input,
+                )
             }
             _ => [F::ONE; HASH_LEN], // Unreachable case, added for safety
         }
