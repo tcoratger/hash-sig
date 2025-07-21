@@ -170,6 +170,26 @@ impl<
 
     #[cfg(test)]
     fn internal_consistency_check() {
+        /// The width of the Poseidon2 permutation used.
+        const POSEIDON_WIDTH: usize = 24;
+        /// The rate (number of inputs) of the permutation.
+        const POSEIDON_RATE: usize = 15;
+        /// The capacity (security parameter) of the permutation.
+        const POSEIDON_CAPACITY: usize = 9;
+
+        // Check that the Poseidon parameters are consistent
+        assert!(
+            POSEIDON_RATE + POSEIDON_CAPACITY == POSEIDON_WIDTH,
+            "Poseidon rate and capacity do not sum to width"
+        );
+
+        // Check that the combined input fits within the Poseidon width.
+        // The +1 accounts for the iteration_index domain separator.
+        assert!(
+            RAND_LEN + PARAMETER_LEN + TWEAK_LEN_FE + MSG_LEN_FE + 1 <= POSEIDON_WIDTH,
+            "Top Level Poseidon Message Hash: Combined input length exceeds Poseidon width"
+        );
+
         // POS_OUTPUT_LEN_FE must be equal to POS_INVOCATIONS * POS_OUTPUT_LEN_PER_INV_FE
         assert!(
             POS_OUTPUT_LEN_FE == POS_INVOCATIONS * POS_OUTPUT_LEN_PER_INV_FE,
