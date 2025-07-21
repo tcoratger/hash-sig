@@ -75,6 +75,7 @@ pub mod lifetime_2_to_the_18 {
 pub mod lifetime_2_to_the_32 {
     /// Instantiation optimized for verification hashing
     pub mod hashing_optimized {
+
         use crate::{
             inc_encoding::target_sum::TargetSumEncoding,
             signature::generalized_xmss::GeneralizedXMSSSignatureScheme,
@@ -89,7 +90,7 @@ pub mod lifetime_2_to_the_32 {
         const DIMENSION: usize = 64;
         const BASE: usize = 8;
         const FINAL_LAYER: usize = 77;
-        const TARGET_SUM: usize = 376;
+        const TARGET_SUM: usize = 375;
 
         const PARAMETER_LEN: usize = 5;
         const TWEAK_LEN_FE: usize = 2;
@@ -162,7 +163,7 @@ pub mod lifetime_2_to_the_32 {
         const DIMENSION: usize = 48;
         const BASE: usize = 10;
         const FINAL_LAYER: usize = 112;
-        const TARGET_SUM: usize = 328;
+        const TARGET_SUM: usize = 326;
 
         const PARAMETER_LEN: usize = 5;
         const TWEAK_LEN_FE: usize = 2;
@@ -234,7 +235,7 @@ pub mod lifetime_2_to_the_32 {
         const DIMENSION: usize = 32;
         const BASE: usize = 26;
         const FINAL_LAYER: usize = 231;
-        const TARGET_SUM: usize = 584;
+        const TARGET_SUM: usize = 579;
 
         const PARAMETER_LEN: usize = 5;
         const TWEAK_LEN_FE: usize = 2;

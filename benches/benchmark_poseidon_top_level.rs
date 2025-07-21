@@ -1,17 +1,33 @@
+use std::cmp::min;
+
 use criterion::{black_box, Criterion, SamplingMode};
 use rand::{thread_rng, Rng};
 
 use hashsig::{
     signature::{
-        generalized_xmss::instantiations_poseidon_top_level::lifetime_2_to_the_18::SIGTopLevelTargetSumLifetime18Dim64Base8,
+        generalized_xmss::instantiations_poseidon_top_level::{
+            lifetime_2_to_the_18::SIGTopLevelTargetSumLifetime18Dim64Base8,
+            lifetime_2_to_the_32::{
+                hashing_optimized::SIGTopLevelTargetSumLifetime32Dim64Base8,
+                size_optimized::SIGTopLevelTargetSumLifetime32Dim32Base26,
+                tradeoff::SIGTopLevelTargetSumLifetime32Dim48Base10,
+            },
+        },
         SignatureScheme,
     },
     MESSAGE_LENGTH,
 };
 
+/// We will benchmark with actual lifetime min(LIFETIME, 1 << MAX_LOG_ACTIVATION_DURATION)
+/// to keep key generation time within reasonable limits.
+const MAX_LOG_ACTIVATION_DURATION: usize = 18;
+
 /// A template for benchmarking signature schemes (key gen, signing, verification)
 pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, description: &str) {
-    let mut group = c.benchmark_group(format!("Poseidon - Scheme: {description}"));
+    let mut group = c.benchmark_group(format!("Poseidon: {description}"));
+
+    // activation duration = actual lifetime
+    let activation_duration = min(1 << MAX_LOG_ACTIVATION_DURATION, S::LIFETIME as usize);
 
     // key gen takes long, so don't do that many repetitions
     group.sampling_mode(SamplingMode::Flat);
@@ -26,13 +42,13 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
     group.bench_function("- gen", |b| {
         b.iter(|| {
             // Benchmark key generation
-            let _ = S::gen(black_box(&mut rng), 0, S::LIFETIME as usize);
+            let _ = S::gen(black_box(&mut rng), 0, activation_duration);
         });
     });
 
     group.sample_size(100);
 
-    let (pk, sk) = S::gen(&mut rng, 0, S::LIFETIME as usize);
+    let (pk, sk) = S::gen(&mut rng, 0, activation_duration);
 
     group.bench_function("- sign", |b| {
         b.iter(|| {
@@ -41,7 +57,7 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
             rng.fill(&mut message);
 
             // Sample random epoch
-            let epoch = rng.gen_range(0..S::LIFETIME) as u32;
+            let epoch = rng.gen_range(0..activation_duration) as u32;
 
             // Benchmark signing
             let _ = S::sign(
@@ -58,7 +74,7 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
         .map(|_| {
             let mut message = [0u8; MESSAGE_LENGTH];
             rng.fill(&mut message);
-            let epoch = rng.gen_range(0..S::LIFETIME) as u32;
+            let epoch = rng.gen_range(0..activation_duration) as u32;
             let signature =
                 S::sign(&mut rng, &sk, epoch, &message).expect("Signing should succeed");
             (epoch, message, signature)
@@ -87,6 +103,24 @@ pub fn bench_function_poseidon_top_level(c: &mut Criterion) {
     // benchmarking lifetime 2^18
     benchmark_signature_scheme::<SIGTopLevelTargetSumLifetime18Dim64Base8>(
         c,
-        "Top Level Target Sum, Lifetime 2^18, Dimension 64, Base 8",
+        &format!("Top Level TS, Lifetime 2^18, Activation 2^{MAX_LOG_ACTIVATION_DURATION}, Dimension 64, Base 8")
+    );
+
+    // benchmarking lifetime 2^32 - hashing optimized
+    benchmark_signature_scheme::<SIGTopLevelTargetSumLifetime32Dim64Base8>(
+        c,
+        &format!("Top Level TS, Lifetime 2^32, Activation 2^{MAX_LOG_ACTIVATION_DURATION}, Dimension 64, Base 8 (Hashing Optimized)")
+    );
+
+    // benchmarking lifetime 2^32 - trade-off
+    benchmark_signature_scheme::<SIGTopLevelTargetSumLifetime32Dim48Base10>(
+        c,
+        &format!("Top Level TS, Lifetime 2^32, Activation 2^{MAX_LOG_ACTIVATION_DURATION}, Dimension 48, Base 10 (Trade-off)")
+    );
+
+    // benchmarking lifetime 2^32 - size optimized
+    benchmark_signature_scheme::<SIGTopLevelTargetSumLifetime32Dim32Base26>(
+        c,
+        &format!("Top Level TS, Lifetime 2^32, Activation 2^{MAX_LOG_ACTIVATION_DURATION}, Dimension 32, Base 26 (Size Optimized)")
     );
 }

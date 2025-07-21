@@ -36,7 +36,7 @@ use hashsig::{
 
 /// A template for benchmarking signature schemes (key gen, signing, verification)
 pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, description: &str) {
-    let mut group = c.benchmark_group(format!("SHA - Scheme: {description}"));
+    let mut group = c.benchmark_group(format!("SHA: {description}"));
 
     // key gen takes long, so don't do that many repetitions
     group.sampling_mode(SamplingMode::Flat);
