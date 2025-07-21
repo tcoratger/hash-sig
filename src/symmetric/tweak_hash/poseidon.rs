@@ -90,7 +90,7 @@ impl PoseidonTweak {
 /// - If `input.len() < OUT_LEN`
 /// - If `OUT_LEN > WIDTH`
 #[must_use]
-pub fn poseidon_compress<P, const WIDTH: usize, const OUT_LEN: usize>(
+pub(crate) fn poseidon_compress<P, const WIDTH: usize, const OUT_LEN: usize>(
     perm: &P,
     input: &[F],
 ) -> [F; OUT_LEN]
@@ -179,7 +179,7 @@ where
 ///
 /// Panics:
 /// - If `capacity_value.len() >= WIDTH`
-pub fn poseidon_sponge<P, const WIDTH: usize, const OUT_LEN: usize>(
+fn poseidon_sponge<P, const WIDTH: usize, const OUT_LEN: usize>(
     perm: &P,
     capacity_value: &[F],
     input: &[F],
