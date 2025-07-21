@@ -169,6 +169,7 @@ impl<
     }
 
     #[cfg(test)]
+    #[allow(clippy::assertions_on_constants)]
     fn internal_consistency_check() {
         /// The width of the Poseidon2 permutation used.
         const POSEIDON_WIDTH: usize = 24;
@@ -184,9 +185,8 @@ impl<
         );
 
         // Check that the combined input fits within the Poseidon width.
-        // The +1 accounts for the iteration_index domain separator.
         assert!(
-            RAND_LEN + PARAMETER_LEN + TWEAK_LEN_FE + MSG_LEN_FE + 1 <= POSEIDON_WIDTH,
+            RAND_LEN + PARAMETER_LEN + TWEAK_LEN_FE + MSG_LEN_FE < POSEIDON_WIDTH,
             "Top Level Poseidon Message Hash: Combined input length exceeds Poseidon width"
         );
 
