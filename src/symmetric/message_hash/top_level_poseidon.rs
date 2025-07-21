@@ -169,20 +169,9 @@ impl<
     }
 
     #[cfg(test)]
-    #[allow(clippy::assertions_on_constants)]
     fn internal_consistency_check() {
         /// The width of the Poseidon2 permutation used.
         const POSEIDON_WIDTH: usize = 24;
-        /// The rate (number of inputs) of the permutation.
-        const POSEIDON_RATE: usize = 15;
-        /// The capacity (security parameter) of the permutation.
-        const POSEIDON_CAPACITY: usize = 9;
-
-        // Check that the Poseidon parameters are consistent
-        assert!(
-            POSEIDON_RATE + POSEIDON_CAPACITY == POSEIDON_WIDTH,
-            "Poseidon rate and capacity do not sum to width"
-        );
 
         // Check that the combined input fits within the Poseidon width.
         assert!(
