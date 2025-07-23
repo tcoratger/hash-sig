@@ -2,10 +2,10 @@ use super::Pseudorandom;
 use p3_baby_bear::BabyBear;
 use p3_field::PrimeCharacteristicRing;
 use p3_field::PrimeField64;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use sha3::{
-    digest::{ExtendableOutput, Update, XofReader},
     Shake128,
+    digest::{ExtendableOutput, Update, XofReader},
 };
 
 use num_bigint::BigUint;
@@ -32,7 +32,7 @@ where
     type Key = [u8; KEY_LENGTH];
     type Output = [F; OUTPUT_LENGTH_FE];
 
-    fn gen<R: rand::Rng>(rng: &mut R) -> Self::Key {
+    fn random<R: rand::Rng>(rng: &mut R) -> Self::Key {
         rng.random()
     }
 
@@ -91,7 +91,7 @@ mod tests {
         let mut all_same_count = 0;
 
         for _ in 0..K {
-            let key = PRF::gen(&mut rng);
+            let key = PRF::random(&mut rng);
 
             let first = key[0];
             if key.iter().all(|&x| x == first) {
