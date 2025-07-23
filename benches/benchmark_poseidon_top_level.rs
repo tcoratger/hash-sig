@@ -42,13 +42,13 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
     group.bench_function("- gen", |b| {
         b.iter(|| {
             // Benchmark key generation
-            let _ = S::random(black_box(&mut rng), 0, activation_duration);
+            let _ = S::key_gen(black_box(&mut rng), 0, activation_duration);
         });
     });
 
     group.sample_size(100);
 
-    let (pk, sk) = S::random(&mut rng, 0, activation_duration);
+    let (pk, sk) = S::key_gen(&mut rng, 0, activation_duration);
 
     group.bench_function("- sign", |b| {
         b.iter(|| {

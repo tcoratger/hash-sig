@@ -29,7 +29,7 @@ pub trait SignatureScheme {
     ///
     /// The caller must ensure that this is a valid range, i.e., that
     /// `activation_epoch+num_active_epochs <= LIFETIME`.
-    fn random<R: Rng>(
+    fn key_gen<R: Rng>(
         rng: &mut R,
         activation_epoch: usize,
         num_active_epochs: usize,
@@ -77,7 +77,7 @@ mod test_templates {
         let mut rng = rand::rng();
 
         // Generate a key pair
-        let (pk, sk) = T::random(&mut rng, activation_epoch, num_active_epochs);
+        let (pk, sk) = T::key_gen(&mut rng, activation_epoch, num_active_epochs);
 
         // Sample random test message
         let message = rng.random();

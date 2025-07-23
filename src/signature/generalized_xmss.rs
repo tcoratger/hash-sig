@@ -79,7 +79,7 @@ where
 
     const LIFETIME: u64 = 1 << LOG_LIFETIME;
 
-    fn random<R: Rng>(
+    fn key_gen<R: Rng>(
         rng: &mut R,
         activation_epoch: usize,
         num_active_epochs: usize,
