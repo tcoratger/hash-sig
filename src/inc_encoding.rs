@@ -1,5 +1,5 @@
 use rand::Rng;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 use crate::MESSAGE_LENGTH;
 

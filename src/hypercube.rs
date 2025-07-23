@@ -1,5 +1,5 @@
-use dashmap::mapref::one::Ref;
 use dashmap::DashMap;
+use dashmap::mapref::one::Ref;
 use num_bigint::BigUint;
 use num_traits::One;
 use num_traits::ToPrimitive;

@@ -1,5 +1,5 @@
 use rand::Rng;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 /// Trait to model a tweakable hash function.
 /// Such a function takes a public parameter, a tweak, and a

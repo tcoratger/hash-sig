@@ -1,4 +1,4 @@
-use crate::{symmetric::message_hash::MessageHash, MESSAGE_LENGTH};
+use crate::{MESSAGE_LENGTH, symmetric::message_hash::MessageHash};
 
 use super::IncomparableEncoding;
 
