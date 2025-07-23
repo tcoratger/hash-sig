@@ -1,5 +1,5 @@
 use rand::Rng;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 use crate::MESSAGE_LENGTH;
 
@@ -29,7 +29,7 @@ pub trait SignatureScheme {
     ///
     /// The caller must ensure that this is a valid range, i.e., that
     /// `activation_epoch+num_active_epochs <= LIFETIME`.
-    fn gen<R: Rng>(
+    fn key_gen<R: Rng>(
         rng: &mut R,
         activation_epoch: usize,
         num_active_epochs: usize,
@@ -62,7 +62,7 @@ pub mod generalized_xmss;
 
 #[cfg(test)]
 mod test_templates {
-    use serde::{de::DeserializeOwned, Serialize};
+    use serde::{Serialize, de::DeserializeOwned};
 
     use super::*;
 
@@ -77,7 +77,7 @@ mod test_templates {
         let mut rng = rand::rng();
 
         // Generate a key pair
-        let (pk, sk) = T::gen(&mut rng, activation_epoch, num_active_epochs);
+        let (pk, sk) = T::key_gen(&mut rng, activation_epoch, num_active_epochs);
 
         // Sample random test message
         let message = rng.random();

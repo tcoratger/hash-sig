@@ -1,19 +1,19 @@
 use num_bigint::BigUint;
-use p3_baby_bear::default_babybear_poseidon2_24;
 use p3_baby_bear::BabyBear;
+use p3_baby_bear::default_babybear_poseidon2_24;
 use p3_field::PrimeCharacteristicRing;
 use p3_field::PrimeField;
 use p3_field::PrimeField64;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
+use super::MessageHash;
 use super::poseidon::encode_epoch;
 use super::poseidon::encode_message;
-use super::MessageHash;
+use crate::MESSAGE_LENGTH;
 use crate::hypercube::hypercube_find_layer;
 use crate::hypercube::hypercube_part_size;
 use crate::hypercube::map_to_vertex;
 use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
-use crate::MESSAGE_LENGTH;
 
 type F = BabyBear;
 
@@ -93,17 +93,17 @@ pub struct TopLevelPoseidonMessageHash<
 >;
 
 impl<
-        const POS_OUTPUT_LEN_PER_INV_FE: usize,
-        const POS_INVOCATIONS: usize,
-        const POS_OUTPUT_LEN_FE: usize,
-        const DIMENSION: usize,
-        const BASE: usize,
-        const FINAL_LAYER: usize,
-        const TWEAK_LEN_FE: usize,
-        const MSG_LEN_FE: usize,
-        const PARAMETER_LEN: usize,
-        const RAND_LEN: usize,
-    > MessageHash
+    const POS_OUTPUT_LEN_PER_INV_FE: usize,
+    const POS_INVOCATIONS: usize,
+    const POS_OUTPUT_LEN_FE: usize,
+    const DIMENSION: usize,
+    const BASE: usize,
+    const FINAL_LAYER: usize,
+    const TWEAK_LEN_FE: usize,
+    const MSG_LEN_FE: usize,
+    const PARAMETER_LEN: usize,
+    const RAND_LEN: usize,
+> MessageHash
     for TopLevelPoseidonMessageHash<
         POS_OUTPUT_LEN_PER_INV_FE,
         POS_INVOCATIONS,
@@ -245,7 +245,7 @@ mod tests {
     use rand::Rng;
 
     use crate::symmetric::message_hash::{
-        top_level_poseidon::TopLevelPoseidonMessageHash, MessageHash,
+        MessageHash, top_level_poseidon::TopLevelPoseidonMessageHash,
     };
 
     #[test]

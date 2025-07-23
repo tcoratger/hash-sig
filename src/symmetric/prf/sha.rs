@@ -1,5 +1,5 @@
 use super::Pseudorandom;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use sha3::{Digest, Sha3_256};
 
 const KEY_LENGTH: usize = 32; // 32 bytes
@@ -18,7 +18,7 @@ where
     type Key = [u8; KEY_LENGTH];
     type Output = [u8; OUTPUT_LENGTH];
 
-    fn gen<R: rand::Rng>(rng: &mut R) -> Self::Key {
+    fn key_gen<R: rand::Rng>(rng: &mut R) -> Self::Key {
         rng.random()
     }
 
@@ -65,7 +65,7 @@ mod tests {
         let mut all_same_count = 0;
 
         for _ in 0..K {
-            let key = PRF::gen(&mut rng);
+            let key = PRF::key_gen(&mut rng);
 
             let first = key[0];
             if key.iter().all(|&x| x == first) {

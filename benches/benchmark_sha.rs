@@ -1,8 +1,10 @@
-use criterion::{black_box, Criterion, SamplingMode};
+use criterion::{Criterion, SamplingMode, black_box};
 use rand::Rng;
 
 use hashsig::{
+    MESSAGE_LENGTH,
     signature::{
+        SignatureScheme,
         generalized_xmss::instantiations_sha::{
             lifetime_2_to_the_18::{
                 target_sum::{
@@ -29,9 +31,7 @@ use hashsig::{
                 },
             },
         },
-        SignatureScheme,
     },
-    MESSAGE_LENGTH,
 };
 
 /// A template for benchmarking signature schemes (key gen, signing, verification)
@@ -51,13 +51,13 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
     group.bench_function("- gen", |b| {
         b.iter(|| {
             // Benchmark key generation
-            let _ = S::gen(black_box(&mut rng), 0, S::LIFETIME as usize);
+            let _ = S::key_gen(black_box(&mut rng), 0, S::LIFETIME as usize);
         });
     });
 
     group.sample_size(100);
 
-    let (pk, sk) = S::gen(&mut rng, 0, S::LIFETIME as usize);
+    let (pk, sk) = S::key_gen(&mut rng, 0, S::LIFETIME as usize);
 
     group.bench_function("- sign", |b| {
         b.iter(|| {

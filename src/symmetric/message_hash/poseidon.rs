@@ -1,15 +1,15 @@
 use num_bigint::BigUint;
-use p3_baby_bear::default_babybear_poseidon2_24;
 use p3_baby_bear::BabyBear;
+use p3_baby_bear::default_babybear_poseidon2_24;
 use p3_field::PrimeCharacteristicRing;
 use p3_field::PrimeField;
 use p3_field::PrimeField64;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 use super::MessageHash;
-use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
 use crate::MESSAGE_LENGTH;
 use crate::TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
+use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
 
 type F = BabyBear;
 
@@ -82,14 +82,14 @@ pub struct PoseidonMessageHash<
 >;
 
 impl<
-        const PARAMETER_LEN: usize,
-        const RAND_LEN_FE: usize,
-        const HASH_LEN_FE: usize,
-        const DIMENSION: usize,
-        const BASE: usize,
-        const TWEAK_LEN_FE: usize,
-        const MSG_LEN_FE: usize,
-    > MessageHash
+    const PARAMETER_LEN: usize,
+    const RAND_LEN_FE: usize,
+    const HASH_LEN_FE: usize,
+    const DIMENSION: usize,
+    const BASE: usize,
+    const TWEAK_LEN_FE: usize,
+    const MSG_LEN_FE: usize,
+> MessageHash
     for PoseidonMessageHash<
         PARAMETER_LEN,
         RAND_LEN_FE,

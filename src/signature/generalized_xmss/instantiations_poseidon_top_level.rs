@@ -50,8 +50,8 @@ pub mod lifetime_2_to_the_18 {
     mod test {
 
         use crate::signature::{
-            generalized_xmss::instantiations_poseidon_top_level::lifetime_2_to_the_18::SIGTopLevelTargetSumLifetime18Dim64Base8,
             SignatureScheme,
+            generalized_xmss::instantiations_poseidon_top_level::lifetime_2_to_the_18::SIGTopLevelTargetSumLifetime18Dim64Base8,
         };
 
         #[cfg(feature = "slow-tests")]

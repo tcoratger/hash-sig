@@ -1,6 +1,6 @@
 use crate::{
-    symmetric::message_hash::{bytes_to_chunks, MessageHash},
     MESSAGE_LENGTH,
+    symmetric::message_hash::{MessageHash, bytes_to_chunks},
 };
 
 use super::IncomparableEncoding;

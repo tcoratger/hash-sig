@@ -3,13 +3,13 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    MESSAGE_LENGTH,
     inc_encoding::IncomparableEncoding,
     symmetric::{
         prf::Pseudorandom,
-        tweak_hash::{chain, TweakableHash},
-        tweak_hash_tree::{hash_tree_verify, HashTree, HashTreeOpening},
+        tweak_hash::{TweakableHash, chain},
+        tweak_hash_tree::{HashTree, HashTreeOpening, hash_tree_verify},
     },
-    MESSAGE_LENGTH,
 };
 
 use super::{SignatureScheme, SigningError};
@@ -79,7 +79,7 @@ where
 
     const LIFETIME: u64 = 1 << LOG_LIFETIME;
 
-    fn gen<R: Rng>(
+    fn key_gen<R: Rng>(
         rng: &mut R,
         activation_epoch: usize,
         num_active_epochs: usize,
@@ -103,7 +103,7 @@ where
         let parameter = TH::rand_parameter(rng);
 
         // we need a PRF key to generate our list of actual secret keys
-        let prf_key = PRF::gen(rng);
+        let prf_key = PRF::key_gen(rng);
 
         // for each epoch, generate the secret key for the epoch, where
         // an epoch secret key is a list of domain elements derived from the
@@ -334,9 +334,9 @@ mod tests {
         signature::test_templates::test_signature_scheme_correctness,
         symmetric::{
             message_hash::{
+                MessageHash,
                 poseidon::PoseidonMessageHashW1,
                 sha::{ShaMessageHash, ShaMessageHash192x3},
-                MessageHash,
             },
             prf::{sha::ShaPRF, shake_to_field::ShakePRFtoF},
             tweak_hash::{poseidon::PoseidonTweakW1L5, sha::ShaTweak192192},
