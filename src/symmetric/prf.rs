@@ -7,7 +7,7 @@ pub trait Pseudorandom {
     type Output;
 
     /// Sample a random domain element
-    fn random<R: Rng>(rng: &mut R) -> Self::Key;
+    fn key_gen<R: Rng>(rng: &mut R) -> Self::Key;
 
     /// Apply the one-way function to an epoch and an index
     fn apply(key: &Self::Key, epoch: u32, index: u64) -> Self::Output;

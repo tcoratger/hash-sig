@@ -32,7 +32,7 @@ where
     type Key = [u8; KEY_LENGTH];
     type Output = [F; OUTPUT_LENGTH_FE];
 
-    fn random<R: rand::Rng>(rng: &mut R) -> Self::Key {
+    fn key_gen<R: rand::Rng>(rng: &mut R) -> Self::Key {
         rng.random()
     }
 
@@ -91,7 +91,7 @@ mod tests {
         let mut all_same_count = 0;
 
         for _ in 0..K {
-            let key = PRF::random(&mut rng);
+            let key = PRF::key_gen(&mut rng);
 
             let first = key[0];
             if key.iter().all(|&x| x == first) {

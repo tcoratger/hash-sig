@@ -103,7 +103,7 @@ where
         let parameter = TH::rand_parameter(rng);
 
         // we need a PRF key to generate our list of actual secret keys
-        let prf_key = PRF::random(rng);
+        let prf_key = PRF::key_gen(rng);
 
         // for each epoch, generate the secret key for the epoch, where
         // an epoch secret key is a list of domain elements derived from the
