@@ -3,6 +3,8 @@
 This repository contains a *prototypical* Rust implementation of (synchronized) signatures based on tweakable hash functions and incomparable encodings.
 The code has not been audited and is not meant to be used in production. It is a playground to explore and benchmark these signatures. Use it at your own risk.
 
+*Note: Rust version >= 1.87 is required.*
+
 ## Schemes
 The code implements a generic framework from [this paper](https://eprint.iacr.org/2025/055.pdf), which builds XMSS-like hash-based signatures from a primitive called incomparable encodings.
 Hardcoded instantiations of this generic framework (using SHA3 or Poseidon2) are defined in `hashsig::signature::generalized_xmss`.
