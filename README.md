@@ -12,7 +12,7 @@ The parameters have been chosen based on the analysis in the paper using Python 
 |---------------|-----------------------------------------------------------|--------------------------|
 | `instantiations_sha::*`        | [original paper](https://eprint.iacr.org/2025/055.pdf)    | [this repository](https://github.com/b-wagn/hashsig-parameters)   |
 | `instantiations_poseidon::*`   | [original paper](https://eprint.iacr.org/2025/055.pdf)    | [this repository](https://github.com/b-wagn/hashsig-parameters)   |
-| `instantiations_poseidon_top_level::*`   | new document (soon released), inspired by [this](https://eprint.iacr.org/2025/889.pdf)  | [this repository](https://github.com/b-wagn/hypercube-hashsig-parameters)   |
+| `instantiations_poseidon_top_level::*`   | [this document](https://eprint.iacr.org/2025/1332), inspired by [this](https://eprint.iacr.org/2025/889.pdf)  | [this repository](https://github.com/b-wagn/hypercube-hashsig-parameters)   |
 
 Instantiations for different key lifetimes and different encodings are given in these modules.
 
