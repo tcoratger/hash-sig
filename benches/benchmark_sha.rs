@@ -1,4 +1,6 @@
-use criterion::{Criterion, SamplingMode, black_box};
+use std::hint::black_box;
+
+use criterion::{Criterion, SamplingMode};
 use rand::Rng;
 
 use hashsig::{
