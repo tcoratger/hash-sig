@@ -44,10 +44,13 @@ pub(crate) fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_L
 
     // Decompose the combined u64 value into field elements using base-p representation.
     //
-    // Since the input `acc` is at most 40 bits, its base-p representation for any
-    // prime field up to 64 bits will require at most two "digits".
+    // This direct, two-step decomposition is an optimization that is only valid if
+    // the field is large enough to represent a 40-bit number in at most two "digits".
     //
-    // We compute these directly for efficiency instead of using a generic loop.
+    // The condition is: ceil(40 / log2(p)) <= 2, which implies log2(p) >= 20.
+    // This holds for 31 bit fields, but would fail for very small fields.
+    //
+    // We assume this function is only used with fields that satisfy this constraint.
     let mut result = [F::ZERO; TWEAK_LEN_FE];
 
     // The first "digit" of the base conversion.
