@@ -1,5 +1,6 @@
 use rand::Rng;
 use serde::{Serialize, de::DeserializeOwned};
+use target_sum::TargetSumError;
 use thiserror::Error;
 
 use crate::MESSAGE_LENGTH;
@@ -7,8 +8,9 @@ use crate::MESSAGE_LENGTH;
 /// Error during the encoding process.
 #[derive(Debug, Error)]
 pub enum EncodingError {
-    #[error("Target sum mismatch: expected {expected}, but got {actual}.")]
-    TargetSumMismatch { expected: usize, actual: usize },
+    /// An error originating from the target sum encoding scheme.
+    #[error(transparent)]
+    TargetSum(#[from] TargetSumError),
 }
 
 /// Trait to model incomparable encoding schemes.

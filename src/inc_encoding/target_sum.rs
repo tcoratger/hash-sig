@@ -1,6 +1,15 @@
 use crate::{MESSAGE_LENGTH, symmetric::message_hash::MessageHash};
 
 use super::{EncodingError, IncomparableEncoding};
+use thiserror::Error;
+
+/// Specific errors that can occur during target sum encoding.
+#[derive(Debug, Error)]
+pub enum TargetSumError {
+    /// Returned when the generated chunks do not sum to the required target.
+    #[error("Target sum mismatch: expected {expected}, but got {actual}.")]
+    Mismatch { expected: usize, actual: usize },
+}
 
 /// Incomparable Encoding Scheme based on Target Sums,
 /// implemented from a given message hash.
@@ -52,10 +61,11 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
         if sum as usize == TARGET_SUM {
             Ok(chunks)
         } else {
-            Err(EncodingError::TargetSumMismatch {
+            Err(TargetSumError::Mismatch {
                 expected: TARGET_SUM,
                 actual: sum as usize,
-            })
+            }
+            .into())
         }
     }
 
