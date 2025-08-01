@@ -33,11 +33,16 @@ pub(crate) fn encode_message<const MSG_LEN_FE: usize>(
 /// `u64` value. It then decomposes this value into its base-`p` representation,
 /// where `p` is the field's order, to produce the output array.
 ///
-/// ### Warning: Field Size Limitation
+/// ### Warning: Implementation Assumptions
 ///
-/// This implementation is optimized for fields whose modulus fits within a `u64`.
-/// It is **not** suitable for fields with larger moduli that require `BigUint`
-/// representations and will fail to compile or produce incorrect results in such cases.
+/// This implementation is highly optimized and relies on two key assumptions about the field `F`:
+///
+/// 1.  **`u64`-Based Modulus:** It assumes the field's modulus fits within a `u64`. It is **not**
+///     suitable for fields with larger moduli that require `BigUint` arithmetic.
+///
+/// 2.  **Sufficient Bit-Size:** The fast, two-step decomposition assumes the field is large
+///     enough to hold a 40-bit value in at most two "digits". This requires the field's
+///     prime to be **at least 20 bits wide**.
 pub(crate) fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
     // Combine epoch and domain separator into a single u64.
     let acc = ((epoch as u64) << 8) | (TWEAK_SEPARATOR_FOR_MESSAGE_HASH as u64);
