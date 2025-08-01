@@ -31,7 +31,7 @@ pub(crate) fn encode_message<const MSG_LEN_FE: usize>(
 ///
 /// This function combines the `u32` epoch and a constant 8-bit separator into a single
 /// `u64` value. It then decomposes this value into its base-`p` representation,
-/// where `p` is the field's canonical order, to produce the output array.
+/// where `p` is the field's order, to produce the output array.
 ///
 /// ### Warning: Field Size Limitation
 ///
