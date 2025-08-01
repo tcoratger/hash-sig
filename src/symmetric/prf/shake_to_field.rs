@@ -64,8 +64,8 @@ where
         std::array::from_fn(|i| {
             let chunk_start = i * PRF_BYTES_PER_FE;
             let chunk_end = chunk_start + PRF_BYTES_PER_FE;
-            let integer_value = BigUint::from_bytes_be(&prf_output[chunk_start..chunk_end])
-                % BigUint::from(F::ORDER_U64);
+            let integer_value =
+                BigUint::from_bytes_be(&prf_output[chunk_start..chunk_end]) % F::ORDER_U64;
             F::from_u64(integer_value.try_into().unwrap())
         })
     }
