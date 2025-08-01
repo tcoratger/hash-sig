@@ -6,7 +6,6 @@ use crate::MESSAGE_LENGTH;
 /// Error enum for signatures
 #[derive(Debug)]
 pub enum SigningError {
-    InvalidMessageLength,
     UnluckyFailure,
 }
 
