@@ -28,17 +28,48 @@ pub(crate) fn encode_message<const MSG_LEN_FE: usize>(
     })
 }
 
-/// Function to encode an epoch (= tweak in the message hash) as an array of field elements.
+/// Encodes an epoch and a domain separator into an array of field elements.
+///
+/// This function combines the `u32` epoch and a constant 8-bit separator into a single
+/// `u64` value. It then decomposes this value into its base-`p` representation,
+/// where `p` is the field's order, to produce the output array.
+///
+/// ### Warning: Implementation Assumptions
+///
+/// This implementation is highly optimized and relies on two key assumptions about the field `F`:
+///
+/// 1.  **`u64`-Based Modulus:** It assumes the field's modulus fits within a `u64`. It is **not**
+///     suitable for fields with larger moduli that require `BigUint` arithmetic.
+///
+/// 2.  **Sufficient Bit-Size:** The fast, two-step decomposition assumes the field is large
+///     enough to hold a 40-bit value in at most two "digits". This requires the field's
+///     prime to be **at least 20 bits wide**.
 pub(crate) fn encode_epoch<const TWEAK_LEN_FE: usize>(epoch: u32) -> [F; TWEAK_LEN_FE] {
-    // Combine epoch and domain separator
-    let mut acc = ((epoch as u64) << 8) | (TWEAK_SEPARATOR_FOR_MESSAGE_HASH as u64);
+    // Combine epoch and domain separator into a single u64.
+    let acc = ((epoch as u64) << 8) | (TWEAK_SEPARATOR_FOR_MESSAGE_HASH as u64);
 
-    // Convert into field elements in base-p
-    std::array::from_fn(|_| {
-        let digit = acc % F::ORDER_U64;
-        acc /= F::ORDER_U64;
-        F::from_u64(digit)
-    })
+    // Decompose the combined u64 value into field elements using base-p representation.
+    //
+    // This direct, two-step decomposition is an optimization that is only valid if
+    // the field is large enough to represent a 40-bit number in at most two "digits".
+    //
+    // The condition is: ceil(40 / log2(p)) <= 2, which implies log2(p) >= 20.
+    // This holds for 31 bit fields, but would fail for very small fields.
+    //
+    // We assume this function is only used with fields that satisfy this constraint.
+    let mut result = [F::ZERO; TWEAK_LEN_FE];
+
+    // The first "digit" of the base conversion.
+    if TWEAK_LEN_FE > 0 {
+        result[0] = F::from_u64(acc % F::ORDER_U64);
+    }
+    // The second "digit" of the base conversion.
+    if TWEAK_LEN_FE > 1 {
+        result[1] = F::from_u64(acc / F::ORDER_U64);
+    }
+
+    // Any subsequent elements (if TWEAK_LEN_FE > 2) remain zero.
+    result
 }
 
 /// Function to decode a vector of field elements into
