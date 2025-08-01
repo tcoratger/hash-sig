@@ -1,10 +1,15 @@
 use rand::Rng;
 use serde::{Serialize, de::DeserializeOwned};
+use thiserror::Error;
 
 use crate::MESSAGE_LENGTH;
 
-/// Error during encoding
-pub type EncodingError = ();
+/// Error during the encoding process.
+#[derive(Debug, Error)]
+pub enum EncodingError {
+    #[error("Target sum mismatch: expected {expected}, but got {actual}.")]
+    TargetSumMismatch { expected: usize, actual: usize },
+}
 
 /// Trait to model incomparable encoding schemes.
 /// These schemes allow to encode a message into a codeword.
