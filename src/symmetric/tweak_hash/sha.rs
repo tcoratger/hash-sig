@@ -74,15 +74,11 @@ where
     type Domain = [u8; HASH_LEN];
 
     fn rand_parameter<R: rand::Rng>(rng: &mut R) -> Self::Parameter {
-        let mut par = [0u8; PARAMETER_LEN];
-        rng.fill_bytes(&mut par);
-        par
+        rng.random()
     }
 
     fn rand_domain<R: rand::Rng>(rng: &mut R) -> Self::Domain {
-        let mut dom = [0u8; HASH_LEN];
-        rng.fill_bytes(&mut dom);
-        dom
+        rng.random()
     }
 
     fn tree_tweak(level: u8, pos_in_level: u32) -> Self::Tweak {
