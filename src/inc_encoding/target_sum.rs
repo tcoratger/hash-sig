@@ -1,6 +1,6 @@
 use crate::{MESSAGE_LENGTH, symmetric::message_hash::MessageHash};
 
-use super::{EncodingError, IncomparableEncoding};
+use super::IncomparableEncoding;
 use thiserror::Error;
 
 /// Specific errors that can occur during target sum encoding.
@@ -35,6 +35,8 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
 
     type Randomness = MH::Randomness;
 
+    type Error = TargetSumError;
+
     const DIMENSION: usize = MH::DIMENSION;
 
     /// we did one experiment with random message hashes.
@@ -53,7 +55,7 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
         message: &[u8; MESSAGE_LENGTH],
         randomness: &Self::Randomness,
         epoch: u32,
-    ) -> Result<Vec<u8>, EncodingError> {
+    ) -> Result<Vec<u8>, Self::Error> {
         // apply the message hash first to get chunks
         let chunks = MH::apply(parameter, epoch, randomness, message);
         let sum: u32 = chunks.iter().map(|&x| x as u32).sum();
@@ -64,8 +66,7 @@ impl<MH: MessageHash, const TARGET_SUM: usize> IncomparableEncoding
             Err(TargetSumError::Mismatch {
                 expected: TARGET_SUM,
                 actual: sum as usize,
-            }
-            .into())
+            })
         }
     }
 
