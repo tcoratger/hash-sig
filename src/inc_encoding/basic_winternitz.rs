@@ -35,6 +35,8 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
 
     type Randomness = MH::Randomness;
 
+    type Error = ();
+
     const DIMENSION: usize = MH::DIMENSION + NUM_CHUNKS_CHECKSUM;
 
     const MAX_TRIES: usize = 1;
@@ -50,7 +52,7 @@ impl<MH: MessageHash, const CHUNK_SIZE: usize, const NUM_CHUNKS_CHECKSUM: usize>
         message: &[u8; MESSAGE_LENGTH],
         randomness: &Self::Randomness,
         epoch: u32,
-    ) -> Result<Vec<u8>, super::EncodingError> {
+    ) -> Result<Vec<u8>, Self::Error> {
         // apply the message hash to get chunks
         let mut chunks_message = MH::apply(parameter, epoch, randomness, message);
 

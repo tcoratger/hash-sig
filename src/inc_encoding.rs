@@ -1,10 +1,8 @@
 use rand::Rng;
 use serde::{Serialize, de::DeserializeOwned};
+use std::fmt::Debug;
 
 use crate::MESSAGE_LENGTH;
-
-/// Error during encoding
-pub type EncodingError = ();
 
 /// Trait to model incomparable encoding schemes.
 /// These schemes allow to encode a message into a codeword.
@@ -21,6 +19,7 @@ pub type EncodingError = ();
 pub trait IncomparableEncoding {
     type Parameter: Serialize + DeserializeOwned;
     type Randomness: Serialize + DeserializeOwned;
+    type Error: Debug;
 
     /// number of entries in a codeword
     const DIMENSION: usize;
@@ -40,13 +39,12 @@ pub trait IncomparableEncoding {
     /// It could happen that this fails. Otherwise,
     /// implementations must guarantee that the
     /// result is indeed a valid codeword.
-    #[allow(clippy::result_unit_err)]
     fn encode(
         parameter: &Self::Parameter,
         message: &[u8; MESSAGE_LENGTH],
         randomness: &Self::Randomness,
         epoch: u32,
-    ) -> Result<Vec<u8>, EncodingError>;
+    ) -> Result<Vec<u8>, Self::Error>;
 
     /// Function to check internal consistency of any given parameters
     /// For testing only, and expected to panic if something is wrong.
