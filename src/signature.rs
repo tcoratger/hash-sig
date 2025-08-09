@@ -95,7 +95,7 @@ pub trait SignatureScheme {
     ///
     /// ### Parameters
     /// * `rng`: A random number generator, required for signature schemes that use
-    ///     probabilistic components (e.g., randomized message encoding).
+    ///   probabilistic components (e.g., randomized message encoding).
     /// * `sk`: A reference to the secret key to be used for signing.
     /// * `epoch`: The specific epoch for which the signature is being created.
     /// * `message`: A fixed-size byte array representing the message to be signed.
@@ -104,7 +104,7 @@ pub trait SignatureScheme {
     /// A `Result` which is:
     /// * `Ok(Self::Signature)` on success, containing the generated signature.
     /// * `Err(SigningError)` on failure, for instance, if the probabilistic
-    ///     encoding step fails to produce a valid codeword within the allowed attempts.
+    ///   encoding step fails to produce a valid codeword within the allowed attempts.
     fn sign<R: Rng>(
         rng: &mut R,
         sk: &Self::SecretKey,
