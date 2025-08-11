@@ -32,6 +32,10 @@ pub enum SigningError {
 /// extension "LeanSig for Post-Quantum Ethereum" [DKKW25b]. These schemes are variants of
 /// the **eXtended Merkle Signature Scheme (XMSS)**, which builds a many-time signature
 /// scheme from a one-time signature (OTS) primitive and a Merkle tree.
+///
+/// References:
+/// [DKKW25a] https://eprint.iacr.org/2025/055.pdf
+/// [DKKW25b] https://eprint.iacr.org/2025/1332.pdf
 pub trait SignatureScheme {
     /// The public key used for verification.
     ///
