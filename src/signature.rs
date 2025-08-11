@@ -74,8 +74,7 @@ pub trait SignatureScheme {
     ///
     /// This method cryptographically binds a message to the signer's identity for a
     /// single, unique epoch. It strictly enforces the "one-signature-per-epoch" rule.
-    /// The signing process may be probabilistic, typically involving a randomized
-    /// message encoding step that might require multiple attempts.
+    /// The signing process may be probabilistic.
     ///
     /// ### Parameters
     /// * `rng`: A random number generator, required for signature schemes that use
