@@ -86,8 +86,7 @@ pub trait SignatureScheme {
     /// ### Returns
     /// A `Result` which is:
     /// * `Ok(Self::Signature)` on success, containing the generated signature.
-    /// * `Err(SigningError)` on failure, for instance, if the probabilistic
-    ///   encoding step fails to produce a valid codeword within the allowed attempts.
+    /// * `Err(SigningError)` on failure.
     fn sign<R: Rng>(
         rng: &mut R,
         sk: &Self::SecretKey,
