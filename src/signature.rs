@@ -53,7 +53,7 @@ pub trait SignatureScheme {
     type Signature: Serialize + DeserializeOwned;
 
     /// The maximum number of epochs supported by this signature scheme configuration,
-    /// denoted as $L$ in the literature.
+    /// denoted as $L$ in the literature [DKKW25a, DKKW25b].
     ///
     /// This constant defines the total size of the address space for one-time signatures,
     /// corresponding to the number of leaves in the underlying Merkle tree. While this is
