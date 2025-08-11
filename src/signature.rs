@@ -129,7 +129,7 @@ pub trait SignatureScheme {
         sig: &Self::Signature,
     ) -> bool;
 
-    /// A test-only function to assert that the generic parameters chosen for the
+    /// A test-only function to assert that all internal parameters chosen for the
     /// signature scheme are valid and compatible.
     ///
     /// ### Panics
