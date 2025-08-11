@@ -12,33 +12,102 @@ pub enum SigningError {
     EncodingAttemptsExceeded { attempts: usize },
 }
 
-/// Trait to model a synchronized signature scheme.
-/// We sign messages with respect to epochs.
-/// We assume each we sign for each epoch only once.
+/// Defines the interface for a **synchronized signature scheme**.
+///
+/// ## Overview
+///
+/// In a synchronized (or stateful) signature scheme, keys are associated with a fixed
+/// lifetime, which is divided into discrete time periods called **epochs**. A key pair
+/// is restricted to signing only once per epoch. Reusing an epoch to sign a
+/// different message or even the same message again will compromise the security of the scheme.
+///
+/// This model is particularly well-suited for consensus protocols like Ethereum's
+/// proof-of-stake (lean Ethereum), where validators sign messages
+/// (e.g., block proposals or attestations) at regular, predetermined intervals.
+///
+/// ## Theoretical Foundation
+///
+/// This trait abstracts the family of post-quantum signature schemes presented in
+/// "Hash-Based Multi-Signatures for Post-Quantum Ethereum" [DKKW25a] and its
+/// extension "LeanSig for Post-Quantum Ethereum" [DKKW25b]. These schemes are variants of
+/// the **eXtended Merkle Signature Scheme (XMSS)**, which builds a many-time signature
+/// scheme from a one-time signature (OTS) primitive and a Merkle tree.
+///
+/// References:
+/// [DKKW25a] https://eprint.iacr.org/2025/055.pdf
+/// [DKKW25b] https://eprint.iacr.org/2025/1332.pdf
 pub trait SignatureScheme {
+    /// The public key used for verification.
+    ///
+    /// The key must be serializable to allow for network transmission and storage.
     type PublicKey: Serialize + DeserializeOwned;
+
+    /// The secret key used for signing.
+    ///
+    /// The key must be serializable for persistence and secure backup.
     type SecretKey: Serialize + DeserializeOwned;
+
+    /// The signature object produced by the signing algorithm.
+    ///
+    /// The signature must be serializable to allow for network transmission and storage.
     type Signature: Serialize + DeserializeOwned;
 
-    /// number of epochs that are supported
-    /// with one key. Must be a power of two.
+    /// The maximum number of epochs supported by this signature scheme configuration,
+    /// denoted as $L$ in the literature [DKKW25a, DKKW25b].
+    ///
+    /// This constant defines the total number of epochs available, i.e., valid epochs range
+    /// from `0` to `LIFETIME - 1`. While this is the maximum possible lifetime, an individual
+    /// key pair can be generated to be active for a shorter, specific range of epochs within
+    // this total lifetime using the`key_gen` function.
+    ///
+    /// This value **must** be a power of two.
     const LIFETIME: u64;
 
-    /// Generates a new key pair, returning the public and private keys.
+    /// Generates a new cryptographic key pair.
     ///
-    /// The key can sign with respect to all epochs in the range
-    /// `activation_epoch..activation_epoch+num_active_epochs`.
+    /// This function creates a fresh public key for verifying signatures and a
+    /// corresponding secret key for creating them.
     ///
-    /// The caller must ensure that this is a valid range, i.e., that
-    /// `activation_epoch+num_active_epochs <= LIFETIME`.
+    /// ### Active Range
+    ///
+    /// The generated key pair is configured to be active only for a specific sub-range
+    /// of its total `LIFETIME`. This is a practical optimization for key management,
+    /// allowing a single cryptographic setup to support keys with different lifespans.
+    ///
+    /// The active period covers all epochs in the range
+    /// `activation_epoch..activation_epoch + num_active_epochs`.
+    ///
+    /// ### Parameters
+    /// * `rng`: A cryptographically secure random number generator.
+    /// * `activation_epoch`: The starting epoch for which this key is active.
+    /// * `num_active_epochs`: The number of consecutive epochs for which this key is active.
+    ///
+    /// ### Returns
+    /// A tuple containing the new `(PublicKey, SecretKey)`.
     fn key_gen<R: Rng>(
         rng: &mut R,
         activation_epoch: usize,
         num_active_epochs: usize,
     ) -> (Self::PublicKey, Self::SecretKey);
 
-    /// Signs a message and returns the signature.
-    /// The signature is with respect to a given epoch.
+    /// Produces a digital signature for a given message at a specific epoch.
+    ///
+    /// This method cryptographically binds a message to the signer's identity for a
+    /// single, unique epoch. Callers must ensure they never call this function twice
+    /// with the same secret key and for the same epoch, as this would compromise security.
+    /// The signing process may be probabilistic.
+    ///
+    /// ### Parameters
+    /// * `rng`: A random number generator, required for signature schemes that use
+    ///   probabilistic components.
+    /// * `sk`: A reference to the secret key to be used for signing.
+    /// * `epoch`: The specific epoch for which the signature is being created.
+    /// * `message`: A fixed-size byte array representing the message to be signed.
+    ///
+    /// ### Returns
+    /// A `Result` which is:
+    /// * `Ok(Self::Signature)` on success, containing the generated signature.
+    /// * `Err(SigningError)` on failure.
     fn sign<R: Rng>(
         rng: &mut R,
         sk: &Self::SecretKey,
@@ -46,7 +115,19 @@ pub trait SignatureScheme {
         message: &[u8; MESSAGE_LENGTH],
     ) -> Result<Self::Signature, SigningError>;
 
-    /// Verifies a signature with respect to public key, epoch, and message digest.
+    /// Verifies a digital signature against a public key, message, and epoch.
+    ///
+    /// This function determines if a signature is valid and was generated by the
+    /// holder of the corresponding secret key for the specified message and epoch.
+    ///
+    /// ### Parameters
+    /// * `pk`: A reference to the public key against which to verify the signature.
+    /// * `epoch`: The epoch the signature corresponds to.
+    /// * `message`: The message that was supposedly signed.
+    /// * `sig`: A reference to the signature to be verified.
+    ///
+    /// ### Returns
+    /// `true` if the signature is valid according to the scheme's rules, `false` otherwise.
     fn verify(
         pk: &Self::PublicKey,
         epoch: u32,
@@ -54,8 +135,11 @@ pub trait SignatureScheme {
         sig: &Self::Signature,
     ) -> bool;
 
-    /// Function to check internal consistency of any given parameters
-    /// For testing only, and expected to panic if something is wrong.
+    /// A test-only function to assert that all internal parameters chosen for the
+    /// signature scheme are valid and compatible.
+    ///
+    /// ### Panics
+    /// This function will panic if any of the internal consistency checks fail.
     #[cfg(test)]
     fn internal_consistency_check();
 }
