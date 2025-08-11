@@ -71,6 +71,8 @@ pub mod top_level_poseidon;
 #[inline]
 pub fn bytes_to_chunks(bytes: &[u8], chunk_size: usize) -> Vec<u8> {
     // Only the chunk sizes 1, 2, 4, or 8 are valid.
+    //
+    // This avoids invalid bit manipulations and guarantees predictable output length.
     assert!(
         matches!(chunk_size, 1 | 2 | 4 | 8),
         "chunk_size must be 1, 2, 4, or 8"
@@ -80,7 +82,7 @@ pub fn bytes_to_chunks(bytes: &[u8], chunk_size: usize) -> Vec<u8> {
     let chunks_per_byte = 8 / chunk_size;
     let mut out = Vec::with_capacity(bytes.len() * chunks_per_byte);
 
-    // Fast paths per chunk size to minimize work in the hot loop.
+    // Fast paths per chunk size
     match chunk_size {
         8 => {
             // Copy as-is.
