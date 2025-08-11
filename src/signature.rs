@@ -32,31 +32,18 @@ pub enum SigningError {
 /// extension "LeanSig for Post-Quantum Ethereum". These schemes are variants of
 /// the **eXtended Merkle Signature Scheme (XMSS)**, which builds a many-time signature
 /// scheme from a one-time signature (OTS) primitive and a Merkle tree.
-///
-/// The core components are:
-/// 1.  **One-Time Signatures**: Each epoch corresponds to a single WOTS-like key pair.
-/// 2.  **Merkle Tree**: A Merkle tree is built over all one-time public keys, and its
-///     root becomes the main, many-time public key. This provides a commitment to the
-///     entire set of one-time keys.
-/// 3.  **Incomparable Encoding**: A function that maps a message to a codeword, which
-///     in turn determines how the one-time signature is generated. Different encodings
-///     provide different trade-offs between signature size and verification cost.
 pub trait SignatureScheme {
-    /// The public key used for verification. It typically contains the Merkle root
-    /// and any public parameters required by the underlying cryptographic primitives
-    /// (e.g., for a tweakable hash function).
+    /// The public key used for verification.
     ///
     /// The key must be serializable to allow for network transmission and storage.
     type PublicKey: Serialize + DeserializeOwned;
 
-    /// The secret key used for signing. It contains the master secret material
-    /// (e.g., a PRF key) from which all one-time secret keys are derived.
-    /// It may also pre-compute and store the full Merkle tree for performance.
+    /// The secret key used for signing.
     ///
     /// The key must be serializable for persistence and secure backup.
     type SecretKey: Serialize + DeserializeOwned;
 
-    /// The signature object produced by the signing algorithm. 
+    /// The signature object produced by the signing algorithm.
     type Signature: Serialize + DeserializeOwned;
 
     /// The total number of epochs a key pair is valid for, denoted as $L$ in the
