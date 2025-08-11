@@ -48,6 +48,8 @@ pub trait SignatureScheme {
     type SecretKey: Serialize + DeserializeOwned;
 
     /// The signature object produced by the signing algorithm.
+    ///
+    /// The signature must be serializable to allow for network transmission and storage.
     type Signature: Serialize + DeserializeOwned;
 
     /// The maximum number of epochs supported by this signature scheme configuration,
