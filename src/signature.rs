@@ -56,9 +56,7 @@ pub trait SignatureScheme {
     /// The key must be serializable for persistence and secure backup.
     type SecretKey: Serialize + DeserializeOwned;
 
-    /// The signature object produced by the signing algorithm. It contains all the
-    /// necessary proof elements for a verifier to validate the signature, such as
-    /// the Merkle authentication path and the one-time signature components.
+    /// The signature object produced by the signing algorithm. 
     type Signature: Serialize + DeserializeOwned;
 
     /// The total number of epochs a key pair is valid for, denoted as $L$ in the
