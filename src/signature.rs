@@ -61,7 +61,7 @@ pub trait SignatureScheme {
     /// for a shorter, specific range of epochs within this total lifetime using the
     /// `key_gen` function.
     ///
-    /// This value **must** be a power of two to ensure a balanced binary Merkle tree structure.
+    /// This value **must** be a power of two.
     const LIFETIME: u64;
 
     /// Generates a new cryptographic key pair.
