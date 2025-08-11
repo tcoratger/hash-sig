@@ -57,7 +57,7 @@ pub trait SignatureScheme {
     ///
     /// This constant defines the total number of epochs available, i.e., valid epochs range
     /// from `0` to `LIFETIME - 1`. While this is the maximum possible lifetime, an individual
-    /// key pair can be generated to be active for a shorter, specific range of epochs within 
+    /// key pair can be generated to be active for a shorter, specific range of epochs within
     // this total lifetime using the`key_gen` function.
     ///
     /// This value **must** be a power of two.
