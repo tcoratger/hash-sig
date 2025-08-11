@@ -93,7 +93,7 @@ pub trait SignatureScheme {
     ///
     /// ### Parameters
     /// * `rng`: A random number generator, required for signature schemes that use
-    ///   probabilistic components (e.g., randomized message encoding).
+    ///   probabilistic components.
     /// * `sk`: A reference to the secret key to be used for signing.
     /// * `epoch`: The specific epoch for which the signature is being created.
     /// * `message`: A fixed-size byte array representing the message to be signed.
