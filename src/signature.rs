@@ -46,16 +46,31 @@ pub trait SignatureScheme {
     /// The signature object produced by the signing algorithm.
     type Signature: Serialize + DeserializeOwned;
 
-    /// The total number of epochs a key pair is valid for, denoted as $L$ in the
-    /// literature. This value **must** be a power of two.
+    /// The maximum number of epochs supported by this signature scheme configuration,
+    /// denoted as $L$ in the literature.
+    ///
+    /// This constant defines the total size of the address space for one-time signatures,
+    /// corresponding to the number of leaves in the underlying Merkle tree. While this is
+    /// the maximum possible lifetime, an individual key pair can be generated to be active
+    /// for a shorter, specific range of epochs within this total lifetime using the
+    /// `key_gen` function.
+    ///
+    /// This value **must** be a power of two to ensure a balanced binary Merkle tree structure.
     const LIFETIME: u64;
 
     /// Generates a new cryptographic key pair.
     ///
     /// This function creates a fresh public key for verifying signatures and a
-    /// corresponding secret key for creating them. The generated key pair can be
-    /// specified to be active only for a specific sub-range of its total `LIFETIME`,
-    /// which is a practical optimization for key management.
+    /// corresponding secret key for creating them.
+    ///
+    /// ### Active Range
+    ///
+    /// The generated key pair is configured to be active only for a specific sub-range
+    /// of its total `LIFETIME`. This is a practical optimization for key management,
+    /// allowing a single cryptographic setup to support keys with different lifespans.
+    ///
+    /// The active period covers all epochs in the range
+    /// `activation_epoch..activation_epoch + num_active_epochs`.
     ///
     /// ### Parameters
     /// * `rng`: A cryptographically secure random number generator.
@@ -73,7 +88,8 @@ pub trait SignatureScheme {
     /// Produces a digital signature for a given message at a specific epoch.
     ///
     /// This method cryptographically binds a message to the signer's identity for a
-    /// single, unique epoch. It strictly enforces the "one-signature-per-epoch" rule.
+    /// single, unique epoch. Callers must ensure they never call this function twice
+    /// with the same secret key and for the same epoch, as this would compromise security.
     /// The signing process may be probabilistic.
     ///
     /// ### Parameters
