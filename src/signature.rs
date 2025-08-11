@@ -19,7 +19,7 @@ pub enum SigningError {
 /// In a synchronized (or stateful) signature scheme, keys are associated with a fixed
 /// lifetime, which is divided into discrete time periods called **epochs**. A key pair
 /// is restricted to signing only one message per epoch. Reusing an epoch to sign a
-/// different message will compromise the security of the scheme.
+/// different message or even the same message again will compromise the security of the scheme.
 ///
 /// This model is particularly well-suited for consensus protocols like Ethereum's
 /// proof-of-stake (lean Ethereum), where validators sign messages
