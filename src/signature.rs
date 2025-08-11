@@ -60,8 +60,7 @@ pub trait SignatureScheme {
     type Signature: Serialize + DeserializeOwned;
 
     /// The total number of epochs a key pair is valid for, denoted as $L$ in the
-    /// literature. This value **must** be a power of two to accommodate the binary
-    /// Merkle tree structure used in the underlying XMSS-like construction.
+    /// literature. This value **must** be a power of two.
     const LIFETIME: u64;
 
     /// Generates a new cryptographic key pair.
