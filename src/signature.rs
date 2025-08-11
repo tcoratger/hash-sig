@@ -29,7 +29,7 @@ pub enum SigningError {
 ///
 /// This trait abstracts the family of post-quantum signature schemes presented in
 /// "Hash-Based Multi-Signatures for Post-Quantum Ethereum" [DKKW25a] and its
-/// extension "LeanSig for Post-Quantum Ethereum". These schemes are variants of
+/// extension "LeanSig for Post-Quantum Ethereum" [DKKW25b]. These schemes are variants of
 /// the **eXtended Merkle Signature Scheme (XMSS)**, which builds a many-time signature
 /// scheme from a one-time signature (OTS) primitive and a Merkle tree.
 pub trait SignatureScheme {
