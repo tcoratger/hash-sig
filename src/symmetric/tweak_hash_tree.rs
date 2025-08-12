@@ -12,6 +12,63 @@ struct HashTreeLayer<TH: TweakableHash> {
     nodes: Vec<TH::Domain>,
 }
 
+impl<TH: TweakableHash> HashTreeLayer<TH> {
+    /// Construct a layer from a contiguous run of nodes and pad it so that:
+    /// - the layer starts at an even index (a left child), and
+    /// - the layer ends at an odd index (a right child).
+    ///
+    /// Input interpretation:
+    /// - `nodes` conceptually occupy tree indices
+    ///   `[start_index, start_index + nodes.len() - 1]` (inclusive).
+    ///
+    /// Padding rules:
+    /// - If `start_index` is odd, we insert one random node in front and shift
+    ///   the effective start to the previous even index.
+    /// - If the end index is even, we append one random node at the back so the
+    ///   final index is odd.
+    ///
+    /// Why this matters:
+    /// - With this alignment every parent is formed from exactly two children,
+    ///   so upper layers can be built with exact size-2 chunks, with no edge cases.
+    #[inline]
+    fn padded<R: Rng>(rng: &mut R, nodes: Vec<TH::Domain>, start_index: usize) -> Self {
+        // End index of the provided contiguous run (inclusive).
+        let end_index = start_index + nodes.len() - 1;
+
+        // Do we need a front pad? Start must be even.
+        let needs_front = (start_index & 1) == 1;
+
+        // Do we need a back pad? End must be odd.
+        let needs_back = (end_index & 1) == 0;
+
+        // The effective start index after optional front padding (always even).
+        let actual_start_index = start_index & !1usize;
+
+        // Reserve exactly the space we may need: original nodes plus up to two pads.
+        let mut out =
+            Vec::with_capacity(nodes.len() + (needs_front as usize) + (needs_back as usize));
+
+        // Optional front padding to align to an even start index.
+        if needs_front {
+            out.push(TH::rand_domain(rng));
+        }
+
+        // Insert the actual content in order.
+        out.extend(nodes);
+
+        // Optional back padding to ensure we end on an odd index.
+        if needs_back {
+            out.push(TH::rand_domain(rng));
+        }
+
+        // Return the padded layer with the corrected start index.
+        Self {
+            start_index: actual_start_index,
+            nodes: out,
+        }
+    }
+}
+
 /// Sparse Hash-Tree based on a tweakable hash function.
 /// We consider hash trees in which each leaf is first
 /// hashed individually.
@@ -42,37 +99,6 @@ pub struct HashTreeOpening<TH: TweakableHash> {
     /// If the tree has depth h, i.e, 2^h leafs
     /// the co-path should have size D
     co_path: Vec<TH::Domain>,
-}
-
-/// Helper function. Computes a padded layer from the meaningful entries of the layer.
-/// These meaningful entries are assumed to range from start_index to start_index + nodes.len() - 1 (both inclusive).
-fn get_padded_layer<R: Rng, TH: TweakableHash>(
-    rng: &mut R,
-    nodes: Vec<TH::Domain>,
-    start_index: usize,
-) -> HashTreeLayer<TH> {
-    let end_index = start_index + nodes.len() - 1;
-
-    let mut nodes_with_padding = vec![];
-
-    // padding in front if start_index is not even
-    if start_index % 2 == 1 {
-        nodes_with_padding.push(TH::rand_domain(rng));
-    }
-    let actual_start_index = start_index - (start_index % 2);
-
-    // now add the actual content
-    nodes_with_padding.extend(nodes);
-
-    // add padding if end_index is not odd
-    if end_index % 2 == 0 {
-        nodes_with_padding.push(TH::rand_domain(rng));
-    }
-
-    HashTreeLayer {
-        start_index: actual_start_index,
-        nodes: nodes_with_padding,
-    }
 }
 
 impl<TH> HashTree<TH>
@@ -109,37 +135,41 @@ where
         // In this way, we can ensure that we can always hash two siblings to get their parent
         // The padding is ensured using the helper function `get_padded_layer`.
 
-        let mut layers: Vec<HashTreeLayer<TH>> = Vec::with_capacity(depth + 1);
+        let mut layers = Vec::with_capacity(depth + 1);
 
         // start with the leaf layer, padded accordingly
-        layers.push(get_padded_layer(rng, leafs_hashes, start_index));
+        layers.push(HashTreeLayer::padded(rng, leafs_hashes, start_index));
 
         // now, build the tree layer by layer
         for level in 0..depth {
-            // build layer `level + 1` from layer `level`
+            // Previous layer (already padded so len is even and start_index is even)
+            let prev = &layers[level];
 
-            // for that, we first build the parents of the previous layer and then
-            // add a padding if needed. We build the parents in parallel.
-            // assert!(layers[level].nodes.len()% 2 == 0);
-            let parents: Vec<_> = layers[level]
+            // Parent layer starts at half the previous start index
+            let parent_start = prev.start_index >> 1;
+
+            // Precompute the tree level for tweaks (parents are at level+1)
+            let level_u8 = (level as u8) + 1;
+
+            // Compute all parents in parallel, pairing children two-by-two
+            //
+            // We do exact chunks of two children, no remainder.
+            let parents = prev
                 .nodes
-                .par_chunks(2)
+                .par_chunks_exact(2)
                 .enumerate()
                 .map(|(i, children)| {
-                    assert!(
-                        children.len() == 2,
-                        "Unpaired children, padding logic broken"
-                    );
-                    let position_of_left_child = layers[level].start_index + 2 * i;
-                    let parent_pos = position_of_left_child / 2;
-                    let tweak = TH::tree_tweak((level + 1) as u8, parent_pos as u32);
-                    TH::apply(parameter, &tweak, children)
+                    // Parent index in this layer
+                    let parent_pos = (parent_start + i) as u32;
+                    // Hash children into their parent using the tweak
+                    TH::apply(parameter, &TH::tree_tweak(level_u8, parent_pos), children)
                 })
                 .collect();
 
-            let start_index = layers[level].start_index / 2;
-            layers.push(get_padded_layer(rng, parents, start_index));
+            // Add the new layer with padding so next iteration also has even start and length
+            layers.push(HashTreeLayer::padded(rng, parents, parent_start));
         }
+
         Self { depth, layers }
     }
 
