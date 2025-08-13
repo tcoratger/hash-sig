@@ -56,9 +56,9 @@ impl PoseidonTweak {
 
         // Now we interpret this integer in base-p to get field elements
         std::array::from_fn(|_| {
-            let digit = acc % F::ORDER_U64 as u128;
+            let digit = (acc % F::ORDER_U64 as u128) as u64;
             acc /= F::ORDER_U64 as u128;
-            F::from_u128(digit)
+            F::from_u64(digit)
         })
     }
 }
@@ -152,9 +152,9 @@ where
     // We can use 24 as hardcoded because the only time we use this function
     // is for the corresponding Poseidon instance.
     let input = std::array::from_fn::<_, 24, _>(|_| {
-        let digit = acc % F::ORDER_U64 as u128;
+        let digit = (acc % F::ORDER_U64 as u128) as u64;
         acc /= F::ORDER_U64 as u128;
-        F::from_u128(digit)
+        F::from_u64(digit)
     });
 
     poseidon_compress::<_, WIDTH, OUT_LEN>(perm, &input)
