@@ -42,7 +42,7 @@ impl<TH: TweakableHash> HashTreeLayer<TH> {
         let needs_back = (end_index & 1) == 0;
 
         // The effective start index after optional front padding (always even).
-        let actual_start_index = start_index & !1usize;
+        let actual_start_index = start_index - (needs_front as usize);
 
         // Reserve exactly the space we may need: original nodes plus up to two pads.
         let mut out =
