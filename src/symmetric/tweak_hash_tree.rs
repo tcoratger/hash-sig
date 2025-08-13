@@ -148,9 +148,6 @@ where
             // Parent layer starts at half the previous start index
             let parent_start = prev.start_index >> 1;
 
-            // Precompute the tree level for tweaks (parents are at level+1)
-            let level_u8 = (level as u8) + 1;
-
             // Compute all parents in parallel, pairing children two-by-two
             //
             // We do exact chunks of two children, no remainder.
@@ -162,7 +159,11 @@ where
                     // Parent index in this layer
                     let parent_pos = (parent_start + i) as u32;
                     // Hash children into their parent using the tweak
-                    TH::apply(parameter, &TH::tree_tweak(level_u8, parent_pos), children)
+                    TH::apply(
+                        parameter,
+                        &TH::tree_tweak((level as u8) + 1, parent_pos),
+                        children,
+                    )
                 })
                 .collect();
 
