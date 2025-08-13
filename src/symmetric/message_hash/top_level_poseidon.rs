@@ -1,5 +1,4 @@
 use num_bigint::BigUint;
-use p3_baby_bear::default_babybear_poseidon2_24;
 use p3_field::PrimeCharacteristicRing;
 use p3_field::PrimeField;
 use p3_field::PrimeField64;
@@ -13,6 +12,7 @@ use crate::MESSAGE_LENGTH;
 use crate::hypercube::hypercube_find_layer;
 use crate::hypercube::hypercube_part_size;
 use crate::hypercube::map_to_vertex;
+use crate::poseidon2_24;
 use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
 
 /// Function to make a list of field elements to a vertex in layers 0, ..., FINAL_LAYER
@@ -136,7 +136,7 @@ where
         randomness: &Self::Randomness,
         message: &[u8; MESSAGE_LENGTH],
     ) -> Vec<u8> {
-        let perm = default_babybear_poseidon2_24();
+        let perm = poseidon2_24();
 
         // first, encode the message and the epoch as field elements
         let message_fe = encode_message::<MSG_LEN_FE>(message);
