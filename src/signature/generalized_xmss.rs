@@ -255,9 +255,8 @@ where
 
         // first get back the codeword and make sure
         // encoding succeeded with the given randomness.
-        let x = match IE::encode(&pk.parameter.into(), message, &sig.rho, epoch) {
-            Ok(x) => x,
-            Err(_) => return false,
+        let Ok(x) = IE::encode(&pk.parameter.into(), message, &sig.rho, epoch) else {
+            return false;
         };
 
         // now, we recompute the epoch's one-time public key
