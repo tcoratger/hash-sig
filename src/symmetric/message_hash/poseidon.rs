@@ -8,7 +8,7 @@ use super::MessageHash;
 use crate::F;
 use crate::MESSAGE_LENGTH;
 use crate::TWEAK_SEPARATOR_FOR_MESSAGE_HASH;
-use crate::poseidon24;
+use crate::poseidon2_24;
 use crate::symmetric::tweak_hash::poseidon::poseidon_compress;
 
 /// Function to encode a message as an array of field elements
@@ -151,7 +151,7 @@ where
         message: &[u8; MESSAGE_LENGTH],
     ) -> Vec<u8> {
         // Get the default, pre-configured Poseidon2 instance from Plonky3.
-        let perm = poseidon24();
+        let perm = poseidon2_24();
 
         // first, encode the message and the epoch as field elements
         let message_fe = encode_message::<MSG_LEN_FE>(message);
