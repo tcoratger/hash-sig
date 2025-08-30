@@ -1,5 +1,3 @@
-use p3_baby_bear::default_babybear_poseidon2_16;
-use p3_baby_bear::default_babybear_poseidon2_24;
 use p3_field::PrimeCharacteristicRing;
 use p3_field::PrimeField64;
 use p3_symmetric::Permutation;
@@ -8,6 +6,8 @@ use serde::{Serialize, de::DeserializeOwned};
 use crate::F;
 use crate::TWEAK_SEPARATOR_FOR_CHAIN_HASH;
 use crate::TWEAK_SEPARATOR_FOR_TREE_HASH;
+use crate::poseidon16;
+use crate::poseidon24;
 
 use super::TweakableHash;
 
@@ -291,7 +291,7 @@ where
         match message {
             [single] => {
                 // we compress parameter, tweak, message
-                let perm = default_babybear_poseidon2_16();
+                let perm = poseidon16();
                 let combined_input: Vec<F> = parameter
                     .iter()
                     .chain(tweak_fe.iter())
@@ -303,7 +303,7 @@ where
 
             [left, right] => {
                 // we compress parameter, tweak, message (now containing two parts)
-                let perm = default_babybear_poseidon2_24();
+                let perm = poseidon24();
                 let combined_input: Vec<F> = parameter
                     .iter()
                     .chain(tweak_fe.iter())
@@ -316,7 +316,7 @@ where
 
             _ if message.len() > 2 => {
                 // Hashing many blocks
-                let perm = default_babybear_poseidon2_24();
+                let perm = poseidon24();
                 let combined_input: Vec<F> = parameter
                     .iter()
                     .chain(tweak_fe.iter())
