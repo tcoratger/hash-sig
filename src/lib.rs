@@ -11,27 +11,17 @@ pub const TWEAK_SEPARATOR_FOR_CHAIN_HASH: u8 = 0x00;
 
 type F = KoalaBear;
 
-/// The Poseidon2 of width 16 used in the codebase.
-pub(crate) fn poseidon16() -> Poseidon2KoalaBear<16> {
-    default_koalabear_poseidon2_16()
-}
-
-/// The Poseidon2 of width 24 used in the codebase.
-pub(crate) fn poseidon24() -> Poseidon2KoalaBear<24> {
-    default_koalabear_poseidon2_24()
-}
-
 pub mod hypercube;
 pub mod inc_encoding;
 pub mod signature;
 pub mod symmetric;
 
 /// Poseidon2 permutation (width 24)
-pub(crate) fn poseidon2_24() -> Poseidon2BabyBear<24> {
-    default_babybear_poseidon2_24()
+pub(crate) fn poseidon2_24() -> Poseidon2KoalaBear<24> {
+    default_koalabear_poseidon2_24()
 }
 
 /// Poseidon2 permutation (width 16)
-pub(crate) fn poseidon2_16() -> Poseidon2BabyBear<16> {
-    default_babybear_poseidon2_16()
+pub(crate) fn poseidon2_16() -> Poseidon2KoalaBear<16> {
+    default_koalabear_poseidon2_16()
 }
