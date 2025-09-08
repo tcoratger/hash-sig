@@ -11,10 +11,10 @@ pub const TWEAK_SEPARATOR_FOR_CHAIN_HASH: u8 = 0x00;
 
 type F = BabyBear;
 
-pub mod hypercube;
-pub mod inc_encoding;
+pub(crate) mod hypercube;
+pub(crate) mod inc_encoding;
 pub mod signature;
-pub mod symmetric;
+pub(crate) mod symmetric;
 
 /// Poseidon2 permutation (width 24)
 pub(crate) fn poseidon2_24() -> Poseidon2BabyBear<24> {

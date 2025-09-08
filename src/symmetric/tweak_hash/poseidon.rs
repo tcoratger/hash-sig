@@ -381,9 +381,11 @@ where
 }
 
 // Example instantiations
+#[cfg(test)]
 pub type PoseidonTweak44 = PoseidonTweakHash<4, 4, 3, 9, 128>;
+#[cfg(test)]
 pub type PoseidonTweak37 = PoseidonTweakHash<3, 7, 3, 9, 128>;
-pub type PoseidonTweakW1L18 = PoseidonTweakHash<5, 7, 2, 9, 163>;
+#[cfg(test)]
 pub type PoseidonTweakW1L5 = PoseidonTweakHash<5, 7, 2, 9, 163>;
 
 #[cfg(test)]

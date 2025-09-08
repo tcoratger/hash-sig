@@ -224,7 +224,9 @@ where
 }
 
 // Example instantiations
+#[cfg(test)]
 pub type PoseidonMessageHash445 = PoseidonMessageHash<4, 4, 5, 128, 4, 2, 9>;
+#[cfg(test)]
 pub type PoseidonMessageHashW1 = PoseidonMessageHash<5, 5, 5, 163, 2, 2, 9>;
 
 #[cfg(test)]
