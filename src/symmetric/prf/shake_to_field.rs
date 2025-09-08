@@ -98,10 +98,6 @@ mod tests {
             }
         }
 
-        assert!(
-            all_same_count < K,
-            "PRF key had identical elements in all {} trials",
-            K
-        );
+        assert!(all_same_count < K, "PRF key had identical elements in all {} trials", K);
     }
 }

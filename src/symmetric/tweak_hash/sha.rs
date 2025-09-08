@@ -7,24 +7,14 @@ use super::TweakableHash;
 
 /// Enum to implement tweaks.
 pub enum ShaTweak {
-    TreeTweak {
-        level: u8,
-        pos_in_level: u32,
-    },
-    ChainTweak {
-        epoch: u32,
-        chain_index: u8,
-        pos_in_chain: u8,
-    },
+    TreeTweak { level: u8, pos_in_level: u32 },
+    ChainTweak { epoch: u32, chain_index: u8, pos_in_chain: u8 },
 }
 
 impl ShaTweak {
     fn to_bytes(&self) -> Vec<u8> {
         match self {
-            Self::TreeTweak {
-                level,
-                pos_in_level,
-            } => {
+            Self::TreeTweak { level, pos_in_level } => {
                 let mut bytes = Vec::new();
                 // start with the tree tweak prefix.
                 bytes.push(TWEAK_SEPARATOR_FOR_TREE_HASH);
@@ -37,11 +27,7 @@ impl ShaTweak {
                 // the tweak ends.
                 bytes
             }
-            Self::ChainTweak {
-                epoch,
-                chain_index,
-                pos_in_chain,
-            } => {
+            Self::ChainTweak { epoch, chain_index, pos_in_chain } => {
                 let mut bytes = Vec::new();
                 // start with the chain tweak prefix.
                 bytes.push(TWEAK_SEPARATOR_FOR_CHAIN_HASH);
@@ -82,18 +68,11 @@ where
     }
 
     fn tree_tweak(level: u8, pos_in_level: u32) -> Self::Tweak {
-        ShaTweak::TreeTweak {
-            level,
-            pos_in_level,
-        }
+        ShaTweak::TreeTweak { level, pos_in_level }
     }
 
     fn chain_tweak(epoch: u32, chain_index: u8, pos_in_chain: u8) -> Self::Tweak {
-        ShaTweak::ChainTweak {
-            epoch,
-            chain_index,
-            pos_in_chain,
-        }
+        ShaTweak::ChainTweak { epoch, chain_index, pos_in_chain }
     }
 
     fn apply(
@@ -123,10 +102,7 @@ where
             PARAMETER_LEN < 256 / 8,
             "SHA Tweak Hash: Parameter Length must be less than 256 bit"
         );
-        assert!(
-            HASH_LEN < 256 / 8,
-            "SHA Tweak Hash: Hash Length must be less than 256 bit"
-        );
+        assert!(HASH_LEN < 256 / 8, "SHA Tweak Hash: Hash Length must be less than 256 bit");
     }
 }
 
@@ -221,11 +197,7 @@ mod tests {
         for _ in 0..100_000 {
             let level = rng.random();
             let pos_in_level = rng.random();
-            let tweak_encoding = ShaTweak::TreeTweak {
-                level,
-                pos_in_level,
-            }
-            .to_bytes();
+            let tweak_encoding = ShaTweak::TreeTweak { level, pos_in_level }.to_bytes();
 
             if let Some((prev_level, prev_pos_in_level)) =
                 map.insert(tweak_encoding.clone(), (level, pos_in_level))
@@ -248,11 +220,7 @@ mod tests {
         let level = rng.random();
         for _ in 0..10_000 {
             let pos_in_level = rng.random();
-            let tweak_encoding = ShaTweak::TreeTweak {
-                level,
-                pos_in_level,
-            }
-            .to_bytes();
+            let tweak_encoding = ShaTweak::TreeTweak { level, pos_in_level }.to_bytes();
 
             if let Some(prev_pos_in_level) = map.insert(tweak_encoding.clone(), pos_in_level) {
                 assert_eq!(
@@ -268,11 +236,7 @@ mod tests {
         let pos_in_level = rng.random();
         for _ in 0..10_000 {
             let level = rng.random();
-            let tweak_encoding = ShaTweak::TreeTweak {
-                level,
-                pos_in_level,
-            }
-            .to_bytes();
+            let tweak_encoding = ShaTweak::TreeTweak { level, pos_in_level }.to_bytes();
 
             if let Some(prev_level) = map.insert(tweak_encoding.clone(), level) {
                 assert_eq!(
@@ -300,12 +264,8 @@ mod tests {
 
             let input = (epoch, chain_index, pos_in_chain);
 
-            let tweak_encoding = ShaTweak::ChainTweak {
-                epoch,
-                chain_index,
-                pos_in_chain,
-            }
-            .to_bytes();
+            let tweak_encoding =
+                ShaTweak::ChainTweak { epoch, chain_index, pos_in_chain }.to_bytes();
 
             if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
                 assert_eq!(
@@ -324,12 +284,8 @@ mod tests {
 
             let input = (chain_index, pos_in_chain);
 
-            let tweak_encoding = ShaTweak::ChainTweak {
-                epoch,
-                chain_index,
-                pos_in_chain,
-            }
-            .to_bytes();
+            let tweak_encoding =
+                ShaTweak::ChainTweak { epoch, chain_index, pos_in_chain }.to_bytes();
 
             if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
                 assert_eq!(
@@ -348,12 +304,8 @@ mod tests {
 
             let input = (epoch, pos_in_chain);
 
-            let tweak_encoding = ShaTweak::ChainTweak {
-                epoch,
-                chain_index,
-                pos_in_chain,
-            }
-            .to_bytes();
+            let tweak_encoding =
+                ShaTweak::ChainTweak { epoch, chain_index, pos_in_chain }.to_bytes();
 
             if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
                 assert_eq!(
@@ -372,12 +324,8 @@ mod tests {
 
             let input = (epoch, chain_index);
 
-            let tweak_encoding = ShaTweak::ChainTweak {
-                epoch,
-                chain_index,
-                pos_in_chain,
-            }
-            .to_bytes();
+            let tweak_encoding =
+                ShaTweak::ChainTweak { epoch, chain_index, pos_in_chain }.to_bytes();
 
             if let Some(prev_input) = map.insert(tweak_encoding.clone(), input) {
                 assert_eq!(

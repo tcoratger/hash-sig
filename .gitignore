@@ -5,3 +5,4 @@ Cargo.lock
 
 # Proptest data
 proptest-regressions/
+*.DS_Store

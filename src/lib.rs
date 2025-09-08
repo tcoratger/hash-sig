@@ -17,7 +17,7 @@ pub mod inc_encoding;
 pub mod signature;
 pub mod symmetric;
 
-// Cached Poseidon2 permutations. 
+// Cached Poseidon2 permutations.
 //
 // We cache the default Plonky3 Poseidon2 instances once and return a clone.
 // Returning by value preserves existing call sites that take `&perm`.
