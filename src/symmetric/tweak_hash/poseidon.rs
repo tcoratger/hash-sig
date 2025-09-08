@@ -88,7 +88,6 @@ impl PoseidonTweak {
 /// Panics:
 /// - If `input.len() < OUT_LEN`
 /// - If `OUT_LEN > WIDTH`
-#[must_use]
 pub fn poseidon_compress<P, const WIDTH: usize, const OUT_LEN: usize>(
     perm: &P,
     input: &[F],
@@ -409,19 +408,19 @@ mod tests {
         let message_one = PoseidonTweak44::rand_domain(&mut rng);
         let message_two = PoseidonTweak44::rand_domain(&mut rng);
         let tweak_tree = PoseidonTweak44::tree_tweak(0, 3);
-        let _ = PoseidonTweak44::apply(&parameter, &tweak_tree, &[message_one, message_two]);
+        PoseidonTweak44::apply(&parameter, &tweak_tree, &[message_one, message_two]);
 
         // test that nothing is panicking
         let parameter = PoseidonTweak44::rand_parameter(&mut rng);
         let message_one = PoseidonTweak44::rand_domain(&mut rng);
         let tweak_chain = PoseidonTweak44::chain_tweak(2, 3, 4);
-        let _ = PoseidonTweak44::apply(&parameter, &tweak_chain, &[message_one]);
+        PoseidonTweak44::apply(&parameter, &tweak_chain, &[message_one]);
 
         // test that nothing is panicking
         let parameter = PoseidonTweak44::rand_parameter(&mut rng);
         let chains = [PoseidonTweak44::rand_domain(&mut rng); 128];
         let tweak_tree = PoseidonTweak44::tree_tweak(0, 3);
-        let _ = PoseidonTweak44::apply(&parameter, &tweak_tree, &chains);
+        PoseidonTweak44::apply(&parameter, &tweak_tree, &chains);
     }
 
     #[test]
@@ -429,20 +428,20 @@ mod tests {
         let mut rng = rand::rng();
 
         // make sure parameters make sense
-        let () = PoseidonTweak37::internal_consistency_check();
+        PoseidonTweak37::internal_consistency_check();
 
         // test that nothing is panicking
         let parameter = PoseidonTweak37::rand_parameter(&mut rng);
         let message_one = PoseidonTweak37::rand_domain(&mut rng);
         let message_two = PoseidonTweak37::rand_domain(&mut rng);
         let tweak_tree = PoseidonTweak37::tree_tweak(0, 3);
-        let _ = PoseidonTweak37::apply(&parameter, &tweak_tree, &[message_one, message_two]);
+        PoseidonTweak37::apply(&parameter, &tweak_tree, &[message_one, message_two]);
 
         // test that nothing is panicking
         let parameter = PoseidonTweak37::rand_parameter(&mut rng);
         let message_one = PoseidonTweak37::rand_domain(&mut rng);
         let tweak_chain = PoseidonTweak37::chain_tweak(2, 3, 4);
-        let _ = PoseidonTweak37::apply(&parameter, &tweak_chain, &[message_one]);
+        PoseidonTweak37::apply(&parameter, &tweak_chain, &[message_one]);
     }
 
     #[test]
