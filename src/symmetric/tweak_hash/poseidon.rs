@@ -428,7 +428,7 @@ mod tests {
         let mut rng = rand::rng();
 
         // make sure parameters make sense
-        let () = PoseidonTweak37::internal_consistency_check();
+        PoseidonTweak37::internal_consistency_check();
 
         // test that nothing is panicking
         let parameter = PoseidonTweak37::rand_parameter(&mut rng);
