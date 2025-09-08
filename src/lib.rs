@@ -17,11 +17,15 @@ pub mod inc_encoding;
 pub mod signature;
 pub mod symmetric;
 
-/// Cached Poseidon2 permutations.
-///
-/// We cache the default Plonky3 Poseidon2 instances once and return a clone.
-/// Returning by value preserves existing call sites that take `&perm`.
+// Cached Poseidon2 permutations. 
+//
+// We cache the default Plonky3 Poseidon2 instances once and return a clone.
+// Returning by value preserves existing call sites that take `&perm`.
+
+/// A lazily-initialized, thread-safe cache for the Poseidon2 permutation with a width of 24.
 static POSEIDON2_24: OnceLock<Poseidon2BabyBear<24>> = OnceLock::new();
+
+/// A lazily-initialized, thread-safe cache for the Poseidon2 permutation with a width of 16.
 static POSEIDON2_16: OnceLock<Poseidon2BabyBear<16>> = OnceLock::new();
 
 /// Poseidon2 permutation (width 24)
