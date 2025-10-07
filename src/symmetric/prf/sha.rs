@@ -45,7 +45,7 @@ where
     #[cfg(test)]
     fn internal_consistency_check() {
         assert!(
-            OUTPUT_LENGTH < 256 / 8,
+            OUTPUT_LENGTH <= 256 / 8,
             "SHA PRF: Output length must be less than 256 bit"
         );
     }
