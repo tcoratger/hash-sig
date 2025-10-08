@@ -95,11 +95,9 @@ pub trait SignatureScheme {
     /// This method cryptographically binds a message to the signer's identity for a
     /// single, unique epoch. Callers must ensure they never call this function twice
     /// with the same secret key and for the same epoch, as this would compromise security.
-    /// The signing process may be probabilistic.
+    /// The signing process is deterministic.
     ///
     /// ### Parameters
-    /// * `rng`: A random number generator, required for signature schemes that use
-    ///   probabilistic components.
     /// * `sk`: A reference to the secret key to be used for signing.
     /// * `epoch`: The specific epoch for which the signature is being created.
     /// * `message`: A fixed-size byte array representing the message to be signed.
@@ -108,8 +106,7 @@ pub trait SignatureScheme {
     /// A `Result` which is:
     /// * `Ok(Self::Signature)` on success, containing the generated signature.
     /// * `Err(SigningError)` on failure.
-    fn sign<R: Rng>(
-        rng: &mut R,
+    fn sign(
         sk: &Self::SecretKey,
         epoch: u32,
         message: &[u8; MESSAGE_LENGTH],
@@ -169,7 +166,7 @@ mod test_templates {
         let message = rng.random();
 
         // Sign the message
-        let signature = T::sign(&mut rng, &sk, epoch, &message);
+        let signature = T::sign(&sk, epoch, &message);
 
         // Ensure signing was successful
         assert!(

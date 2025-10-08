@@ -59,12 +59,7 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
             let epoch = rng.random_range(0..activation_duration) as u32;
 
             // Benchmark signing
-            let _ = S::sign(
-                black_box(&mut rng),
-                black_box(&sk),
-                black_box(epoch),
-                black_box(&message),
-            );
+            let _ = S::sign(black_box(&sk), black_box(epoch), black_box(&message));
         });
     });
 
@@ -74,8 +69,7 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
             let message = rng.random();
             let epoch = rng.random_range(0..activation_duration) as u32;
 
-            let signature =
-                S::sign(&mut rng, &sk, epoch, &message).expect("Signing should succeed");
+            let signature = S::sign(&sk, epoch, &message).expect("Signing should succeed");
             (epoch, message, signature)
         })
         .collect();

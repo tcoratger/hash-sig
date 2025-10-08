@@ -171,8 +171,7 @@ where
         (pk, sk)
     }
 
-    fn sign<R: Rng>(
-        _rng: &mut R,
+    fn sign(
         sk: &Self::SecretKey,
         epoch: u32,
         message: &[u8; MESSAGE_LENGTH],
@@ -200,7 +199,7 @@ where
             // which ensures that signing is deterministic. The PRF is applied to the message and the epoch.
             // While the intention is that users of the scheme never call sign twice with the same (epoch, sk) pair,
             // this deterministic approach ensures that calling sign twice is fine, as long as the message stays the same.
-            let curr_rho= PRF::get_randomness(&sk.prf_key, epoch, message, attempts as u64).into();
+            let curr_rho = PRF::get_randomness(&sk.prf_key, epoch, message, attempts as u64).into();
             let curr_x = IE::encode(&sk.parameter.into(), message, &curr_rho, epoch);
 
             // check if we have found a valid codeword, and if so, stop searching
@@ -462,10 +461,10 @@ mod tests {
         // we sign the same (epoch, message) pair twice (which users of this code should not do)
         // and ensure that it produces the same randomness for the signature.
         let mut rng = rand::rng();
-        let (_pk, sk) = Sig::key_gen(&mut rng, 0, 1<<LOG_LIFETIME);
+        let (_pk, sk) = Sig::key_gen(&mut rng, 0, 1 << LOG_LIFETIME);
         let message = rng.random();
-        let sig1 = Sig::sign(&mut rng, &sk, 22, &message).unwrap();
-        let sig2 = Sig::sign(&mut rng, &sk, 22, &message).unwrap();
+        let sig1 = Sig::sign(&sk, 22, &message).unwrap();
+        let sig2 = Sig::sign(&sk, 22, &message).unwrap();
         let rho1 = sig1.rho;
         let rho2 = sig2.rho;
         assert_eq!(rho1, rho2);
