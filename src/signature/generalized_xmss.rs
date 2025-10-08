@@ -69,6 +69,7 @@ impl<PRF: Pseudorandom, IE: IncomparableEncoding, TH: TweakableHash, const LOG_L
     SignatureScheme for GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>
 where
     PRF::Domain: Into<TH::Domain>,
+    PRF::Randomness: Into<IE::Randomness>,
     TH::Parameter: Into<IE::Parameter>,
 {
     type PublicKey = GeneralizedXMSSPublicKey<TH>;
@@ -171,7 +172,7 @@ where
     }
 
     fn sign<R: Rng>(
-        rng: &mut R,
+        _rng: &mut R,
         sk: &Self::SecretKey,
         epoch: u32,
         message: &[u8; MESSAGE_LENGTH],
@@ -195,8 +196,11 @@ where
         let mut x = None;
         let mut rho = None;
         while attempts < max_tries {
-            // sample a randomness and try to encode the message
-            let curr_rho = IE::rand(rng);
+            // get a randomness and try to encode the message. Note: we get the randomness from the PRF
+            // which ensures that signing is deterministic. The PRF is applied to the message and the epoch.
+            // While the intention is that users of the scheme never call sign twice with the same (epoch, sk) pair,
+            // this deterministic approach ensures that calling sign twice is fine, as long as the message stays the same.
+            let curr_rho= PRF::get_randomness(&sk.prf_key, epoch, message, attempts as u64).into();
             let curr_x = IE::encode(&sk.parameter.into(), message, &curr_rho, epoch);
 
             // check if we have found a valid codeword, and if so, stop searching
@@ -437,6 +441,34 @@ mod tests {
         test_signature_scheme_correctness::<Sig>(19, 0, Sig::LIFETIME as usize);
         test_signature_scheme_correctness::<Sig>(0, 0, Sig::LIFETIME as usize);
         test_signature_scheme_correctness::<Sig>(11, 0, Sig::LIFETIME as usize);
+    }
+
+    #[test]
+    pub fn test_deterministic() {
+        // Note: do not use these parameters, they are just for testing
+        type PRF = ShakePRFtoF<7, 5>;
+        type TH = PoseidonTweakW1L5;
+        type MH = PoseidonMessageHashW1;
+        const BASE: usize = MH::BASE;
+        const NUM_CHUNKS: usize = MH::DIMENSION;
+        const MAX_CHUNK_VALUE: usize = BASE - 1;
+        const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
+        type IE = TargetSumEncoding<MH, EXPECTED_SUM>;
+        const LOG_LIFETIME: usize = 5;
+        type Sig = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+
+        Sig::internal_consistency_check();
+
+        // we sign the same (epoch, message) pair twice (which users of this code should not do)
+        // and ensure that it produces the same randomness for the signature.
+        let mut rng = rand::rng();
+        let (_pk, sk) = Sig::key_gen(&mut rng, 0, 1<<LOG_LIFETIME);
+        let message = rng.random();
+        let sig1 = Sig::sign(&mut rng, &sk, 22, &message).unwrap();
+        let sig2 = Sig::sign(&mut rng, &sk, 22, &message).unwrap();
+        let rho1 = sig1.rho;
+        let rho2 = sig2.rho;
+        assert_eq!(rho1, rho2);
     }
 
     #[test]
