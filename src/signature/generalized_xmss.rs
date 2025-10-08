@@ -68,7 +68,7 @@ pub struct GeneralizedXMSSSecretKey<PRF: Pseudorandom, TH: TweakableHash> {
 impl<PRF: Pseudorandom, IE: IncomparableEncoding, TH: TweakableHash, const LOG_LIFETIME: usize>
     SignatureScheme for GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>
 where
-    PRF::Output: Into<TH::Domain>,
+    PRF::Domain: Into<TH::Domain>,
     TH::Parameter: Into<IE::Parameter>,
 {
     type PublicKey = GeneralizedXMSSPublicKey<TH>;
@@ -128,7 +128,9 @@ where
                     .into_par_iter()
                     .map(|chain_index| {
                         // each chain start is just a PRF evaluation
-                        let start = PRF::apply(&prf_key, epoch as u32, chain_index as u64).into();
+                        let start =
+                            PRF::get_domain_element(&prf_key, epoch as u32, chain_index as u64)
+                                .into();
                         // walk the chain to get the public chain end
                         chain::<TH>(
                             &parameter,
@@ -231,7 +233,7 @@ where
             .into_par_iter()
             .map(|chain_index| {
                 // get back to the start of the chain from the PRF
-                let start = PRF::apply(&sk.prf_key, epoch, chain_index as u64).into();
+                let start = PRF::get_domain_element(&sk.prf_key, epoch, chain_index as u64).into();
                 // now walk the chain for a number of steps determined by the current chunk of x
                 let steps = x[chain_index] as usize;
                 chain::<TH>(&sk.parameter, epoch, chain_index as u8, 0, steps, &start)
@@ -348,7 +350,7 @@ mod tests {
     #[test]
     pub fn test_winternitz() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShaPRF<24>;
+        type PRF = ShaPRF<24, 24>;
         type TH = ShaTweak192192;
         type MH = ShaMessageHash192x3;
         const CHUNK_SIZE: usize = 4;
@@ -369,7 +371,7 @@ mod tests {
     #[test]
     pub fn test_winternitz_poseidon() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShakePRFtoF<7>;
+        type PRF = ShakePRFtoF<7, 5>;
         type TH = PoseidonTweakW1L5;
         type MH = PoseidonMessageHashW1;
         const CHUNK_SIZE: usize = 1;
@@ -395,7 +397,7 @@ mod tests {
     #[test]
     pub fn test_target_sum() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShaPRF<24>;
+        type PRF = ShaPRF<24, 24>;
         type TH = ShaTweak192192;
         type MH = ShaMessageHash192x3;
         const BASE: usize = MH::BASE;
@@ -418,7 +420,7 @@ mod tests {
     #[test]
     pub fn test_target_sum_poseidon() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShakePRFtoF<7>;
+        type PRF = ShakePRFtoF<7, 5>;
         type TH = PoseidonTweakW1L5;
         type MH = PoseidonMessageHashW1;
         const BASE: usize = MH::BASE;
@@ -440,7 +442,7 @@ mod tests {
     #[test]
     pub fn test_large_base_sha() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShaPRF<24>;
+        type PRF = ShaPRF<24, 8>;
         type TH = ShaTweak192192;
 
         // use chunk size 8
@@ -459,7 +461,7 @@ mod tests {
     #[test]
     pub fn test_large_dimension_sha() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShaPRF<24>;
+        type PRF = ShaPRF<24, 8>;
         type TH = ShaTweak192192;
 
         // use 256 chunks

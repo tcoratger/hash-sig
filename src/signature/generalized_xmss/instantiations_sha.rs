@@ -20,7 +20,7 @@ pub mod lifetime_2_to_the_18 {
         type MHw1 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W1, CHUNK_SIZE_W1>;
         const HASH_LEN_W1: usize = 25;
         type THw1 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W1>;
-        type PRFw1 = ShaPRF<HASH_LEN_W1>;
+        type PRFw1 = ShaPRF<HASH_LEN_W1, RAND_LEN>;
         type IEw1 = WinternitzEncoding<MHw1, CHUNK_SIZE_W1, 8>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 1
         pub type SIGWinternitzLifetime18W1 =
@@ -31,7 +31,7 @@ pub mod lifetime_2_to_the_18 {
         type MHw2 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W2, CHUNK_SIZE_W2>;
         const HASH_LEN_W2: usize = 25;
         type THw2 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W2>;
-        type PRFw2 = ShaPRF<HASH_LEN_W2>;
+        type PRFw2 = ShaPRF<HASH_LEN_W2, RAND_LEN>;
         type IEw2 = WinternitzEncoding<MHw2, CHUNK_SIZE_W2, 4>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 2
         pub type SIGWinternitzLifetime18W2 =
@@ -42,7 +42,7 @@ pub mod lifetime_2_to_the_18 {
         type MHw4 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W4, CHUNK_SIZE_W4>;
         const HASH_LEN_W4: usize = 26;
         type THw4 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W4>;
-        type PRFw4 = ShaPRF<HASH_LEN_W4>;
+        type PRFw4 = ShaPRF<HASH_LEN_W4, RAND_LEN>;
         type IEw4 = WinternitzEncoding<MHw4, CHUNK_SIZE_W4, 3>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 4
         pub type SIGWinternitzLifetime18W4 =
@@ -53,7 +53,7 @@ pub mod lifetime_2_to_the_18 {
         type MHw8 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W8, CHUNK_SIZE_W8>;
         const HASH_LEN_W8: usize = 28;
         type THw8 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W8>;
-        type PRFw8 = ShaPRF<HASH_LEN_W8>;
+        type PRFw8 = ShaPRF<HASH_LEN_W8, RAND_LEN>;
         type IEw8 = WinternitzEncoding<MHw8, CHUNK_SIZE_W8, 2>;
         /// Instantiation with Lifetime 2^18, Winternitz encoding, chunk size w = 8
         pub type SIGWinternitzLifetime18W8 =
@@ -146,7 +146,7 @@ pub mod lifetime_2_to_the_18 {
         type MHw1 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W1, CHUNK_SIZE_W1>;
         const HASH_LEN_W1: usize = 25;
         type THw1 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W1>;
-        type PRFw1 = ShaPRF<HASH_LEN_W1>;
+        type PRFw1 = ShaPRF<HASH_LEN_W1, RAND_LEN>;
         type IEw1<const TARGET_SUM: usize> = TargetSumEncoding<MHw1, TARGET_SUM>;
         /// Instantiation with Lifetime 2^18, Target sum encoding, chunk size w = 1,
         /// and target sum set at expectation
@@ -162,7 +162,7 @@ pub mod lifetime_2_to_the_18 {
         type MHw2 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W2, CHUNK_SIZE_W2>;
         const HASH_LEN_W2: usize = 25;
         type THw2 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W2>;
-        type PRFw2 = ShaPRF<HASH_LEN_W2>;
+        type PRFw2 = ShaPRF<HASH_LEN_W2, RAND_LEN>;
         type IEw2<const TARGET_SUM: usize> = TargetSumEncoding<MHw2, TARGET_SUM>;
         /// Instantiation with Lifetime 2^18, Target sum encoding, chunk size w = 2,
         /// and target sum set at expectation
@@ -178,7 +178,7 @@ pub mod lifetime_2_to_the_18 {
         type MHw4 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W4, CHUNK_SIZE_W4>;
         const HASH_LEN_W4: usize = 26;
         type THw4 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W4>;
-        type PRFw4 = ShaPRF<HASH_LEN_W4>;
+        type PRFw4 = ShaPRF<HASH_LEN_W4, RAND_LEN>;
         type IEw4<const TARGET_SUM: usize> = TargetSumEncoding<MHw4, TARGET_SUM>;
         /// Instantiation with Lifetime 2^18, Target sum encoding, chunk size w = 4,
         /// and target sum set at expectation
@@ -194,7 +194,7 @@ pub mod lifetime_2_to_the_18 {
         type MHw8 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W8, CHUNK_SIZE_W8>;
         const HASH_LEN_W8: usize = 28;
         type THw8 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W8>;
-        type PRFw8 = ShaPRF<HASH_LEN_W8>;
+        type PRFw8 = ShaPRF<HASH_LEN_W8, RAND_LEN>;
         type IEw8<const TARGET_SUM: usize> = TargetSumEncoding<MHw8, TARGET_SUM>;
         /// Instantiation with Lifetime 2^18, Target sum encoding, chunk size w = 8,
         /// and target sum set at expectation
@@ -329,7 +329,7 @@ pub mod lifetime_2_to_the_20 {
         type MHw1 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W1, CHUNK_SIZE_W1>;
         const HASH_LEN_W1: usize = 25;
         type THw1 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W1>;
-        type PRFw1 = ShaPRF<HASH_LEN_W1>;
+        type PRFw1 = ShaPRF<HASH_LEN_W1, RAND_LEN>;
         type IEw1 = WinternitzEncoding<MHw1, CHUNK_SIZE_W1, 8>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 1
         pub type SIGWinternitzLifetime20W1 =
@@ -340,7 +340,7 @@ pub mod lifetime_2_to_the_20 {
         type MHw2 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W2, CHUNK_SIZE_W2>;
         const HASH_LEN_W2: usize = 26;
         type THw2 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W2>;
-        type PRFw2 = ShaPRF<HASH_LEN_W2>;
+        type PRFw2 = ShaPRF<HASH_LEN_W2, RAND_LEN>;
         type IEw2 = WinternitzEncoding<MHw2, CHUNK_SIZE_W2, 4>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 2
         pub type SIGWinternitzLifetime20W2 =
@@ -351,7 +351,7 @@ pub mod lifetime_2_to_the_20 {
         type MHw4 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W4, CHUNK_SIZE_W4>;
         const HASH_LEN_W4: usize = 26;
         type THw4 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W4>;
-        type PRFw4 = ShaPRF<HASH_LEN_W4>;
+        type PRFw4 = ShaPRF<HASH_LEN_W4, RAND_LEN>;
         type IEw4 = WinternitzEncoding<MHw4, CHUNK_SIZE_W4, 3>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 4
         pub type SIGWinternitzLifetime20W4 =
@@ -362,7 +362,7 @@ pub mod lifetime_2_to_the_20 {
         type MHw8 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W8, CHUNK_SIZE_W8>;
         const HASH_LEN_W8: usize = 28;
         type THw8 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W8>;
-        type PRFw8 = ShaPRF<HASH_LEN_W8>;
+        type PRFw8 = ShaPRF<HASH_LEN_W8, RAND_LEN>;
         type IEw8 = WinternitzEncoding<MHw8, CHUNK_SIZE_W8, 2>;
         /// Instantiation with Lifetime 2^20, Winternitz encoding, chunk size w = 8
         pub type SIGWinternitzLifetime20W8 =
@@ -456,7 +456,7 @@ pub mod lifetime_2_to_the_20 {
         type MHw1 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W1, CHUNK_SIZE_W1>;
         const HASH_LEN_W1: usize = 25;
         type THw1 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W1>;
-        type PRFw1 = ShaPRF<HASH_LEN_W1>;
+        type PRFw1 = ShaPRF<HASH_LEN_W1, RAND_LEN>;
         type IEw1<const TARGET_SUM: usize> = TargetSumEncoding<MHw1, TARGET_SUM>;
         /// Instantiation with Lifetime 2^20, Target sum encoding, chunk size w = 1,
         /// and target sum set at expectation
@@ -472,7 +472,7 @@ pub mod lifetime_2_to_the_20 {
         type MHw2 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W2, CHUNK_SIZE_W2>;
         const HASH_LEN_W2: usize = 26;
         type THw2 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W2>;
-        type PRFw2 = ShaPRF<HASH_LEN_W2>;
+        type PRFw2 = ShaPRF<HASH_LEN_W2, RAND_LEN>;
         type IEw2<const TARGET_SUM: usize> = TargetSumEncoding<MHw2, TARGET_SUM>;
         /// Instantiation with Lifetime 2^20, Target sum encoding, chunk size w = 2,
         /// and target sum set at expectation
@@ -488,7 +488,7 @@ pub mod lifetime_2_to_the_20 {
         type MHw4 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W4, CHUNK_SIZE_W4>;
         const HASH_LEN_W4: usize = 26;
         type THw4 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W4>;
-        type PRFw4 = ShaPRF<HASH_LEN_W4>;
+        type PRFw4 = ShaPRF<HASH_LEN_W4, RAND_LEN>;
         type IEw4<const TARGET_SUM: usize> = TargetSumEncoding<MHw4, TARGET_SUM>;
         /// Instantiation with Lifetime 2^20, Target sum encoding, chunk size w = 4,
         /// and target sum set at expectation
@@ -504,7 +504,7 @@ pub mod lifetime_2_to_the_20 {
         type MHw8 = ShaMessageHash<PARAMETER_LEN, RAND_LEN, NUM_CHUNKS_W8, CHUNK_SIZE_W8>;
         const HASH_LEN_W8: usize = 28;
         type THw8 = ShaTweakHash<PARAMETER_LEN, HASH_LEN_W8>;
-        type PRFw8 = ShaPRF<HASH_LEN_W8>;
+        type PRFw8 = ShaPRF<HASH_LEN_W8, RAND_LEN>;
         type IEw8<const TARGET_SUM: usize> = TargetSumEncoding<MHw8, TARGET_SUM>;
         /// Instantiation with Lifetime 2^20, Target sum encoding, chunk size w = 8,
         /// and target sum set at expectation

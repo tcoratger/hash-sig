@@ -40,7 +40,7 @@ pub mod lifetime_2_to_the_18 {
         RAND_LEN_FE,
     >;
     type TH = PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, DIMENSION>;
-    type PRF = ShakePRFtoF<HASH_LEN_FE>;
+    type PRF = ShakePRFtoF<HASH_LEN_FE, RAND_LEN_FE>;
     type IE = TargetSumEncoding<MH, TARGET_SUM>;
 
     pub type SIGTopLevelTargetSumLifetime18Dim64Base8 =
@@ -125,7 +125,7 @@ pub mod lifetime_2_to_the_32 {
             RAND_LEN_FE,
         >;
         type TH = PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, DIMENSION>;
-        type PRF = ShakePRFtoF<HASH_LEN_FE>;
+        type PRF = ShakePRFtoF<HASH_LEN_FE, RAND_LEN_FE>;
         type IE = TargetSumEncoding<MH, TARGET_SUM>;
 
         pub type SIGTopLevelTargetSumLifetime32Dim64Base8 =
@@ -206,7 +206,7 @@ pub mod lifetime_2_to_the_32 {
             RAND_LEN_FE,
         >;
         type TH = PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, DIMENSION>;
-        type PRF = ShakePRFtoF<HASH_LEN_FE>;
+        type PRF = ShakePRFtoF<HASH_LEN_FE, RAND_LEN_FE>;
         type IE = TargetSumEncoding<MH, TARGET_SUM>;
 
         pub type SIGTopLevelTargetSumLifetime32Dim48Base10 =
@@ -286,7 +286,7 @@ pub mod lifetime_2_to_the_32 {
             RAND_LEN_FE,
         >;
         type TH = PoseidonTweakHash<PARAMETER_LEN, HASH_LEN_FE, TWEAK_LEN_FE, CAPACITY, DIMENSION>;
-        type PRF = ShakePRFtoF<HASH_LEN_FE>;
+        type PRF = ShakePRFtoF<HASH_LEN_FE, RAND_LEN_FE>;
         type IE = TargetSumEncoding<MH, TARGET_SUM>;
 
         pub type SIGTopLevelTargetSumLifetime32Dim32Base26 =
