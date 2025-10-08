@@ -1,38 +1,3 @@
-//! Benchmark suite comparing `HashTree::new` (scalar) vs `HashTree::new_packed` (SIMD).
-//!
-//! This benchmark tests three challenging scenarios:
-//! 1. **Large dense tree** (65K leaves): Tests raw throughput with maximum parallelism
-//! 2. **Sparse high offset tree** (10K leaves at offset 100K): Tests memory locality
-//! 3. **Medium irregular tree** (12345 leaves): Tests edge case handling with non-power-of-2 sizes
-//!
-//! # Running the benchmarks
-//!
-//! ```bash
-//! # Run all hashtree benchmarks
-//! cargo bench --bench benchmark
-//!
-//! # Run specific scenario
-//! cargo bench --bench benchmark -- "large_dense"
-//! cargo bench --bench benchmark -- "sparse_high_offset"
-//! cargo bench --bench benchmark -- "medium_irregular"
-//!
-//! # Compare scalar vs packed for a scenario
-//! cargo bench --bench benchmark -- "packed/large_dense"
-//! cargo bench --bench benchmark -- "scalar/large_dense"
-//! ```
-//!
-//! # Output interpretation
-//!
-//! The benchmarks will show timing for each scenario. A typical result might look like:
-//! ```text
-//! HashTree: new vs new_packed/scalar/large_dense
-//!                         time:   [45.2 ms 45.5 ms 45.8 ms]
-//! HashTree: new vs new_packed/packed/large_dense
-//!                         time:   [12.3 ms 12.5 ms 12.7 ms]
-//! ```
-//!
-//! This would indicate ~3.6x speedup from SIMD for the large dense tree.
-
 use criterion::{BenchmarkId, Criterion};
 use hashsig::symmetric::{
     tweak_hash::TweakableHash, tweak_hash::poseidon::PoseidonTweakHash, tweak_hash_tree::HashTree,
@@ -42,7 +7,6 @@ use rand::SeedableRng;
 use rand::rngs::StdRng;
 use std::hint::black_box;
 
-// Use the same parameters as in the signature instantiations
 type F = KoalaBear;
 type P = PackedKoalaBearNeon;
 type TestTH = PoseidonTweakHash<4, 4, 3, 9, 128>;
