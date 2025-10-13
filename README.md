@@ -23,7 +23,7 @@ let (pk, sk) = T::key_gen(&mut rng, 0, T::LIFETIME as usize);
 // sign a random message for a random epoch
 let message = rng.random();
 let epoch = rng.random_range(0..activation_duration) as u32;
-let sig = S::sign(&mut rng, &sk, epoch, &message);
+let sig = S::sign(&sk, epoch, &message);
 
 // verify the signature
 let is_valid = S::verify(&pk, epoch, &message, &sig);
