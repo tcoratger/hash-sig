@@ -18,6 +18,8 @@ const KEY_LENGTH: usize = 32; // 32 bytes
 const PRF_DOMAIN_SEP: [u8; 16] = [
     0xae, 0xae, 0x22, 0xff, 0x00, 0x01, 0xfa, 0xff, 0x21, 0xaf, 0x12, 0x00, 0x01, 0x11, 0xff, 0x00,
 ];
+const PRF_DOMAIN_SEP_DOMAIN_ELEMENT: [u8; 1] = [0x00];
+const PRF_DOMAIN_SEP_RANDOMNESS: [u8; 1] = [0x01];
 
 /// A pseudorandom function mapping to field elements.
 /// It is implemented using Shake128.
@@ -46,7 +48,7 @@ where
 
         // Another domain separator for distinguishing the two types of elements
         // that we generate: domain elements and randomness
-        hasher.update(&[0x00]);
+        hasher.update(&PRF_DOMAIN_SEP_DOMAIN_ELEMENT);
 
         // Hash the key
         hasher.update(key);
@@ -90,7 +92,7 @@ where
 
         // Another domain separator for distinguishing the two types of elements
         // that we generate: domain elements and randomness
-        hasher.update(&[0x01]);
+        hasher.update(&PRF_DOMAIN_SEP_RANDOMNESS);
 
         // Hash the key
         hasher.update(key);

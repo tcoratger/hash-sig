@@ -6,6 +6,8 @@ const KEY_LENGTH: usize = 32; // 32 bytes
 const PRF_DOMAIN_SEP: [u8; 16] = [
     0x00, 0x01, 0x12, 0xff, 0x00, 0x01, 0xfa, 0xff, 0x00, 0xaf, 0x12, 0xff, 0x01, 0xfa, 0xff, 0x00,
 ];
+const PRF_DOMAIN_SEP_DOMAIN_ELEMENT: [u8; 1] = [0x00];
+const PRF_DOMAIN_SEP_RANDOMNESS: [u8; 1] = [0x01];
 
 // Implement a SHA3-based PRF
 // Domain length and randomness length are given in bytes.
@@ -34,7 +36,7 @@ where
 
         // Another domain separator for distinguishing the two types of elements
         // that we generate: domain elements and randomness
-        hasher.update([0x00]);
+        hasher.update(PRF_DOMAIN_SEP_DOMAIN_ELEMENT);
 
         // Hash the key
         hasher.update(key);
@@ -63,7 +65,7 @@ where
 
         // Another domain separator for distinguishing the two types of elements
         // that we generate: domain elements and randomness
-        hasher.update([0x01]);
+        hasher.update(PRF_DOMAIN_SEP_RANDOMNESS);
 
         // Hash the key
         hasher.update(key);
