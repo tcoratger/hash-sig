@@ -97,6 +97,16 @@ pub trait SignatureScheme {
     /// with the same secret key and for the same epoch, as this would compromise security.
     /// The signing process is deterministic.
     ///
+    /// Note: we derandomize the signing function as an additional hardening mechanism.
+    /// This ensures that if the caller calls the function twice with the same input
+    /// triple (i.e., same key, epoch, message), the result is the same. In particular,
+    /// this does not compromise security. We still recommend that the caller only calls
+    /// this function once for the same key-epoch pair, to avoid accidentally calling it
+    /// twice with two different messages, which would compromise security.
+    ///
+    /// Note: It is well-known that the security guarantees of signature schemes are not
+    /// weakened if we derandomize signing using a PRF.
+    ///
     /// ### Parameters
     /// * `sk`: A reference to the secret key to be used for signing.
     /// * `epoch`: The specific epoch for which the signature is being created.
