@@ -68,7 +68,8 @@ pub struct GeneralizedXMSSSecretKey<PRF: Pseudorandom, TH: TweakableHash> {
 impl<PRF: Pseudorandom, IE: IncomparableEncoding, TH: TweakableHash, const LOG_LIFETIME: usize>
     SignatureScheme for GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>
 where
-    PRF::Output: Into<TH::Domain>,
+    PRF::Domain: Into<TH::Domain>,
+    PRF::Randomness: Into<IE::Randomness>,
     TH::Parameter: Into<IE::Parameter>,
 {
     type PublicKey = GeneralizedXMSSPublicKey<TH>;
@@ -128,7 +129,9 @@ where
                     .into_par_iter()
                     .map(|chain_index| {
                         // each chain start is just a PRF evaluation
-                        let start = PRF::apply(&prf_key, epoch as u32, chain_index as u64).into();
+                        let start =
+                            PRF::get_domain_element(&prf_key, epoch as u32, chain_index as u64)
+                                .into();
                         // walk the chain to get the public chain end
                         chain::<TH>(
                             &parameter,
@@ -168,8 +171,7 @@ where
         (pk, sk)
     }
 
-    fn sign<R: Rng>(
-        rng: &mut R,
+    fn sign(
         sk: &Self::SecretKey,
         epoch: u32,
         message: &[u8; MESSAGE_LENGTH],
@@ -193,8 +195,11 @@ where
         let mut x = None;
         let mut rho = None;
         while attempts < max_tries {
-            // sample a randomness and try to encode the message
-            let curr_rho = IE::rand(rng);
+            // get a randomness and try to encode the message. Note: we get the randomness from the PRF
+            // which ensures that signing is deterministic. The PRF is applied to the message and the epoch.
+            // While the intention is that users of the scheme never call sign twice with the same (epoch, sk) pair,
+            // this deterministic approach ensures that calling sign twice is fine, as long as the message stays the same.
+            let curr_rho = PRF::get_randomness(&sk.prf_key, epoch, message, attempts as u64).into();
             let curr_x = IE::encode(&sk.parameter.into(), message, &curr_rho, epoch);
 
             // check if we have found a valid codeword, and if so, stop searching
@@ -231,7 +236,7 @@ where
             .into_par_iter()
             .map(|chain_index| {
                 // get back to the start of the chain from the PRF
-                let start = PRF::apply(&sk.prf_key, epoch, chain_index as u64).into();
+                let start = PRF::get_domain_element(&sk.prf_key, epoch, chain_index as u64).into();
                 // now walk the chain for a number of steps determined by the current chunk of x
                 let steps = x[chain_index] as usize;
                 chain::<TH>(&sk.parameter, epoch, chain_index as u8, 0, steps, &start)
@@ -348,7 +353,7 @@ mod tests {
     #[test]
     pub fn test_winternitz() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShaPRF<24>;
+        type PRF = ShaPRF<24, 24>;
         type TH = ShaTweak192192;
         type MH = ShaMessageHash192x3;
         const CHUNK_SIZE: usize = 4;
@@ -369,7 +374,7 @@ mod tests {
     #[test]
     pub fn test_winternitz_poseidon() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShakePRFtoF<7>;
+        type PRF = ShakePRFtoF<7, 5>;
         type TH = PoseidonTweakW1L5;
         type MH = PoseidonMessageHashW1;
         const CHUNK_SIZE: usize = 1;
@@ -395,7 +400,7 @@ mod tests {
     #[test]
     pub fn test_target_sum() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShaPRF<24>;
+        type PRF = ShaPRF<24, 24>;
         type TH = ShaTweak192192;
         type MH = ShaMessageHash192x3;
         const BASE: usize = MH::BASE;
@@ -418,7 +423,7 @@ mod tests {
     #[test]
     pub fn test_target_sum_poseidon() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShakePRFtoF<7>;
+        type PRF = ShakePRFtoF<7, 5>;
         type TH = PoseidonTweakW1L5;
         type MH = PoseidonMessageHashW1;
         const BASE: usize = MH::BASE;
@@ -438,9 +443,37 @@ mod tests {
     }
 
     #[test]
+    pub fn test_deterministic() {
+        // Note: do not use these parameters, they are just for testing
+        type PRF = ShakePRFtoF<7, 5>;
+        type TH = PoseidonTweakW1L5;
+        type MH = PoseidonMessageHashW1;
+        const BASE: usize = MH::BASE;
+        const NUM_CHUNKS: usize = MH::DIMENSION;
+        const MAX_CHUNK_VALUE: usize = BASE - 1;
+        const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
+        type IE = TargetSumEncoding<MH, EXPECTED_SUM>;
+        const LOG_LIFETIME: usize = 5;
+        type Sig = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
+
+        Sig::internal_consistency_check();
+
+        // we sign the same (epoch, message) pair twice (which users of this code should not do)
+        // and ensure that it produces the same randomness for the signature.
+        let mut rng = rand::rng();
+        let (_pk, sk) = Sig::key_gen(&mut rng, 0, 1 << LOG_LIFETIME);
+        let message = rng.random();
+        let sig1 = Sig::sign(&sk, 22, &message).unwrap();
+        let sig2 = Sig::sign(&sk, 22, &message).unwrap();
+        let rho1 = sig1.rho;
+        let rho2 = sig2.rho;
+        assert_eq!(rho1, rho2);
+    }
+
+    #[test]
     pub fn test_large_base_sha() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShaPRF<24>;
+        type PRF = ShaPRF<24, 8>;
         type TH = ShaTweak192192;
 
         // use chunk size 8
@@ -459,7 +492,7 @@ mod tests {
     #[test]
     pub fn test_large_dimension_sha() {
         // Note: do not use these parameters, they are just for testing
-        type PRF = ShaPRF<24>;
+        type PRF = ShaPRF<24, 8>;
         type TH = ShaTweak192192;
 
         // use 256 chunks
