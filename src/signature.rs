@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use crate::MESSAGE_LENGTH;
 use rand::Rng;
 use serde::{Serialize, de::DeserializeOwned};
@@ -10,6 +12,36 @@ pub enum SigningError {
     /// after the maximum number of attempts.
     #[error("Failed to encode message after {attempts} attempts.")]
     EncodingAttemptsExceeded { attempts: usize },
+}
+
+/// Defines the interface for a synchronized signature scheme secret key.
+///
+/// The secret key can be used for epochs in a certain interval, called the activation
+/// interval. At any point in time, it is prepared for signing for epochs in a certain
+/// sub-interval of the activation interval (this could be the full activation interval).
+/// There is a function that changes this prepared interval to the next one, if possible.
+pub trait SignatureSchemeSecretKey {
+    /// Returns the interval during which this key is currently active.
+    /// This is guaranteed to be a superset of the activation interval that has been
+    /// passed during key generation. It starts at a multiple of sqrt{LIFETIME} and
+    /// its length is also a multiple of sqrt{LIFETIME}. Its length is at least
+    /// 2 * sqrt{LIFETIME}. The activation interval does not change.
+    fn get_activation_interval(&self) -> Range<u64>;
+
+    /// Returns the interval for which this key has been prepared (for signing future messages).
+    /// It's a sub-interval of the activation interval. It starts at a multiple of sqrt{LIFETIME}.
+    /// It has length exactly 2 * sqrt{LIFETIME}.
+    fn get_prepared_interval(&self) -> Range<u64>;
+
+    /// Advances the prepared interval to the next one with overlap of time sqrt{LIFETIME}, if possible.
+    /// Example: prepared_interval is [a, a + 2 * sqrt{LIFETIME}) before calling this. Then it it will
+    /// be [a + sqrt{LIFETIME}, a + 3 * sqrt{LIFETIME}) after calling this, provided that this new
+    /// interval is also a sub-interval of the activation interval. If not, then the prepared interval
+    /// does not change.
+    ///
+    /// Note: the caller should only call this if signing for the epochs in [a, a + sqrt{LIFETIME}) is
+    /// no longer needed.
+    fn advance_preparation(&mut self);
 }
 
 /// Defines the interface for a **synchronized signature scheme**.
@@ -45,7 +77,7 @@ pub trait SignatureScheme {
     /// The secret key used for signing.
     ///
     /// The key must be serializable for persistence and secure backup.
-    type SecretKey: Serialize + DeserializeOwned;
+    type SecretKey: SignatureSchemeSecretKey + Serialize + DeserializeOwned;
 
     /// The signature object produced by the signing algorithm.
     ///
@@ -167,10 +199,25 @@ mod test_templates {
         activation_epoch: usize,
         num_active_epochs: usize,
     ) {
+        // The epoch must be in the activation interval
+        assert!(
+            activation_epoch as u32 <= epoch
+                && epoch < (activation_epoch + num_active_epochs) as u32,
+            "Did not even try signing, epoch {:?} outside of activation interval {:?},{:?}",
+            epoch,
+            activation_epoch,
+            num_active_epochs
+        );
+
         let mut rng = rand::rng();
 
         // Generate a key pair
-        let (pk, sk) = T::key_gen(&mut rng, activation_epoch, num_active_epochs);
+        let (pk, mut sk) = T::key_gen(&mut rng, activation_epoch, num_active_epochs);
+
+        // Advance the secret key until the epoch is in the prepared interval
+        while !sk.get_prepared_interval().contains(&(epoch as u64)) {
+            sk.advance_preparation();
+        }
 
         // Sample random test message
         let message = rng.random();

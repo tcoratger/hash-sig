@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     MESSAGE_LENGTH,
     inc_encoding::IncomparableEncoding,
+    signature::SignatureSchemeSecretKey,
     symmetric::{
         prf::Pseudorandom,
         tweak_hash::{TweakableHash, chain},
@@ -63,6 +64,29 @@ pub struct GeneralizedXMSSSecretKey<PRF: Pseudorandom, TH: TweakableHash> {
     parameter: TH::Parameter,
     activation_epoch: usize,
     num_active_epochs: usize,
+}
+
+impl<PRF: Pseudorandom, TH: TweakableHash> SignatureSchemeSecretKey
+    for GeneralizedXMSSSecretKey<PRF, TH>
+{
+    fn get_activation_interval(&self) -> std::ops::Range<u64> {
+        let start = self.activation_epoch as u64;
+        let end = start + self.num_active_epochs as u64;
+        start..end
+    }
+
+    fn get_prepared_interval(&self) -> std::ops::Range<u64> {
+        // TODO. get interval by looking at bottom subtrees
+        return self.get_activation_interval();
+    }
+
+    fn advance_preparation(&mut self) {
+        // TODO.
+        // Check if advancing is possible.
+        // if so, drop left bottom subtree.
+        // move the right bottom subtree to the left one.
+        // compute new right bottom subtree.
+    }
 }
 
 impl<PRF: Pseudorandom, IE: IncomparableEncoding, TH: TweakableHash, const LOG_LIFETIME: usize>

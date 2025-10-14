@@ -122,7 +122,6 @@ where
         parameter: &TH::Parameter,
         leafs_hashes: Vec<TH::Domain>,
     ) -> Self {
-        // check that number of leafs is a power of two
         assert!(
             start_index + leafs_hashes.len() <= 1 << depth,
             "Hash-Tree new: Not enough space for leafs. Consider changing start_index or number of leaf hashes"
