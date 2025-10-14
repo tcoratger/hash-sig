@@ -9,7 +9,7 @@ use crate::{
     symmetric::{
         prf::Pseudorandom,
         tweak_hash::{TweakableHash, chain},
-        tweak_hash_tree::{HashTree, HashTreeOpening, hash_tree_verify},
+        tweak_hash_tree::{HashSubTree, HashTreeOpening, hash_tree_verify},
     },
 };
 
@@ -60,7 +60,7 @@ pub struct GeneralizedXMSSPublicKey<TH: TweakableHash> {
 #[serde(bound = "")]
 pub struct GeneralizedXMSSSecretKey<PRF: Pseudorandom, TH: TweakableHash> {
     prf_key: PRF::Key,
-    tree: HashTree<TH>,
+    tree: HashSubTree<TH>,
     parameter: TH::Parameter,
     activation_epoch: usize,
     num_active_epochs: usize,
@@ -173,8 +173,9 @@ where
             .collect::<Vec<_>>();
 
         // now build a Merkle tree on top of the hashes of chain ends / public keys
-        let tree = HashTree::new(
+        let tree = HashSubTree::new_subtree(
             rng,
+            0,
             LOG_LIFETIME,
             activation_epoch,
             &parameter,
