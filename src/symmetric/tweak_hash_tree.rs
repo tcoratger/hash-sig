@@ -268,9 +268,10 @@ where
 
         // we first compute the bottom tree as if it was a sparse tree, i.e.,
         // as if we were to compute the full tree but only this bottom tree part was filled.
+        let leafs_per_bottom_tree = 1 << (depth / 2);
         let lowest_layer = 0;
         let lowest_layer_nodes = leafs;
-        let start_index = bottom_tree_index * 1 << (depth / 2);
+        let start_index = bottom_tree_index * leafs_per_bottom_tree;
         let mut bottom_tree = Self::new_subtree(
             &mut dummy_rng,
             lowest_layer,

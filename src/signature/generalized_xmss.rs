@@ -177,8 +177,8 @@ fn expand_activation_time<const LOG_LIFETIME: usize>(
     }
 
     // now divide by c to get what we want
-    start = start >> (LOG_LIFETIME / 2);
-    end = end >> (LOG_LIFETIME / 2);
+    start >>= LOG_LIFETIME / 2;
+    end >>= LOG_LIFETIME / 2;
 
     (start, end)
 }
@@ -221,10 +221,10 @@ where
                 .map(|chain_index| {
                     // each chain start is just a PRF evaluation
                     let start =
-                        PRF::get_domain_element(&prf_key, epoch as u32, chain_index as u64).into();
+                        PRF::get_domain_element(prf_key, epoch as u32, chain_index as u64).into();
                     // walk the chain to get the public chain end
                     chain::<TH>(
-                        &parameter,
+                        parameter,
                         epoch as u32,
                         chain_index as u8,
                         0,
@@ -234,7 +234,7 @@ where
                 })
                 .collect::<Vec<_>>();
             // build hash of chain ends / public keys
-            TH::apply(&parameter, &TH::tree_tweak(0, epoch as u32), &chain_ends)
+            TH::apply(parameter, &TH::tree_tweak(0, epoch as u32), &chain_ends)
         })
         .collect::<Vec<_>>();
 
@@ -247,13 +247,16 @@ where
     )
 }
 
-impl<PRF: Pseudorandom, IE: IncomparableEncoding, TH: TweakableHash, const LOG_LIFETIME: usize>
-    SignatureScheme for GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>
+impl<
+    PRF: Pseudorandom,
+    IE: IncomparableEncoding + Sync + Send,
+    TH: TweakableHash,
+    const LOG_LIFETIME: usize,
+> SignatureScheme for GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>
 where
     PRF::Domain: Into<TH::Domain>,
     PRF::Randomness: Into<IE::Randomness>,
     TH::Parameter: Into<IE::Parameter>,
-    IE: Sync + Send,
 {
     type PublicKey = GeneralizedXMSSPublicKey<TH>;
 
@@ -547,7 +550,7 @@ where
         assert!(
             LOG_LIFETIME.is_multiple_of(2),
             "Generalized XMSS: LOG_LIFETIME must be multiple of two"
-        )
+        );
     }
 }
 
