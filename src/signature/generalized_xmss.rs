@@ -9,7 +9,7 @@ use crate::{
     symmetric::{
         prf::Pseudorandom,
         tweak_hash::{TweakableHash, chain},
-        tweak_hash_tree::{HashSubTree, HashTreeOpening, hash_tree_verify},
+        tweak_hash_tree::{HashSubTree, HashTreeOpening, combined_path, hash_tree_verify},
     },
 };
 
@@ -58,16 +58,20 @@ pub struct GeneralizedXMSSPublicKey<TH: TweakableHash> {
 /// would be costly for signatures.
 #[derive(Serialize, Deserialize)]
 #[serde(bound = "")]
-pub struct GeneralizedXMSSSecretKey<PRF: Pseudorandom, TH: TweakableHash> {
+pub struct GeneralizedXMSSSecretKey<PRF: Pseudorandom, TH: TweakableHash, const LOG_LIFETIME: usize>
+{
     prf_key: PRF::Key,
-    tree: HashSubTree<TH>,
     parameter: TH::Parameter,
     activation_epoch: usize,
     num_active_epochs: usize,
+    top_tree: HashSubTree<TH>,
+    left_bottom_tree_index: usize,
+    left_bottom_tree: HashSubTree<TH>,
+    right_bottom_tree: HashSubTree<TH>,
 }
 
-impl<PRF: Pseudorandom, TH: TweakableHash> SignatureSchemeSecretKey
-    for GeneralizedXMSSSecretKey<PRF, TH>
+impl<PRF: Pseudorandom, TH: TweakableHash, const LOG_LIFETIME: usize> SignatureSchemeSecretKey
+    for GeneralizedXMSSSecretKey<PRF, TH, LOG_LIFETIME>
 {
     fn get_activation_interval(&self) -> std::ops::Range<u64> {
         let start = self.activation_epoch as u64;
@@ -76,17 +80,158 @@ impl<PRF: Pseudorandom, TH: TweakableHash> SignatureSchemeSecretKey
     }
 
     fn get_prepared_interval(&self) -> std::ops::Range<u64> {
-        // TODO. get interval by looking at bottom subtrees
-        return self.get_activation_interval();
+        // the key is prepared for all epochs covered by the left and right bottom tree
+        // and each bottom tree covers exactly 2^{LOG_LIFETIME / 2} leafs
+        let leafs_per_bottom_tree = 1 << (LOG_LIFETIME / 2);
+        let start = (self.left_bottom_tree_index * leafs_per_bottom_tree) as u64;
+        let end = start + (2 * leafs_per_bottom_tree as u64);
+        start..end
     }
 
     fn advance_preparation(&mut self) {
-        // TODO.
-        // Check if advancing is possible.
-        // if so, drop left bottom subtree.
-        // move the right bottom subtree to the left one.
-        // compute new right bottom subtree.
+
+        // First, check if advancing is possible by comparing to activation interval.
+        let leafs_per_bottom_tree = 1 << (LOG_LIFETIME / 2);
+        let next_prepared_end_epoch = self.left_bottom_tree_index * leafs_per_bottom_tree + 3 * leafs_per_bottom_tree;
+        let end_of_activation = self.activation_epoch + self.num_active_epochs;
+        if next_prepared_end_epoch > end_of_activation {
+            return;
+        }
+
+      /*  // We can now drop the left bottom tree, we no longer need it. This frees memory.
+        drop(self.left_bottom_tree);
+
+        // The bottom tree that was previously right should now be left
+        // So, we move the right bottom subtree to the left one and update our index
+        self.left_bottom_tree = std::mem::replace(
+        &mut self.right_bottom_tree,
+        // Placeholder will be replaced below with new right bottom tree
+        HashSubTree::default(),
+    );
+        self.left_bottom_tree_index += 1;
+
+        // We compute the new right bottom subtree (using the helper function bottom_tree_from_prf_key)
+        self.right_bottom_tree = bottom_tree_from_prf_key(&self.prf_key, self.left_bottom_tree_index + 1, &self.parameter);*/
     }
+}
+
+/// Helper function to take a desired activation time (given by start and duration)
+/// and potentially increase it, so that, for C = 1 << (LOG_LIFETIME/2).
+///     1. the new duration is a multiple of C
+///     2. the new duration is at least 2 * C
+///     3. the new activation time starts at a multiple of C
+///     4. the new activation interval is contained in [0...C^2) = [0,..LIFETIME).
+///     5. the new interval contains the desired interval.
+///
+/// The returned result is a pair (start, excl_end) of integers, such that the new
+/// activation interval is given by [start * C , excl_end * C).
+fn expand_activation_time<const LOG_LIFETIME: usize>(
+    desired_activation_epoch: usize,
+    desired_num_active_epochs: usize,
+) -> (usize, usize) {
+    let lifetime = 1usize << LOG_LIFETIME;
+    let c = 1usize << (LOG_LIFETIME / 2);
+    // c_mask has the form 1...10...0, with LOG_LIFETIME / 2 many 0's.
+    let c_mask = !(c - 1);
+
+    let desired_start = desired_activation_epoch;
+    let desired_end = desired_activation_epoch + desired_num_active_epochs;
+
+    // 1. Start by aligning the *start* downward to a multiple of C.
+    // we can do that by bitwise and with c_mask.
+    let mut start = desired_start & c_mask;
+
+    // 2. Round the *end* upward to a multiple of C.
+    // This guarantees the original interval is fully contained.
+    let mut end = (desired_end + c - 1) & c_mask;
+
+    // 3. Enforce minimum duration of 2*C.
+    if end - start < 2 * c {
+        end = start + 2 * c;
+    }
+
+    // 4. If the new interval exceeds lifetime, shift it left to fit inside [0, lifetime)
+    if end > lifetime {
+        let duration = end - start;
+        if duration > lifetime {
+            // Pathological: expanded interval exceeds lifetime
+            start = 0;
+            end = lifetime;
+        } else {
+            end = lifetime;
+            start = (lifetime - duration) & c_mask;
+        }
+    }
+
+    // now divide by c to get what we want
+    start = start >> (LOG_LIFETIME / 2);
+    end = end >> (LOG_LIFETIME / 2);
+
+    (start, end)
+}
+
+/// Helper function to compute a bottom tree from the PRF key. The PRF key is used to re-generate
+/// the secret keys, then the public keys are generated and hashed to obtain the leafs of the
+/// bottom tree. Then the bottom tree is computed.
+fn bottom_tree_from_prf_key<
+    PRF: Pseudorandom,
+    IE: IncomparableEncoding,
+    TH: TweakableHash,
+    const LOG_LIFETIME: usize,
+>(
+    prf_key: &PRF::Key,
+    bottom_tree_index: usize,
+    parameter: &TH::Parameter,
+) -> HashSubTree<TH>
+where
+    PRF::Domain: Into<TH::Domain>,
+    PRF::Randomness: Into<IE::Randomness>,
+    TH::Parameter: Into<IE::Parameter>,
+{
+    let leafs_per_bottom_tree = 1 << (LOG_LIFETIME / 2);
+    let num_chains = IE::DIMENSION;
+    let chain_length = IE::BASE;
+
+    // the range of epochs covered by that bottom tree
+    let epoch_range_start = bottom_tree_index * leafs_per_bottom_tree;
+    let epoch_range_end = epoch_range_start + leafs_per_bottom_tree;
+    let epoch_range = epoch_range_start..epoch_range_end;
+
+    // parallelize the chain ends hash computation for each epoch in the interval for that bottom tree
+    let chain_ends_hashes = epoch_range
+        .into_par_iter()
+        .map(|epoch| {
+            // each epoch has a number of chains
+            // parallelize the chain ends computation for each chain
+            let chain_ends = (0..num_chains)
+                .into_par_iter()
+                .map(|chain_index| {
+                    // each chain start is just a PRF evaluation
+                    let start =
+                        PRF::get_domain_element(&prf_key, epoch as u32, chain_index as u64).into();
+                    // walk the chain to get the public chain end
+                    chain::<TH>(
+                        &parameter,
+                        epoch as u32,
+                        chain_index as u8,
+                        0,
+                        chain_length - 1,
+                        &start,
+                    )
+                })
+                .collect::<Vec<_>>();
+            // build hash of chain ends / public keys
+            TH::apply(&parameter, &TH::tree_tweak(0, epoch as u32), &chain_ends)
+        })
+        .collect::<Vec<_>>();
+
+    // now that we have the hashes of all chain ends (= leafs of our tree), we can compute the bottom tree
+    HashSubTree::new_bottom_tree(
+        LOG_LIFETIME,
+        bottom_tree_index,
+        parameter,
+        chain_ends_hashes,
+    )
 }
 
 impl<PRF: Pseudorandom, IE: IncomparableEncoding, TH: TweakableHash, const LOG_LIFETIME: usize>
@@ -98,7 +243,7 @@ where
 {
     type PublicKey = GeneralizedXMSSPublicKey<TH>;
 
-    type SecretKey = GeneralizedXMSSSecretKey<PRF, TH>;
+    type SecretKey = GeneralizedXMSSSecretKey<PRF, TH, LOG_LIFETIME>;
 
     type Signature = GeneralizedXMSSSignature<IE, TH>;
 
@@ -115,14 +260,33 @@ where
             "Key gen: `activation_epoch` and `num_active_epochs` are invalid for this lifetime"
         );
 
-        // Note: this implementation first generates all one-time sk's
-        // and one-time pk's and then computes a Merkle tree in one go.
-        // For a large lifetime (e.g., L = 2^32), this approach is not
-        // well  suited  when  running on, say, 16 GiB of RAM. In this
-        // setting, a more sophisticated approach is needed, e.g., one
-        // could first  compute half (or quarter) of  one-time sk/pk's
-        // and then their root, then save them to disc,  continue with
-        // the second half, and then combine both.
+        // Note: this implementation uses the top-bottom tree approach, which is as follows:
+        //
+        // We envision that the full Merkle tree into one top tree and `sqrt(LIFETIME)` bottom trees.
+        // The top tree contains the root and the `LOG_LIFETIME/2` layers below it. This top tree has
+        // `sqrt(LIFETIME)` many leafs (but can be sparse and have less). For each leaf that exists,
+        // this leaf is the roof of a bottom tree. Thus, there are at most `sqrt(LIFETIME)` bottom trees,
+        // each having `sqrt(LIFETIME)` leafs. We now restrict increase the activation time to be a
+        // multiple of `sqrt(LIFETIME)` that aligns with these bottom trees, and is at least of length
+        // `2*sqrt(LIFETIME)` so that we have at least two bottom trees.
+        //
+        // Our invariant is that the secret key always stores the full top tree and two consecutive
+        // bottom trees. The secret key can then sign epochs contained in the leafs of these two
+        // consecutive bottom trees, and we provide an update function that re-computes the next bottom
+        // tree and drops the older of the two current ones (function advance_preparation).
+        //
+        // During key generation, we first generate all bottom trees and store their roots, then we
+        // generate the top tree just from their roots.
+
+        // before we do anything, we expand our activation range so that the
+        // top-bottom tree approach can be applied cleanly.
+        let leafs_per_bottom_tree = 1 << (LOG_LIFETIME / 2);
+        let (start_bottom_tree_index, end_bottom_tree_index) =
+            expand_activation_time::<LOG_LIFETIME>(activation_epoch, num_active_epochs);
+        let num_bottom_trees = end_bottom_tree_index - start_bottom_tree_index;
+        assert!(num_bottom_trees >= 2);
+        let activation_epoch = start_bottom_tree_index * leafs_per_bottom_tree;
+        let num_active_epochs = num_bottom_trees * leafs_per_bottom_tree;
 
         // we need a random parameter to be used for the tweakable hash
         let parameter = TH::rand_parameter(rng);
@@ -130,67 +294,70 @@ where
         // we need a PRF key to generate our list of actual secret keys
         let prf_key = PRF::key_gen(rng);
 
-        // for each epoch, generate the secret key for the epoch, where
-        // an epoch secret key is a list of domain elements derived from the
-        // pseudorandom function.
-        // We have one such element per chain, and we have one
-        // chain per chunk of the codeword. In the same go, we also generate
-        // the respective public key, which is obtained by walking the hash
-        // chain starting at the secret key element.
-        // The public key for that epoch is then the hash of all chain ends.
+        // first, we build all bottom trees and keep track of their root. We treat the first two
+        // bottom trees differently, as we want to keep them in our key. While building the bottom
+        // trees, we generate all hash chains using our PRF key, and hash their ends to get the
+        // leafs of our bottom trees. This is done in `bottom_tree_from_prf_key`.
+        let mut roots_of_bottom_trees = Vec::with_capacity(num_bottom_trees);
 
-        let num_chains = IE::DIMENSION;
-        let chain_length = IE::BASE;
-
-        // parallelize the chain ends hash computation for each epoch
-        let activation_range = activation_epoch..activation_epoch + num_active_epochs;
-        let chain_ends_hashes = activation_range
-            .into_par_iter()
-            .map(|epoch| {
-                // each epoch has a number of chains
-                // parallelize the chain ends computation for each chain
-                let chain_ends = (0..num_chains)
-                    .into_par_iter()
-                    .map(|chain_index| {
-                        // each chain start is just a PRF evaluation
-                        let start =
-                            PRF::get_domain_element(&prf_key, epoch as u32, chain_index as u64)
-                                .into();
-                        // walk the chain to get the public chain end
-                        chain::<TH>(
-                            &parameter,
-                            epoch as u32,
-                            chain_index as u8,
-                            0,
-                            chain_length - 1,
-                            &start,
-                        )
-                    })
-                    .collect::<Vec<_>>();
-                // build hash of chain ends / public keys
-                TH::apply(&parameter, &TH::tree_tweak(0, epoch as u32), &chain_ends)
-            })
-            .collect::<Vec<_>>();
-
-        // now build a Merkle tree on top of the hashes of chain ends / public keys
-        let tree = HashSubTree::new_subtree(
-            rng,
-            0,
-            LOG_LIFETIME,
-            activation_epoch,
+        let left_bottom_tree_index = start_bottom_tree_index;
+        let left_bottom_tree = bottom_tree_from_prf_key::<PRF, IE, TH, LOG_LIFETIME>(
+            &prf_key,
+            left_bottom_tree_index,
             &parameter,
-            chain_ends_hashes,
         );
-        let root = tree.root();
+        roots_of_bottom_trees.push(left_bottom_tree.root());
+
+        let right_bottom_tree_index = start_bottom_tree_index + 1;
+        let right_bottom_tree = bottom_tree_from_prf_key::<PRF, IE, TH, LOG_LIFETIME>(
+            &prf_key,
+            right_bottom_tree_index,
+            &parameter,
+        );
+        roots_of_bottom_trees.push(right_bottom_tree.root());
+
+        // the rest of the bottom trees in parallel
+        roots_of_bottom_trees.extend(
+            (start_bottom_tree_index + 2..end_bottom_tree_index)
+                .into_par_iter()
+                .map(|bottom_tree_index| {
+                    let bottom_tree = bottom_tree_from_prf_key::<PRF, IE, TH, LOG_LIFETIME>(
+                        &prf_key,
+                        bottom_tree_index,
+                        &parameter,
+                    );
+                    bottom_tree.root()
+                })
+                .collect::<Vec<_>>(), // note: roots are in the correct order.
+        );
+
+        /*for bottom_tree_index in start_bottom_tree_index+2..end_bottom_tree_index {
+            let bottom_tree = bottom_tree_from_prf_key::<R,PRF,IE,TH,LOG_LIFETIME>(rng, &prf_key, bottom_tree_index, &parameter);
+            roots_of_bottom_trees.push(bottom_tree.root());
+        }*/
+
+        // second, we build the top tree, which has the roots of our bottom trees
+        // as leafs. the root of it will be our public key.
+        let top_tree = HashSubTree::new_top_tree(
+            rng,
+            LOG_LIFETIME,
+            start_bottom_tree_index,
+            &parameter,
+            roots_of_bottom_trees,
+        );
+        let root = top_tree.root();
 
         // assemble public key and secret key
         let pk = GeneralizedXMSSPublicKey { root, parameter };
         let sk = GeneralizedXMSSSecretKey {
             prf_key,
-            tree,
             parameter,
             activation_epoch,
             num_active_epochs,
+            top_tree,
+            left_bottom_tree_index,
+            left_bottom_tree,
+            right_bottom_tree,
         };
 
         (pk, sk)
@@ -202,16 +369,30 @@ where
         message: &[u8; MESSAGE_LENGTH],
     ) -> Result<Self::Signature, SigningError> {
         // check that epoch is indeed a valid epoch in the activation range
-        let activation_range = sk.activation_epoch..sk.activation_epoch + sk.num_active_epochs;
+
         assert!(
-            activation_range.contains(&(epoch as usize)),
-            "Signing: key not active during this epoch"
+            sk.get_activation_interval().contains(&(epoch as u64)),
+            "Signing: key not active during this epoch."
+        );
+
+        // check that we are already prepared for this epoch
+        assert!(
+            sk.get_prepared_interval().contains(&(epoch as u64)),
+            "Signing: key not yet prepared for this epoch, try calling sk.advance_preparation."
         );
 
         // first component of the signature is the Merkle path that
         // opens the one-time pk for that epoch, where the one-time pk
         // will be recomputed by the verifier from the signature.
-        let path = sk.tree.path(epoch);
+        let leafs_per_bottom_tree = 1 << (LOG_LIFETIME / 2);
+        let boundary_between_bottom_trees =
+            (sk.left_bottom_tree_index * leafs_per_bottom_tree + leafs_per_bottom_tree) as u32;
+        let bottom_tree = if epoch < boundary_between_bottom_trees {
+            &sk.left_bottom_tree
+        } else {
+            &sk.right_bottom_tree
+        };
+        let path = combined_path(&sk.top_tree, bottom_tree, epoch);
 
         // now, we need to encode our message using the incomparable encoding.
         // we retry until we get a valid codeword, or until we give up.
@@ -346,6 +527,12 @@ where
             IE::DIMENSION <= 1 << 8,
             "Generalized XMSS: Encoding dimension too large, must be at most 2^8"
         );
+
+        // LOG_LIFETIME needs to be even, so that we can use the top-bottom tree approach
+        assert!(
+            LOG_LIFETIME.is_multiple_of(2),
+            "Generalized XMSS: LOG_LIFETIME must be multiple of two"
+        )
     }
 }
 
@@ -384,11 +571,10 @@ mod tests {
         const CHUNK_SIZE: usize = 4;
         const NUM_CHUNKS_CHECKSUM: usize = 3;
         type IE = WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>;
-        const LOG_LIFETIME: usize = 9;
+        const LOG_LIFETIME: usize = 10;
         type Sig = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
         Sig::internal_consistency_check();
-
         test_signature_scheme_correctness::<Sig>(289, 0, Sig::LIFETIME as usize);
         test_signature_scheme_correctness::<Sig>(2, 0, Sig::LIFETIME as usize);
         test_signature_scheme_correctness::<Sig>(19, 0, Sig::LIFETIME as usize);
@@ -406,7 +592,7 @@ mod tests {
         const _BASE: usize = 2;
         const NUM_CHUNKS_CHECKSUM: usize = 8;
         type IE = WinternitzEncoding<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>;
-        const LOG_LIFETIME: usize = 5;
+        const LOG_LIFETIME: usize = 6;
         type Sig = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
         Sig::internal_consistency_check();
@@ -456,7 +642,7 @@ mod tests {
         const MAX_CHUNK_VALUE: usize = BASE - 1;
         const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
         type IE = TargetSumEncoding<MH, EXPECTED_SUM>;
-        const LOG_LIFETIME: usize = 5;
+        const LOG_LIFETIME: usize = 6;
         type Sig = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
         Sig::internal_consistency_check();
@@ -478,7 +664,7 @@ mod tests {
         const MAX_CHUNK_VALUE: usize = BASE - 1;
         const EXPECTED_SUM: usize = NUM_CHUNKS * MAX_CHUNK_VALUE / 2;
         type IE = TargetSumEncoding<MH, EXPECTED_SUM>;
-        const LOG_LIFETIME: usize = 5;
+        const LOG_LIFETIME: usize = 6;
         type Sig = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
         Sig::internal_consistency_check();
@@ -505,7 +691,7 @@ mod tests {
         type MH = ShaMessageHash<24, 8, 32, 8>;
         const TARGET_SUM: usize = 1 << 12;
         type IE = TargetSumEncoding<MH, TARGET_SUM>;
-        const LOG_LIFETIME: usize = 9;
+        const LOG_LIFETIME: usize = 10;
         type Sig = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
         Sig::internal_consistency_check();
@@ -524,12 +710,45 @@ mod tests {
         type MH = ShaMessageHash<24, 8, 256, 1>;
         const TARGET_SUM: usize = 128;
         type IE = TargetSumEncoding<MH, TARGET_SUM>;
-        const LOG_LIFETIME: usize = 9;
+        const LOG_LIFETIME: usize = 10;
         type Sig = GeneralizedXMSSSignatureScheme<PRF, IE, TH, LOG_LIFETIME>;
 
         Sig::internal_consistency_check();
 
         test_signature_scheme_correctness::<Sig>(2, 0, Sig::LIFETIME as usize);
         test_signature_scheme_correctness::<Sig>(19, 0, Sig::LIFETIME as usize);
+    }
+
+    #[test]
+    pub fn test_expand_activation_time() {
+        const LOG_LIFETIME: usize = 4;
+
+        // no padding needed
+        let (start, end_excl) = expand_activation_time::<LOG_LIFETIME>(0, 8);
+        assert!((start == 0) && (end_excl == 2));
+
+        // no padding needed in principle, but is extended to minimum duration of two bottom trees
+        let (start, end_excl) = expand_activation_time::<LOG_LIFETIME>(0, 4);
+        assert!((start == 0) && (end_excl == 2));
+
+        // simple padding needed
+        let (start, end_excl) = expand_activation_time::<LOG_LIFETIME>(0, 7);
+        assert!((start == 0) && (end_excl == 2));
+
+        // simple padding needed, and extended to minimum duration of two bottom trees
+        let (start, end_excl) = expand_activation_time::<LOG_LIFETIME>(0, 3);
+        assert!((start == 0) && (end_excl == 2));
+
+        // padding on both sides needed
+        let (start, end_excl) = expand_activation_time::<LOG_LIFETIME>(1, 8);
+        assert!((start == 0) && (end_excl == 3));
+
+        // padding only in the end needed
+        let (start, end_excl) = expand_activation_time::<LOG_LIFETIME>(8, 5);
+        assert!((start == 2) && (end_excl == 4));
+
+        // large padding to the left needed because of two bottom trees constraint
+        let (start, end_excl) = expand_activation_time::<LOG_LIFETIME>(12, 2);
+        assert!((start == 2) && (end_excl == 4));
     }
 }

@@ -215,9 +215,16 @@ mod test_templates {
         let (pk, mut sk) = T::key_gen(&mut rng, activation_epoch, num_active_epochs);
 
         // Advance the secret key until the epoch is in the prepared interval
-        while !sk.get_prepared_interval().contains(&(epoch as u64)) {
+        let mut iterations = 0;
+        while !sk.get_prepared_interval().contains(&(epoch as u64)) && iterations < epoch {
             sk.advance_preparation();
+            iterations += 1;
         }
+        assert!(
+            sk.get_prepared_interval().contains(&(epoch as u64)),
+            "Did not even try signing, failed to advance key preparation to desired epoch {:?}.",
+            epoch
+        );
 
         // Sample random test message
         let message = rng.random();
