@@ -14,7 +14,7 @@ If you want to use this library, the main interface is that of a *(synchronized)
 
 Importantly, each pair of secret key and epoch must not be used twice as input to `sign`.
 
-Further, the secret keys need to prepared for epochs by calling `sk.advance_preparation()`, which moves the interval `sk.get_prepared_interval()` further to the right.
+Further, the secret keys need to be prepared for epochs by calling `sk.advance_preparation()`, which moves the interval `sk.get_prepared_interval()` further to the right.
 In particular, we assume that users of the code sign for epochs in order and call `sk.advance_preparation()` at some point in the background
 as soon as half of the current prepared interval has passed.
 
