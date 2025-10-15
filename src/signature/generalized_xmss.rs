@@ -104,8 +104,7 @@ where
         let leafs_per_bottom_tree = 1 << (LOG_LIFETIME / 2);
         let next_prepared_end_epoch =
             self.left_bottom_tree_index * leafs_per_bottom_tree + 3 * leafs_per_bottom_tree;
-        let end_of_activation = self.activation_epoch + self.num_active_epochs;
-        if next_prepared_end_epoch > end_of_activation {
+        if next_prepared_end_epoch > self.get_activation_interval().end {
             return;
         }
 
