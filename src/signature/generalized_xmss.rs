@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use rand::Rng;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -58,8 +60,12 @@ pub struct GeneralizedXMSSPublicKey<TH: TweakableHash> {
 /// would be costly for signatures.
 #[derive(Serialize, Deserialize)]
 #[serde(bound = "")]
-pub struct GeneralizedXMSSSecretKey<PRF: Pseudorandom, TH: TweakableHash, const LOG_LIFETIME: usize>
-{
+pub struct GeneralizedXMSSSecretKey<
+    PRF: Pseudorandom,
+    IE: IncomparableEncoding,
+    TH: TweakableHash,
+    const LOG_LIFETIME: usize,
+> {
     prf_key: PRF::Key,
     parameter: TH::Parameter,
     activation_epoch: usize,
@@ -68,10 +74,15 @@ pub struct GeneralizedXMSSSecretKey<PRF: Pseudorandom, TH: TweakableHash, const 
     left_bottom_tree_index: usize,
     left_bottom_tree: HashSubTree<TH>,
     right_bottom_tree: HashSubTree<TH>,
+    _encoding_type: PhantomData<IE>,
 }
 
-impl<PRF: Pseudorandom, TH: TweakableHash, const LOG_LIFETIME: usize> SignatureSchemeSecretKey
-    for GeneralizedXMSSSecretKey<PRF, TH, LOG_LIFETIME>
+impl<PRF: Pseudorandom, IE: IncomparableEncoding, TH: TweakableHash, const LOG_LIFETIME: usize>
+    SignatureSchemeSecretKey for GeneralizedXMSSSecretKey<PRF, IE, TH, LOG_LIFETIME>
+where
+    PRF::Domain: Into<TH::Domain>,
+    PRF::Randomness: Into<IE::Randomness>,
+    TH::Parameter: Into<IE::Parameter>,
 {
     fn get_activation_interval(&self) -> std::ops::Range<u64> {
         let start = self.activation_epoch as u64;
@@ -89,29 +100,31 @@ impl<PRF: Pseudorandom, TH: TweakableHash, const LOG_LIFETIME: usize> SignatureS
     }
 
     fn advance_preparation(&mut self) {
-
         // First, check if advancing is possible by comparing to activation interval.
         let leafs_per_bottom_tree = 1 << (LOG_LIFETIME / 2);
-        let next_prepared_end_epoch = self.left_bottom_tree_index * leafs_per_bottom_tree + 3 * leafs_per_bottom_tree;
+        let next_prepared_end_epoch =
+            self.left_bottom_tree_index * leafs_per_bottom_tree + 3 * leafs_per_bottom_tree;
         let end_of_activation = self.activation_epoch + self.num_active_epochs;
         if next_prepared_end_epoch > end_of_activation {
             return;
         }
 
-      /*  // We can now drop the left bottom tree, we no longer need it. This frees memory.
-        drop(self.left_bottom_tree);
-
-        // The bottom tree that was previously right should now be left
-        // So, we move the right bottom subtree to the left one and update our index
-        self.left_bottom_tree = std::mem::replace(
-        &mut self.right_bottom_tree,
-        // Placeholder will be replaced below with new right bottom tree
-        HashSubTree::default(),
-    );
-        self.left_bottom_tree_index += 1;
-
         // We compute the new right bottom subtree (using the helper function bottom_tree_from_prf_key)
-        self.right_bottom_tree = bottom_tree_from_prf_key(&self.prf_key, self.left_bottom_tree_index + 1, &self.parameter);*/
+        let new_right_bottom_tree = bottom_tree_from_prf_key::<PRF, IE, TH, LOG_LIFETIME>(
+            &self.prf_key,
+            self.left_bottom_tree_index + 2,
+            &self.parameter,
+        );
+
+        // The bottom tree that was previously right should now be left.
+        // So, we move the right bottom subtree to the left one and update our index.
+        // We also write the new right bottom tree into the right bottom tree field.
+        // Note that once the function terminates, the old left bottom tree is dropped
+        // from memory. So, at any point in time, we have at most 4 trees in memory,
+        // namely, the three bottom trees (two current, one new) and the top tree.
+        self.left_bottom_tree =
+            std::mem::replace(&mut self.right_bottom_tree, new_right_bottom_tree);
+        self.left_bottom_tree_index += 1;
     }
 }
 
@@ -240,10 +253,11 @@ where
     PRF::Domain: Into<TH::Domain>,
     PRF::Randomness: Into<IE::Randomness>,
     TH::Parameter: Into<IE::Parameter>,
+    IE: Sync + Send,
 {
     type PublicKey = GeneralizedXMSSPublicKey<TH>;
 
-    type SecretKey = GeneralizedXMSSSecretKey<PRF, TH, LOG_LIFETIME>;
+    type SecretKey = GeneralizedXMSSSecretKey<PRF, IE, TH, LOG_LIFETIME>;
 
     type Signature = GeneralizedXMSSSignature<IE, TH>;
 
@@ -358,6 +372,7 @@ where
             left_bottom_tree_index,
             left_bottom_tree,
             right_bottom_tree,
+            _encoding_type: PhantomData,
         };
 
         (pk, sk)
@@ -672,10 +687,25 @@ mod tests {
         // we sign the same (epoch, message) pair twice (which users of this code should not do)
         // and ensure that it produces the same randomness for the signature.
         let mut rng = rand::rng();
-        let (_pk, sk) = Sig::key_gen(&mut rng, 0, 1 << LOG_LIFETIME);
+        let (_pk, mut sk) = Sig::key_gen(&mut rng, 0, 1 << LOG_LIFETIME);
         let message = rng.random();
-        let sig1 = Sig::sign(&sk, 22, &message).unwrap();
-        let sig2 = Sig::sign(&sk, 22, &message).unwrap();
+        let epoch = 29;
+
+        // prepare key for epoch
+        let mut iterations = 0;
+        while !sk.get_prepared_interval().contains(&(epoch as u64)) && iterations < epoch {
+            println!("advancing to next stage");
+            sk.advance_preparation();
+            iterations += 1;
+        }
+        assert!(
+            sk.get_prepared_interval().contains(&(epoch as u64)),
+            "Did not even try signing, failed to advance key preparation to desired epoch {:?}.",
+            epoch
+        );
+
+        let sig1 = Sig::sign(&sk, epoch, &message).unwrap();
+        let sig2 = Sig::sign(&sk, epoch, &message).unwrap();
         let rho1 = sig1.rho;
         let rho2 = sig2.rho;
         assert_eq!(rho1, rho2);
