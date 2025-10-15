@@ -236,7 +236,7 @@ where
             // build hash of chain ends / public keys
             TH::apply(parameter, &TH::tree_tweak(0, epoch as u32), &chain_ends)
         })
-        .collect::<Vec<_>>();
+        .collect();
 
     // now that we have the hashes of all chain ends (= leafs of our tree), we can compute the bottom tree
     HashSubTree::new_bottom_tree(
