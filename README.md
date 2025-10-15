@@ -14,15 +14,30 @@ If you want to use this library, the main interface is that of a *(synchronized)
 
 Importantly, each pair of secret key and epoch must not be used twice as input to `sign`.
 
+Further, the secret keys need to prepared for epochs by calling `sk.advance_preparation()`, which moves the interval `sk.get_prepared_interval()` further to the right.
+In particular, we assume that users of the code sign for epochs in order and call `sk.advance_preparation()` at some point in the background
+as soon as half of the current prepared interval has passed.
+
+
 For a signature scheme `T: SignatureScheme`, an example to use this interface may be as follows:
 ```rust
 
 // generate keys (assume we have an rng)
-let (pk, sk) = T::key_gen(&mut rng, 0, T::LIFETIME as usize);
+let (pk, mut sk) = T::key_gen(&mut rng, 0, T::LIFETIME as usize);
 
-// sign a random message for a random epoch
+// get a random message and a random epoch
 let message = rng.random();
 let epoch = rng.random_range(0..activation_duration) as u32;
+
+// make sure secret key is prepared for signing in this epoch
+let mut iterations = 0;
+while !sk.get_prepared_interval().contains(&(epoch as u64)) && iterations < epoch {
+    sk.advance_preparation();
+    iterations += 1;
+}
+assert!(sk.get_prepared_interval().contains(&(epoch as u64)));
+
+// now we can sign
 let sig = S::sign(&sk, epoch, &message);
 
 // verify the signature

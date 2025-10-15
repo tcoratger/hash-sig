@@ -694,7 +694,6 @@ mod tests {
         // prepare key for epoch
         let mut iterations = 0;
         while !sk.get_prepared_interval().contains(&(epoch as u64)) && iterations < epoch {
-            println!("advancing to next stage");
             sk.advance_preparation();
             iterations += 1;
         }
