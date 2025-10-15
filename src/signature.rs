@@ -34,7 +34,7 @@ pub trait SignatureSchemeSecretKey {
     fn get_prepared_interval(&self) -> Range<u64>;
 
     /// Advances the prepared interval to the next one with overlap of time sqrt{LIFETIME}, if possible.
-    /// Example: prepared_interval is [a, a + 2 * sqrt{LIFETIME}) before calling this. Then it it will
+    /// Example: prepared_interval is [a, a + 2 * sqrt{LIFETIME}) before calling this. Then it will
     /// be [a + sqrt{LIFETIME}, a + 3 * sqrt{LIFETIME}) after calling this, provided that this new
     /// interval is also a sub-interval of the activation interval. If not, then the prepared interval
     /// does not change.
