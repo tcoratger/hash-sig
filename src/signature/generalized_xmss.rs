@@ -348,11 +348,6 @@ where
                 .collect::<Vec<_>>(), // note: roots are in the correct order.
         );
 
-        /*for bottom_tree_index in start_bottom_tree_index+2..end_bottom_tree_index {
-            let bottom_tree = bottom_tree_from_prf_key::<R,PRF,IE,TH,LOG_LIFETIME>(rng, &prf_key, bottom_tree_index, &parameter);
-            roots_of_bottom_trees.push(bottom_tree.root());
-        }*/
-
         // second, we build the top tree, which has the roots of our bottom trees
         // as leafs. the root of it will be our public key.
         let top_tree = HashSubTree::new_top_tree(

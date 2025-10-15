@@ -210,7 +210,7 @@ where
     /// depth / 2, and ending with the root of the full tree, which is layer depth + 1.
     ///
     /// It takes as input the roots of all 2^{depth/2} bottom trees. Note that these are
-    /// exactly the nodes in layer depth / 2. The start_index indicates which bottom tree
+    /// exactly the nodes in layer depth / 2. The `start_index` indicates which bottom tree
     /// is the first that is given. It be in [0, 2^{depth/2}).
     pub fn new_top_tree<R: Rng>(
         rng: &mut R,
