@@ -67,7 +67,7 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
             let message = rng.random();
 
             // Sample random epoch
-            let epoch = rng.random_range(0..S::LIFETIME) as u32;
+            let epoch = rng.random_range(0..500) as u32;
 
             // Benchmark signing
             let _ = S::sign(black_box(&sk), black_box(epoch), black_box(&message));
@@ -78,7 +78,7 @@ pub fn benchmark_signature_scheme<S: SignatureScheme>(c: &mut Criterion, descrip
     let precomputed: Vec<(u32, [u8; MESSAGE_LENGTH], S::Signature)> = (0..2000)
         .map(|_| {
             let message = rng.random();
-            let epoch = rng.random_range(0..S::LIFETIME) as u32;
+            let epoch = rng.random_range(0..500) as u32;
             let signature = S::sign(&sk, epoch, &message).expect("Signing should succeed");
             (epoch, message, signature)
         })
