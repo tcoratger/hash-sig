@@ -126,7 +126,7 @@ where
     /// be more than `1 << (depth - lowest_layer)`.
     ///
     /// The lowest_layer nodes start at the given start index, namely, the nodes that
-    /// exist int this layer are `start, start + 1, ... start + leafs.len() - 1`
+    /// exist in this layer are `start, start + 1, ... start + leafs.len() - 1`
     ///
     /// Caller must ensure that there is enough space for the leafs, i.e.,
     /// `start_index + leafs.len() <= 1 << (depth - lowest_layer)`
