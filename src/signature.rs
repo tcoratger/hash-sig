@@ -16,31 +16,55 @@ pub enum SigningError {
 
 /// Defines the interface for a synchronized signature scheme secret key.
 ///
-/// The secret key can be used for epochs in a certain interval, called the activation
-/// interval. At any point in time, it is prepared for signing for epochs in a certain
-/// sub-interval of the activation interval (this could be the full activation interval).
-/// There is a function that changes this prepared interval to the next one, if possible.
+/// Motivation:
+/// In schemes based on Merkle trees, storing the full (sparse) Merkle tree for a key
+/// with a long lifetime is often infeasible due to memory requirements. E.g., a key
+/// with activation time of 2^32 epochs may require hundreds of gigabytes of storage.
+///
+/// This interface allows the implementation to use a "top-bottom" tree approach, in
+/// which the Merkle tree is partitioned into a single top tree and multiple bottom trees.
+/// The secret key stores the top tree at any time, and a limited window of consecutive
+/// bottom trees at any given time. This means that at any point in time, the key is only
+/// prepared to sign for a sub-interval of the activation interval.
+///
+/// This trait provides an interface to manage this sliding window of prepared intervals.
+/// The `advance_preparation` method allows the user to proactively move this window to
+/// the right, i.e., change the prepared interval to the next one, if possible.
 pub trait SignatureSchemeSecretKey {
-    /// Returns the interval during which this key is currently active.
-    /// This is guaranteed to be a superset of the activation interval that has been
-    /// passed during key generation. It starts at a multiple of sqrt{LIFETIME} and
-    /// its length is also a multiple of sqrt{LIFETIME}. Its length is at least
-    /// 2 * sqrt{LIFETIME}. The activation interval does not change.
+    /// Returns the total interval of epochs for which this key is valid.
+    ///
+    /// This interval is determined during key generation and remains constant
+    /// throughout the key's lifetime.
+    ///
+    /// The interval is guaranteed to:
+    /// - Be a superset of the lifetime specified during key generation.
+    /// - Start at a multiple of `sqrt(LIFETIME)`.
+    /// - Have a length that is a multiple of `sqrt(LIFETIME)`.
+    /// - Have a minimum length of `2 * sqrt(LIFETIME)`.
     fn get_activation_interval(&self) -> Range<u64>;
 
-    /// Returns the interval for which this key has been prepared (for signing future messages).
-    /// It's a sub-interval of the activation interval. It starts at a multiple of sqrt{LIFETIME}.
-    /// It has length exactly 2 * sqrt{LIFETIME}.
+    /// Returns the sub-interval for which the key is currently prepared to sign messages.
+    ///
+    /// This "prepared interval" represents a sliding window over the activation interval.
+    ///
+    /// It is guaranteed to:
+    /// - Be a sub-interval of the `activation_interval`.
+    /// - Start at a multiple of `sqrt(LIFETIME)`.
+    /// - Have a fixed length of exactly `2 * sqrt(LIFETIME)`.
+    ///
+    /// Note: it can be changed by calling `advance_preparation`.
     fn get_prepared_interval(&self) -> Range<u64>;
 
-    /// Advances the prepared interval to the next one with overlap of time sqrt{LIFETIME}, if possible.
-    /// Example: prepared_interval is [a, a + 2 * sqrt{LIFETIME}) before calling this. Then it will
-    /// be [a + sqrt{LIFETIME}, a + 3 * sqrt{LIFETIME}) after calling this, provided that this new
-    /// interval is also a sub-interval of the activation interval. If not, then the prepared interval
-    /// does not change.
+    /// Advances the prepared interval to the next one while maintaining an overlap
+    /// to ensure a seamless transition. If the next interval would extend beyond the
+    /// key's total activation interval, this function does nothing.
     ///
-    /// Note: the caller should only call this if signing for the epochs in [a, a + sqrt{LIFETIME}) is
-    /// no longer needed.
+    /// ### Example
+    /// If the prepared interval is `[a, a + 2 * sqrt(LIFETIME))`, a call to this
+    /// function will advance it to `[a + sqrt(LIFETIME), a + 3 * sqrt(LIFETIME))`.
+    ///
+    /// The caller is responsible for invoking this method only after signing for epochs
+    /// in the first `sqrt(LIFETIME)` part of the current interval is complete.
     fn advance_preparation(&mut self);
 }
 
