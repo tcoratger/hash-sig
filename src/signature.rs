@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use crate::MESSAGE_LENGTH;
 use rand::Rng;
 use serde::{Serialize, de::DeserializeOwned};
@@ -10,6 +12,60 @@ pub enum SigningError {
     /// after the maximum number of attempts.
     #[error("Failed to encode message after {attempts} attempts.")]
     EncodingAttemptsExceeded { attempts: usize },
+}
+
+/// Defines the interface for a synchronized signature scheme secret key.
+///
+/// Motivation:
+/// In schemes based on Merkle trees, storing the full (sparse) Merkle tree for a key
+/// with a long lifetime is often infeasible due to memory requirements. E.g., a key
+/// with activation time of 2^32 epochs may require hundreds of gigabytes of storage.
+///
+/// This interface allows the implementation to use a "top-bottom" tree approach, in
+/// which the Merkle tree is partitioned into a single top tree and multiple bottom trees.
+/// The secret key stores the top tree at any time, and a limited window of consecutive
+/// bottom trees at any given time. This means that at any point in time, the key is only
+/// prepared to sign for a sub-interval of the activation interval.
+///
+/// This trait provides an interface to manage this sliding window of prepared intervals.
+/// The `advance_preparation` method allows the user to proactively move this window to
+/// the right, i.e., change the prepared interval to the next one, if possible.
+pub trait SignatureSchemeSecretKey {
+    /// Returns the total interval of epochs for which this key is valid.
+    ///
+    /// This interval is determined during key generation and remains constant
+    /// throughout the key's lifetime.
+    ///
+    /// The interval is guaranteed to:
+    /// - Be a superset of the lifetime specified during key generation.
+    /// - Start at a multiple of `sqrt(LIFETIME)`.
+    /// - Have a length that is a multiple of `sqrt(LIFETIME)`.
+    /// - Have a minimum length of `2 * sqrt(LIFETIME)`.
+    fn get_activation_interval(&self) -> Range<u64>;
+
+    /// Returns the sub-interval for which the key is currently prepared to sign messages.
+    ///
+    /// This "prepared interval" represents a sliding window over the activation interval.
+    ///
+    /// It is guaranteed to:
+    /// - Be a sub-interval of the `activation_interval`.
+    /// - Start at a multiple of `sqrt(LIFETIME)`.
+    /// - Have a fixed length of exactly `2 * sqrt(LIFETIME)`.
+    ///
+    /// Note: it can be changed by calling `advance_preparation`.
+    fn get_prepared_interval(&self) -> Range<u64>;
+
+    /// Advances the prepared interval to the next one while maintaining an overlap
+    /// to ensure a seamless transition. If the next interval would extend beyond the
+    /// key's total activation interval, this function does nothing.
+    ///
+    /// ### Example
+    /// If the prepared interval is `[a, a + 2 * sqrt(LIFETIME))`, a call to this
+    /// function will advance it to `[a + sqrt(LIFETIME), a + 3 * sqrt(LIFETIME))`.
+    ///
+    /// The caller is responsible for invoking this method only after signing for epochs
+    /// in the first `sqrt(LIFETIME)` part of the current interval is complete.
+    fn advance_preparation(&mut self);
 }
 
 /// Defines the interface for a **synchronized signature scheme**.
@@ -45,7 +101,7 @@ pub trait SignatureScheme {
     /// The secret key used for signing.
     ///
     /// The key must be serializable for persistence and secure backup.
-    type SecretKey: Serialize + DeserializeOwned;
+    type SecretKey: SignatureSchemeSecretKey + Serialize + DeserializeOwned;
 
     /// The signature object produced by the signing algorithm.
     ///
@@ -167,10 +223,32 @@ mod test_templates {
         activation_epoch: usize,
         num_active_epochs: usize,
     ) {
+        // The epoch must be in the activation interval
+        assert!(
+            activation_epoch as u32 <= epoch
+                && epoch < (activation_epoch + num_active_epochs) as u32,
+            "Did not even try signing, epoch {:?} outside of activation interval {:?},{:?}",
+            epoch,
+            activation_epoch,
+            num_active_epochs
+        );
+
         let mut rng = rand::rng();
 
         // Generate a key pair
-        let (pk, sk) = T::key_gen(&mut rng, activation_epoch, num_active_epochs);
+        let (pk, mut sk) = T::key_gen(&mut rng, activation_epoch, num_active_epochs);
+
+        // Advance the secret key until the epoch is in the prepared interval
+        let mut iterations = 0;
+        while !sk.get_prepared_interval().contains(&(epoch as u64)) && iterations < epoch {
+            sk.advance_preparation();
+            iterations += 1;
+        }
+        assert!(
+            sk.get_prepared_interval().contains(&(epoch as u64)),
+            "Did not even try signing, failed to advance key preparation to desired epoch {:?}.",
+            epoch
+        );
 
         // Sample random test message
         let message = rng.random();
